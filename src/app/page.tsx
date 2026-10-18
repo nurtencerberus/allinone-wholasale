@@ -33,7 +33,7 @@ import { formatMoney } from "@/lib/money";
 export const metadata = {
   title: "Wholesale Vitamins, Pantry Staples & Home Goods",
   description:
-    "Buy by the case from Meridian Supply Co.: supplements, shelf-stable pantry staples and home goods. Verified EIN resale tax exemption, dimensional freight quotes and net 30 terms.",
+    "Buy by the case from Ciputra Corp.: supplements, shelf-stable pantry staples and home goods. Verified EIN resale tax exemption, dimensional freight quotes and net 30 terms.",
   alternates: { canonical: "/" },
 };
 
@@ -461,7 +461,7 @@ export default async function HomePage() {
         <div className="wrap grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
             <p className="text-[11px] font-bold tracking-[0.24em] text-gold uppercase">
-              Meridian trade account
+              Ciputra trade account
             </p>
             <h2 className="display mt-3 text-[34px] leading-tight text-cream sm:text-[44px]">
               Your pricing should look like your business, not a retail tag.

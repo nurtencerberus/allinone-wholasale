@@ -198,9 +198,9 @@ export function normalizeCatalogPayload(payload: unknown): {
       name,
       category,
       tagline: String(row.tagline ?? row.subtitle ?? "").trim() || `${caseSize} units per case · case-packed`,
-      description: String(row.description ?? row.body ?? "").trim() || `${name} — wholesale case pricing from Meridian Supply Co.`,
-      story: String(row.story ?? row.sourcing ?? "").trim() || "Sourced and case-packed by Meridian Supply Co.",
-      brand: String(row.brand ?? row.vendor ?? "Meridian Supply Co.").trim(),
+      description: String(row.description ?? row.body ?? "").trim() || `${name} — wholesale case pricing from Ciputra Corp.`,
+      story: String(row.story ?? row.sourcing ?? "").trim() || "Sourced and case-packed by Ciputra Corp.",
+      brand: String(row.brand ?? row.vendor ?? "Ciputra Corp.").trim(),
       origin: String(row.origin ?? row.country ?? "United States").trim(),
       msrpUnit: msrpUnit * scale,
       casePrice: casePrice * scale,
@@ -240,7 +240,7 @@ export function normalizeCatalogPayload(payload: unknown): {
 export function serializeCatalog(rows: Product[]): CatalogExport {
   return {
     exportedAt: new Date().toISOString(),
-    generator: "Meridian Supply Co. admin catalog export",
+    generator: "Ciputra Corp. admin catalog export",
     currency: "cents",
     count: rows.length,
     products: rows,

@@ -77,8 +77,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (body.verifyEmail === true && !existing.emailVerified) {
       await sendEmail({
         to: updated.email,
-        subject: "Your Meridian email is confirmed",
-        html: `<p>Hi ${escapeHtml(updated.name.split(" ")[0])},</p><p>Your email address has been confirmed by the Meridian trade desk. Ordering is now enabled on your account.</p><p>— Meridian Supply Co.</p>`,
+        subject: "Your Ciputra email is confirmed",
+        html: `<p>Hi ${escapeHtml(updated.name.split(" ")[0])},</p><p>Your email address has been confirmed by the Ciputra trade desk. Ordering is now enabled on your account.</p><p>— Ciputra Corp.</p>`,
       });
     }
 

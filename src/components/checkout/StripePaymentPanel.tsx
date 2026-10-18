@@ -49,7 +49,7 @@ function InnerForm({
       <p className="flex items-start gap-2 text-[10.5px] leading-relaxed text-ink/50">
         <Lock size={12} className="mt-0.5 shrink-0" />
         Card details are entered inside Stripe-hosted iframes and tokenised before they reach our
-        servers. Meridian never receives, logs or stores a card number — SAQ-A scope.
+        servers. Ciputra never receives, logs or stores a card number — SAQ-A scope.
       </p>
       {message ? (
         <p className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] text-clay">{message}</p>

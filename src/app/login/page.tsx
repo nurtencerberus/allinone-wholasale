@@ -4,7 +4,7 @@ import { demoModeEnabled } from "@/lib/demo-mode";
 
 export const metadata = {
   title: "Trade portal sign in",
-  description: "Sign in to the Meridian Supply Co. wholesale portal.",
+  description: "Sign in to the Ciputra Corp. wholesale portal.",
   robots: { index: false, follow: false },
 };
 

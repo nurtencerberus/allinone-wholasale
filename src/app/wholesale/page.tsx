@@ -22,7 +22,7 @@ import { formatMoney } from "@/lib/money";
 export const metadata = {
   title: "Wholesale program · account pricing, resale tax exemption & LTL freight",
   description:
-    "Meridian Supply Co.'s B2B wholesale program: EIN verification, account-specific contract pricing, resale tax exemption, dimensional freight quotes and net 30 terms for US retailers.",
+    "Ciputra Corp.'s B2B wholesale program: EIN verification, account-specific contract pricing, resale tax exemption, dimensional freight quotes and net 30 terms for US retailers.",
   alternates: { canonical: "/wholesale" },
 };
 
@@ -326,7 +326,7 @@ export default function WholesalePage() {
               Tax is a function of the destination ZIP, not a guess.
             </h2>
             <p className="mt-4 text-[13px] leading-relaxed text-cream/65">
-              We collect destination-based sales tax where Meridian has nexus. The checkout engine resolves
+              We collect destination-based sales tax where Ciputra has nexus. The checkout engine resolves
               the jurisdiction from the ZIP and applies the combined state and local rate to goods plus
               taxable freight. Verified resale accounts are zero-rated automatically, with the certificate
               stored against the account record.

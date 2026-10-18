@@ -5,7 +5,7 @@ import { WholesaleApplyForm } from "@/components/WholesaleApplyForm";
 export const metadata = {
   title: "Apply for a wholesale trade account",
   description:
-    "Apply for Meridian Supply Co. wholesale pricing: EIN verification, account-specific contract pricing and resale tax exemption for US retailers.",
+    "Apply for Ciputra Corp. wholesale pricing: EIN verification, account-specific contract pricing and resale tax exemption for US retailers.",
   alternates: { canonical: "/wholesale/apply" },
 };
 

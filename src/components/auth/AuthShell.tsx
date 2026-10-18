@@ -7,7 +7,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
     <div className="wrap grid gap-12 py-12 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:py-16">
       <div className="order-2 lg:order-1">{children}</div>
       <div className="order-1 overflow-hidden rounded-2xl bg-ink p-8 text-cream lg:order-2 lg:p-10">
-        <p className="text-[10px] font-bold tracking-[0.24em] text-gold uppercase">Meridian trade portal</p>
+        <p className="text-[10px] font-bold tracking-[0.24em] text-gold uppercase">Ciputra trade portal</p>
         <h2 className="display mt-3 text-[30px] leading-tight text-cream sm:text-[34px]">
           One login for pricing, freight and allocations.
         </h2>

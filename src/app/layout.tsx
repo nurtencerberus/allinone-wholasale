@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.domain),
   title: {
-    default: "Meridian Supply Co. — Wholesale Vitamins, Pantry Staples & Home Goods",
-    template: "%s · Meridian Supply Co.",
+    default: "Ciputra Corp. — Wholesale Vitamins, Pantry Staples & Home Goods",
+    template: "%s · Ciputra Corp.",
   },
   description: SITE.description,
   keywords: [
@@ -28,16 +28,16 @@ export const metadata: Metadata = {
     "LTL freight wholesale",
   ],
   openGraph: {
-    title: "Meridian Supply Co. — Wholesale for modern American retail",
+    title: "Ciputra Corp. — Wholesale for modern American retail",
     description: SITE.description,
     type: "website",
     url: SITE.domain,
     siteName: SITE.name,
-    images: [{ url: "/images/hero-warehouse.jpg", width: 1200, height: 630, alt: "Meridian Supply Co. warehouse" }],
+    images: [{ url: "/images/hero-warehouse.jpg", width: 1200, height: 630, alt: "Ciputra Corp. warehouse" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meridian Supply Co. — Wholesale for modern American retail",
+    title: "Ciputra Corp. — Wholesale for modern American retail",
     description: SITE.description,
   },
   robots: { index: true, follow: true },

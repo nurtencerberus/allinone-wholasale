@@ -74,7 +74,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await sendEmail({
         to: existing.email,
         subject: `Order ${existing.orderNumber} has shipped`,
-        html: `<p>Hi ${escapeHtml(existing.customerName.split(" ")[0])},</p><p>Order <strong>${existing.orderNumber}</strong> is on the way with ${escapeHtml(carrier)}. Tracking number: <strong>${escapeHtml(trackingNumber)}</strong>.</p><p>— Meridian Supply Co. trade desk</p>`,
+        html: `<p>Hi ${escapeHtml(existing.customerName.split(" ")[0])},</p><p>Order <strong>${existing.orderNumber}</strong> is on the way with ${escapeHtml(carrier)}. Tracking number: <strong>${escapeHtml(trackingNumber)}</strong>.</p><p>— Ciputra Corp. trade desk</p>`,
       });
     }
 

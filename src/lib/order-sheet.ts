@@ -95,12 +95,12 @@ function rowData(product: OrderSheetProduct) {
 export async function buildOrderSheetXlsx(products: OrderSheetProduct[]): Promise<Buffer> {
   const { Workbook } = await import("exceljs");
   const workbook = new Workbook();
-  workbook.creator = "Meridian Supply Co.";
+  workbook.creator = "Ciputra Corp.";
   workbook.created = new Date();
   workbook.modified = new Date();
-  workbook.title = "Meridian Supply Co. wholesale order sheet";
+  workbook.title = "Ciputra Corp. wholesale order sheet";
   workbook.subject = "Bulk case order form";
-  workbook.company = "Meridian Supply Co.";
+  workbook.company = "Ciputra Corp.";
 
   // Sheet 1 — fillable order form -------------------------------------
   const orderSheet = workbook.addWorksheet("Order Sheet", {
@@ -249,7 +249,7 @@ export async function buildOrderSheetXlsx(products: OrderSheetProduct[]): Promis
   const guide = workbook.addWorksheet("How to order");
   guide.columns = [{ width: 4 }, { width: 92 }];
   const steps = [
-    ["", "Meridian Supply Co. — wholesale order sheet"],
+    ["", "Ciputra Corp. — wholesale order sheet"],
     ["", `${products.length} active SKUs · case-packed · FOB Paterson, NJ 07503`],
     ["", ""],
     ["1.", "Download this workbook from your trade portal or /quick-order."],

@@ -98,7 +98,7 @@ export async function quoteTax(input: {
     taxable,
     note: taxable
       ? "Destination-based nexus rate including average local district tax. Freight taxable in this state."
-      : "Meridian Supply Co. is not required to collect sales tax in this state — no nexus.",
+      : "Ciputra Corp. is not required to collect sales tax in this state — no nexus.",
   };
 }
 

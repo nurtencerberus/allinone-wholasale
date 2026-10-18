@@ -60,7 +60,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
             <Link href="/" className="group flex flex-col leading-none">
-              <span className="display text-[24px] sm:text-[27px]">Meridian</span>
+              <span className="display text-[24px] sm:text-[27px]">Ciputra</span>
               <span className="text-[8.5px] font-semibold tracking-[0.36em] text-fern uppercase">
                 Supply Co.
               </span>

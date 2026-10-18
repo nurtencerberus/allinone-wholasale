@@ -224,7 +224,7 @@ export function validateProductInput(body: unknown): Result {
     ];
   }
 
-  const brand = text(input.brand, 80) || "Meridian Supply Co.";
+  const brand = text(input.brand, 80) || "Ciputra Corp.";
   return {
     ok: true,
     values: {

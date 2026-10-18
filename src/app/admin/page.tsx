@@ -38,7 +38,7 @@ export default async function AdminPage() {
         </span>
         <h1 className="display mt-4 text-[30px]">Admin access required</h1>
         <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/60">
-          You are signed in as {user.email}. This portal is restricted to Meridian trade operations staff.
+          You are signed in as {user.email}. This portal is restricted to Ciputra trade operations staff.
           Use the seeded admin account to review applications, buyers and shipments.
         </p>
         <div className="mt-5 flex gap-2">

@@ -79,7 +79,7 @@ async function seedSampleWholesaleLists(): Promise<void> {
     },
     {
       title: "Full trade cost sheet — all departments",
-      supplier: "Meridian Supply Co. trade desk",
+      supplier: "Ciputra Corp. trade desk",
       description:
         "Sample trade-only list: visible after signing in with an approved wholesale account (try buyer@harborhouse.com).",
       category: "mixed",
@@ -184,7 +184,7 @@ async function seed(): Promise<void> {
         email: "admin@meridiansupply.co",
         passwordHash: hashPassword("Admin123!"),
         name: "Avery Merchant",
-        company: "Meridian Supply Co.",
+        company: "Ciputra Corp.",
         role: "admin",
         emailVerified: true,
         accountTier: "wholesale",

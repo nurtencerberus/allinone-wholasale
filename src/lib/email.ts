@@ -59,7 +59,7 @@ const shell = (heading: string, body: string, cta?: { label: string; url: string
 <div style="background:#F7F3EA;padding:32px 16px;font-family:Helvetica,Arial,sans-serif;color:#14241C">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E4DCCB;border-radius:16px;overflow:hidden">
     <div style="background:#14241C;color:#F7F3EA;padding:20px 28px">
-      <div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#C9B78E">Meridian Supply Co.</div>
+      <div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#C9B78E">Ciputra Corp.</div>
       <div style="font-size:14px;color:#D8D2C2;margin-top:4px">Wholesale · ${SITE.city}, ${SITE.state}</div>
     </div>
     <div style="padding:28px">
@@ -77,7 +77,7 @@ const shell = (heading: string, body: string, cta?: { label: string; url: string
 </div>`;
 
 export const verifyEmailTemplate = (name: string, url: string) => ({
-  subject: "Confirm your Meridian trade account",
+  subject: "Confirm your Ciputra trade account",
   html: shell(
     `Confirm your email, ${escapeHtml(name.split(" ")[0])}`,
     "You are one step from case pricing, dimensional freight quotes and resale tax exemption. Confirm your email address to activate ordering on your account. This link is single-use and expires in 24 hours.",
@@ -86,7 +86,7 @@ export const verifyEmailTemplate = (name: string, url: string) => ({
 });
 
 export const resetPasswordTemplate = (url: string) => ({
-  subject: "Reset your Meridian password",
+  subject: "Reset your Ciputra password",
   html: shell(
     "Reset your password",
     "Use the single-use link below to set a new password. The link expires in 60 minutes. If you did not request a reset, no action is needed and your password stays unchanged.",
@@ -100,7 +100,7 @@ export const orderConfirmationTemplate = (input: {
   total: string;
   url: string;
 }) => ({
-  subject: `Order ${escapeHtml(input.orderNumber)} confirmed · Meridian Supply Co.`,
+  subject: `Order ${escapeHtml(input.orderNumber)} confirmed · Ciputra Corp.`,
   html: shell(
     `Thank you, ${escapeHtml(input.name.split(" ")[0])}.`,
     `Order <strong>${escapeHtml(input.orderNumber)}</strong> for <strong>${escapeHtml(input.total)}</strong> is confirmed and queued for picking at our ${SITE.city}, ${SITE.state} warehouse. Tracking is added to your account the moment the carrier scans the pallet.`,
@@ -116,8 +116,8 @@ export const wholesaleDecisionTemplate = (input: {
   url: string;
 }) => ({
   subject: input.approved
-    ? "Your Meridian wholesale account is approved"
-    : "Update on your Meridian wholesale application",
+    ? "Your Ciputra wholesale account is approved"
+    : "Update on your Ciputra wholesale application",
   html: shell(
     input.approved ? `Welcome aboard, ${escapeHtml(input.company)}` : `Application update · ${escapeHtml(input.company)}`,
     input.approved

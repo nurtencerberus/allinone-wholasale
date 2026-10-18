@@ -98,7 +98,7 @@ function matrixOptions(input: {
     const ltlBase = Math.max(18500, Math.round(11500 + zone * 900 + lbs * 20));
     options.push({
       id: "ltl-freight",
-      carrier: "Meridian Freight (LTL)",
+      carrier: "Ciputra Freight (LTL)",
       service: "Curbside LTL · pallet build",
       cost: ltlBase,
       transitDays: "4–7 business days",
@@ -109,7 +109,7 @@ function matrixOptions(input: {
     });
     options.push({
       id: "ltl-freight-appointment",
-      carrier: "Meridian Freight (LTL)",
+      carrier: "Ciputra Freight (LTL)",
       service: "Inside delivery · appointment + liftgate",
       cost: Math.round(ltlBase * 1.22),
       transitDays: "5–8 business days",
@@ -294,6 +294,6 @@ export async function quoteShipping(input: {
     palletised: summary.palletised,
     source: "dimensional_matrix",
     zone: zoneFor(input.state),
-    note: "Priced with the Meridian dimensional freight matrix (billable weight = greater of actual and dim weight, dim divisor 139).",
+    note: "Priced with the Ciputra dimensional freight matrix (billable weight = greater of actual and dim weight, dim divisor 139).",
   };
 }

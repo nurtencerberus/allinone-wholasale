@@ -172,7 +172,7 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
                       }
                       className="w-[110px] rounded border border-ink/20 bg-white px-1.5 py-1 text-[10.5px]"
                     >
-                      {["UPS", "FedEx", "USPS", "Meridian Freight"].map((carrier) => (
+                      {["UPS", "FedEx", "USPS", "Ciputra Freight"].map((carrier) => (
                         <option key={carrier} value={carrier}>{carrier}</option>
                       ))}
                     </select>

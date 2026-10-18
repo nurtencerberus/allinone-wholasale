@@ -17,7 +17,7 @@ type SearchParams = {
 export const metadata = {
   title: "Wholesale catalog · case pricing",
   description:
-    "Browse every Meridian Supply Co. wholesale SKU: supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.",
+    "Browse every Ciputra Corp. wholesale SKU: supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.",
   alternates: { canonical: "/shop" },
 };
 

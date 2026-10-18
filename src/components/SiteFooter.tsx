@@ -59,7 +59,7 @@ export function SiteFooter() {
       <div className="wrap grid gap-10 py-14 md:grid-cols-[1.3fr_repeat(3,1fr)]">
         <div>
           <div className="flex flex-col leading-none">
-            <span className="display text-[26px] text-cream">Meridian</span>
+            <span className="display text-[26px] text-cream">Ciputra</span>
             <span className="text-[8.5px] font-semibold tracking-[0.36em] text-sage uppercase">
               Supply Co.
             </span>
@@ -109,7 +109,7 @@ export function SiteFooter() {
 
       <div className="border-t border-cream/12">
         <div className="wrap flex flex-col gap-4 py-6 text-[11px] text-cream/50 md:flex-row md:items-center md:justify-between">
-          <p>© 2026 Meridian Supply Co. · Prices in USD, FOB Paterson NJ.</p>
+          <p>© 2026 Ciputra Corp. · Prices in USD, FOB Paterson NJ.</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span>Secure payments by Stripe · PCI-DSS SAQ-A</span>
             <span className="hidden h-3 w-px bg-cream/20 sm:block" />

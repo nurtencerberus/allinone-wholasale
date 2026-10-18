@@ -562,7 +562,7 @@ export function CheckoutFlow({
                   <Ruler size={12} className="mt-0.5 shrink-0" />
                   {quote.shippingNote} Sourced from{" "}
                   <strong className="font-semibold">
-                    {quote.shippingSource === "easypost" ? "EasyPost live rates" : "Meridian dimensional matrix"}
+                    {quote.shippingSource === "easypost" ? "EasyPost live rates" : "Ciputra dimensional matrix"}
                   </strong>.
                 </p>
 

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
       amount: priced.total,
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      description: `Meridian Supply Co. — ${priced.cases} case(s), ${priced.unitCount} units`,
+      description: `Ciputra Corp. — ${priced.cases} case(s), ${priced.unitCount} units`,
       receipt_email: body.email || user?.email || undefined,
       metadata: {
         account: user?.email ?? body.email ?? "guest",
