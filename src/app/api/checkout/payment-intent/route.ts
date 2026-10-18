@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { getSessionUser } from "@/lib/auth";
 import { priceCart, type CartItemInput, type CheckoutAddress } from "@/lib/checkout";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
 
 export async function POST(request: Request) {
@@ -31,10 +32,20 @@ export async function POST(request: Request) {
       return Response.json({ error: "Order total is below the card minimum." }, { status: 400 });
     }
 
-    const secretKey = process.env.STRIPE_SECRET_KEY;
-    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
+    const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
 
     if (!secretKey || !publishableKey) {
+      if (!demoModeEnabled()) {
+        return Response.json({
+          mode: "unavailable",
+          clientSecret: null,
+          publishableKey: null,
+          amount: priced.total,
+          quote: priced,
+          message: "Card payments are not enabled on this store yet.",
+        });
+      }
       return Response.json({
         mode: "demo",
         clientSecret: null,

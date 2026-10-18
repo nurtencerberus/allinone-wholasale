@@ -4,7 +4,8 @@ import { ensureSeeded } from "@/lib/seed";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+// Vercel Functions reject request bodies over 4.5 MB, so stay safely under it.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "The attached file is empty." }, { status: 400 });
     }
     if (file.size > MAX_BYTES) {
-      return Response.json({ error: "Files are limited to 8 MB." }, { status: 400 });
+      return Response.json({ error: "Files are limited to 4 MB." }, { status: 400 });
     }
 
     const data = Buffer.from(await file.arrayBuffer());

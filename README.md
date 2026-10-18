@@ -28,7 +28,7 @@ Requires Node 20+ and a PostgreSQL database.
 ```bash
 npm install
 cp .env.example .env          # then edit DATABASE_URL
-npx drizzle-kit push --url "$DATABASE_URL"   # create the tables (drizzle.config.json does not read .env)
+psql "$DATABASE_URL" -f db/schema.sql   # create the tables (empty database only)
 npm run dev                   # http://localhost:3000
 ```
 
@@ -43,7 +43,9 @@ The catalog, reviews, coupons and demo data are seeded automatically on the firs
 | Retail customer | `customer@example.com` | `Customer123!` |
 
 These credentials are in the source. **Keep this repository private**, and set
-`SEED_DEMO_DATA=false` on any deployment that is reachable from the internet.
+`SEED_DEMO_DATA=false` on any deployment that is reachable from the internet. In that live mode
+nothing is seeded (the store starts empty), demo-only content is hidden and card payments stay
+off until Stripe keys are set — see [`DEPLOYMENT.md`](./DEPLOYMENT.md).
 
 ## Environment variables
 
@@ -57,7 +59,7 @@ See [`.env.example`](./.env.example). Only `DATABASE_URL` is required. Every int
 npm run build                      # production build (needs DATABASE_URL)
 npm run start                      # serve the production build
 npm exec tsc -- --noEmit           # type check
-npx drizzle-kit push --url "$DATABASE_URL"   # apply schema changes
+npx drizzle-kit push --dialect=postgresql --schema=./src/db/schema.ts --url="$DATABASE_URL"   # apply schema changes (all three flags are required)
 ```
 
 ## Project layout
@@ -72,6 +74,7 @@ public/images/      product and category photos
 
 ## Documentation
 
-- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — going live (Vercel or a VPS), environment, checklist.
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — going live on ciputracorp.com (Vercel + Neon + GoDaddy DNS), checklist.
+- [`db/schema.sql`](./db/schema.sql) — the full schema as SQL, for a fresh database (e.g. Neon's SQL Editor).
 - [`B2B_ROADMAP.md`](./B2B_ROADMAP.md) — review findings and phased work plan.
 - [`MIGRATION.md`](./MIGRATION.md) — moving content and catalog data from another project.

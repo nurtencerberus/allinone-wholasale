@@ -26,13 +26,14 @@ import { getSessionUser } from "@/lib/auth";
 import { canAccessTrade } from "@/lib/wholesale-lists";
 import { listStaticDownloads } from "@/lib/downloads";
 import { ensureSeeded } from "@/lib/seed";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { CATEGORIES, SITE } from "@/lib/site";
 import { formatMoney } from "@/lib/money";
 
 export const metadata = {
   title: "Wholesale Vitamins, Pantry Staples & Home Goods",
   description:
-    "Buy by the case from Meridian Supply Co.: NSF-certified supplements, shelf-stable pantry staples and small-batch home goods. Verified EIN resale tax exemption, dimensional freight quotes and net 30 terms.",
+    "Buy by the case from Meridian Supply Co.: supplements, shelf-stable pantry staples and home goods. Verified EIN resale tax exemption, dimensional freight quotes and net 30 terms.",
   alternates: { canonical: "/" },
 };
 
@@ -79,8 +80,8 @@ const VALUE_PROPS = [
   },
   {
     icon: Package,
-    title: "Retail-ready packaging",
-    body: "Shelf-talkers, CoAs, tester cards and shelf-life cards ship inside the case — not as a separate kit you have to chase.",
+    title: "Case-packed and measured",
+    body: "Every SKU is case-packed with a published carton weight and dimensions, so you know exactly what lands on your dock.",
   },
 ];
 
@@ -95,15 +96,15 @@ const FAQ = [
   },
   {
     q: "What are the payment terms?",
-    a: "All orders are paid by card at checkout through Stripe. Approved accounts can request net 30 after two prepaid orders; once enabled, the portal will issue an invoice on ship date instead of charging the card.",
+    a: "Pay by card, by ACH or wire transfer, or — for approved trade accounts — on Net-30 terms against a purchase order. Card payments are processed by Stripe; card numbers never reach our servers.",
   },
   {
     q: "Is sales tax charged on wholesale orders?",
     a: "Tax is calculated dynamically from the destination ZIP using destination-based nexus rules. Approved resale accounts with a verified EIN and certificate are marked tax-exempt for their registered state and pay no sales tax at checkout.",
   },
   {
-    q: "Can you drop-ship and provide retail-ready assets?",
-    a: "Yes. Approved accounts get product group photography, spec sheets and CoA packets on request. Drop-shipping is available on parcel-eligible SKUs with your branding on the packing slip.",
+    q: "Do you offer drop-shipping or product assets?",
+    a: "Ask the trade desk. Availability of product photography, spec sheets and drop-shipping depends on the product and your account — email us and we will confirm before you order.",
   },
 ];
 
@@ -202,6 +203,9 @@ export default async function HomePage() {
   }
 
   const sample = featured[0];
+  // Invented social proof (customer counts, ratings, certifications, testimonials) is shown on
+  // demo deployments only. A live store must never publish claims it cannot back up.
+  const demo = demoModeEnabled();
   const sampleMsrpCase = sample ? sample.msrpUnit * sample.caseSize : 0;
 
   return (
@@ -244,6 +248,7 @@ export default async function HomePage() {
                 <FileSpreadsheet size={15} /> Wholesale lists (XLSX / CSV)
               </a>
             </div>
+            {demo ? (
             <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-ink/10 pt-6 sm:grid-cols-4">
               {PROOF.map((item) => (
                 <div key={item.label}>
@@ -254,6 +259,7 @@ export default async function HomePage() {
                 </div>
               ))}
             </div>
+            ) : null}
           </div>
 
           <div className="relative">
@@ -271,40 +277,45 @@ export default async function HomePage() {
                   <MapPin size={11} /> {SITE.city}, {SITE.state}
                 </p>
               </div>
+              {sample ? (
               <div className="absolute inset-x-4 bottom-4 rounded-xl border border-cream/20 bg-ink/75 p-4 backdrop-blur-md">
                 <div className="flex items-end justify-between gap-3">
                   <div>
                     <p className="text-[9.5px] font-bold tracking-[0.18em] text-sage uppercase">
-                      Case of 12 · trade price
+                      Case of {sample.caseSize} · trade price
                     </p>
                     <p className="display mt-1 text-[26px] text-cream">
-                      {sample ? formatMoney(sample.casePrice) : "$118.80"}
+                      {formatMoney(sample.casePrice)}
                       <span className="ml-1.5 text-[11px] font-sans text-cream/60">/ case</span>
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[9.5px] font-bold tracking-[0.18em] text-sage uppercase">MSRP case</p>
                     <p className="mt-1 text-[15px] font-semibold text-cream/85 tabular-nums">
-                      {sample ? formatMoney(sampleMsrpCase) : "$299.88"}
+                      {formatMoney(sampleMsrpCase)}
                     </p>
                     <p className="text-[9.5px] text-cream/50">
-                      {sample && sampleMsrpCase ? Math.round(((sampleMsrpCase - sample.casePrice) / sampleMsrpCase) * 100) : 60}% margin
+                      {sampleMsrpCase ? Math.round(((sampleMsrpCase - sample.casePrice) / sampleMsrpCase) * 100) : 0}% margin
                     </p>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-2 border-t border-cream/15 pt-2.5 text-[10px] text-cream/65">
                   <Truck size={12} /> Dimensional freight quoted at checkout
-                  <span className="ml-auto flex items-center gap-1">
-                    <Star size={10} className="fill-gold text-gold" /> 4.8 trade rating
-                  </span>
+                  {demo ? (
+                    <span className="ml-auto flex items-center gap-1">
+                      <Star size={10} className="fill-gold text-gold" /> 4.8 trade rating
+                    </span>
+                  ) : null}
                 </div>
               </div>
+              ) : null}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Certification strip --------------------------------------- */}
+      {/* Certification strip (demo only) ----------------------------- */}
+      {demo ? (
       <div className="border-b border-ink/10 bg-parchment/60">
         <div className="wrap flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-4 text-[10px] font-bold tracking-[0.18em] text-ink/45 uppercase">
           <span>NSF Certified</span>
@@ -320,6 +331,7 @@ export default async function HomePage() {
           <span>Stripe PCI-DSS</span>
         </div>
       </div>
+      ) : null}
 
       {/* Categories ------------------------------------------------ */}
       <section className="wrap py-16 lg:py-20">
@@ -331,7 +343,7 @@ export default async function HomePage() {
             </h2>
           </div>
           <Link href="/shop" className="group inline-flex items-center gap-2 text-[12.5px] font-bold text-ink">
-            All 12 SKUs
+            Browse all products
             <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
@@ -368,6 +380,7 @@ export default async function HomePage() {
       </section>
 
       {/* Featured products ----------------------------------------- */}
+      {featured.length > 0 ? (
       <section className="border-y border-ink/10 bg-[#fbf8f1] py-16">
         <div className="wrap">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -388,6 +401,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* Wholesale lists — supplier .xlsx / .csv files ---------------- */}
       <WholesaleListsSection lists={supplierLists} signedIn={signedIn} />
@@ -491,6 +505,7 @@ export default async function HomePage() {
       </section>
 
       {/* Margin table --------------------------------------------- */}
+      {sample ? (
       <section className="wrap py-16 lg:py-20" id="pricing">
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
@@ -536,18 +551,13 @@ export default async function HomePage() {
                 </tr>
               </thead>
               <tbody>
-                {(sample?.priceTiers?.length
+                {(sample.priceTiers?.length
                   ? [{ minCases: 1, casePrice: sample.casePrice }, ...sample.priceTiers]
-                  : [
-                      { minCases: 1, casePrice: 11880 },
-                      { minCases: 2, casePrice: 11280 },
-                      { minCases: 5, casePrice: 10680 },
-                      { minCases: 10, casePrice: 9960 },
-                    ]
+                  : [{ minCases: 1, casePrice: sample.casePrice }]
                 ).map((tier) => {
-                  const size = sample?.caseSize ?? 12;
-                  const msrpCase = (sample?.msrpUnit ?? 2499) * size;
-                  const margin = Math.round(((msrpCase - tier.casePrice) / msrpCase) * 100);
+                  const size = sample.caseSize;
+                  const msrpCase = sample.msrpUnit * size;
+                  const margin = msrpCase ? Math.round(((msrpCase - tier.casePrice) / msrpCase) * 100) : 0;
                   return (
                     <tr key={tier.minCases} className="border-b border-ink/5 last:border-0">
                       <td className="px-5 py-3 font-semibold">
@@ -574,8 +584,10 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
-      {/* Testimonials --------------------------------------------- */}
+      {/* Testimonials (demo only) ---------------------------------- */}
+      {demo ? (
       <section className="border-y border-ink/10 bg-parchment/40 py-16">
         <div className="wrap">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -643,6 +655,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      ) : null}
 
       {/* FAQ ------------------------------------------------------ */}
       <section className="wrap py-16 lg:py-20">

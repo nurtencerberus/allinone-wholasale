@@ -8,8 +8,20 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
 import { getSessionUser } from "@/lib/auth";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { categoryName, SITE } from "@/lib/site";
 import { formatDate, formatMoney, unitPriceOf } from "@/lib/money";
+
+/**
+ * The sample shipping rate ($38.46 flat) and "30-day free returns" are placeholders. Search engines
+ * display them as the seller's real policy, so only demo deployments publish them.
+ */
+function withoutPolicy(offers: object) {
+  const copy: Record<string, unknown> = { ...offers };
+  delete copy.shippingDetails;
+  delete copy.hasMerchantReturnPolicy;
+  return copy;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -145,6 +157,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   };
 
+  const publishedJsonLd = demoModeEnabled()
+    ? productJsonLd
+    : { ...productJsonLd, offers: withoutPolicy(productJsonLd.offers) };
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -173,7 +189,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       ) : null}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
       <script
         type="application/ld+json"
@@ -352,6 +368,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </section>
 
       <section id="reviews" className="wrap py-12">
+        {!hasReviews ? (
+          // No reviews: show nothing invented — no score, no star distribution, no buyer count.
+          <div className="rounded-xl border border-dashed border-ink/20 bg-[#fffdf8] p-8 text-center">
+            <h2 className="display text-[24px]">Buyer reviews</h2>
+            <p className="mt-2 text-[12.5px] text-ink/55">No reviews yet for this product.</p>
+          </div>
+        ) : (
         <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
           <div className="rounded-xl border border-ink/10 bg-[#fffdf8] p-5 lg:sticky lg:top-32 lg:self-start">
             <h2 className="display text-[24px]">Buyer reviews</h2>
@@ -432,6 +455,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
           </div>
         </div>
+        )}
       </section>
 
       {related.length ? (

@@ -44,10 +44,12 @@ export function AuthForm({
   mode,
   token,
   next,
+  showDemo = false,
 }: {
   mode: Mode;
   token?: string;
   next?: string;
+  showDemo?: boolean;
 }) {
   const router = useRouter();
   const [values, setValues] = useState({ name: "", company: "", email: "", password: "", confirm: "" });
@@ -309,7 +311,7 @@ export function AuthForm({
         </form>
       ) : null}
 
-      {mode === "login" ? (
+      {mode === "login" && showDemo ? (
         <div className="mt-4 rounded-lg border border-dashed border-ink/20 bg-parchment/40 p-3">
           <p className="text-[10px] font-bold tracking-[0.12em] text-ink/45 uppercase">
             Demo accounts · click a row to sign in instantly

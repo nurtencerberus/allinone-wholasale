@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { randomToken } from "@/lib/password";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { orderItems, orders, products } from "@/db/schema";
@@ -117,7 +118,17 @@ export async function POST(request: Request) {
     } else if (secretKey) {
       return Response.json({ error: "A completed Stripe payment is required." }, { status: 402 });
     } else {
-      // No Stripe keys: simulated payment. Never trust a client-supplied reference.
+      if (!demoModeEnabled()) {
+        // A live store with no Stripe keys must not "accept" a card it never charged.
+        return Response.json(
+          {
+            error:
+              "Card payments are not enabled on this store yet. Choose ACH / wire transfer, or Net-30 if your account is approved.",
+          },
+          { status: 503 },
+        );
+      }
+      // Demo deployment: simulated payment. Never trust a client-supplied reference.
       paymentStatus = "paid_demo";
       paymentRef = `demo_${Date.now()}`;
     }

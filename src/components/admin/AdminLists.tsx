@@ -110,7 +110,7 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
           <FileSpreadsheet size={20} className={file ? "text-fern" : "text-ink/40"} />
           <span className="text-[12px] font-bold">{file ? file.name : "Choose file"}</span>
           <span className="text-[10.5px] text-ink/45">
-            {file ? formatBytes(file.size) : ".xlsx · .xls · .csv — up to 10 MB"}
+            {file ? formatBytes(file.size) : ".xlsx · .xls · .csv — up to 4 MB"}
           </span>
         </button>
         <input

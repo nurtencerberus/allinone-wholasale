@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -14,6 +14,7 @@ import {
 import { StripePaymentPanel } from "@/components/checkout/StripePaymentPanel";
 import type { SessionUser } from "@/lib/auth";
 import { formatMoney } from "@/lib/money";
+import { SITE } from "@/lib/site";
 
 export type PaymentMethod = "card" | "net30" | "ach";
 
@@ -24,7 +25,7 @@ export type PlaceOrderInput = {
 };
 
 type Intent = {
-  mode: "stripe" | "demo";
+  mode: "stripe" | "demo" | "unavailable";
   clientSecret: string | null;
   publishableKey: string | null;
 } | null;
@@ -107,6 +108,12 @@ export function PaymentStep({
   const demoCard = intent?.mode === "demo";
   const netEligible = user?.accountTier === "wholesale" && user.emailVerified;
   const brand = brandOf(number);
+  const unavailable = intent?.mode === "unavailable";
+
+  // Card payments are switched off (live store without Stripe keys): start on a method that works.
+  useEffect(() => {
+    if (unavailable) setMethod((current) => (current === "card" ? (netEligible ? "net30" : "ach") : current));
+  }, [unavailable, netEligible]);
 
   const choose = (next: PaymentMethod) => {
     setMethod(next);
@@ -284,6 +291,16 @@ export function PaymentStep({
                 is replaced by Stripe Elements.
               </p>
             </div>
+          </div>
+        ) : unavailable ? (
+          <div className="rounded-xl border border-gold/40 bg-gold/10 p-5">
+            <p className="flex items-center gap-2 text-[13px] font-bold">
+              <Lock size={14} /> Card payments are not enabled yet
+            </p>
+            <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/65">
+              Pay by ACH / wire transfer{netEligible ? ", or place the order on Net-30 with a purchase order" : ""}.
+              Questions? Contact the trade desk at {SITE.email} or {SITE.phone}.
+            </p>
           </div>
         ) : (
           <p className="rounded-lg border border-ink/10 bg-parchment/40 px-4 py-6 text-center text-[11.5px] text-ink/50">

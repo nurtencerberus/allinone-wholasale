@@ -17,7 +17,7 @@ type SearchParams = {
 export const metadata = {
   title: "Wholesale catalog · case pricing",
   description:
-    "Browse every Meridian Supply Co. wholesale SKU: NSF-certified supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.",
+    "Browse every Meridian Supply Co. wholesale SKU: supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.",
   alternates: { canonical: "/shop" },
 };
 
@@ -272,8 +272,7 @@ export default async function ShopPage({
               <PackageSearch size={30} className="text-ink/30" />
               <p className="display text-2xl">No cases match those filters</p>
               <p className="max-w-sm text-[12.5px] text-ink/55">
-                Try clearing the search or the price band. We carry 12 active SKUs across three
-                departments — mixed pallets welcome.
+                Try clearing the search or the price band, or browse another department.
               </p>
               <Link href="/shop" className="btn btn-primary btn-sm mt-2">
                 Reset catalog

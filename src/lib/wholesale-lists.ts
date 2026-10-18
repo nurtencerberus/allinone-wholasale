@@ -5,7 +5,8 @@ export type ListFormat = "xlsx" | "xls" | "csv";
 export type ListAudience = "public" | "trade";
 
 export const LIST_CATEGORIES = ["mixed", "supplements", "pantry", "home"] as const;
-export const MAX_LIST_BYTES = 10 * 1024 * 1024;
+// Vercel Functions reject request bodies over 4.5 MB, so stay safely under it.
+export const MAX_LIST_BYTES = 4 * 1024 * 1024;
 
 const MAX_COLUMNS = 16;
 const PREVIEW_ROWS = 60;

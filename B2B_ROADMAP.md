@@ -34,6 +34,17 @@ Katalog, kademeli fiyat, boyutsal kargo, vergi muafiyeti, XLS/CSV sipariş, admi
 | Güvenlik | ❌ Açıklar var | Bkz. P0 |
 | Yasal sayfalar, uyumluluk | ❌ Yok | Şartlar, gizlilik, iade, FDA uyarısı yok |
 
+### Güncelleme — canlı modda (`SEED_DEMO_DATA=false`) kapatılanlar
+
+Bunlar yalnızca **canlı modda** geçerlidir; demo/önizleme sitesi eskisi gibidir ve **P0-2/P0-8/P0-9 açık kalır**:
+- **P0-2 (kısmen):** giriş sayfasında demo hesap/parola gösterilmez ve hiç demo hesap oluşturulmaz.
+- **P0-8 (kısmen):** uydurma istatistikler, sertifika şeridi, müşteri yorumları, örnek katalog/yorum/kupon ve
+  ürün yapısal verisindeki örnek kargo ücreti / "30 gün iade" yayınlanmaz. Metinlerin işletmeye uygunluğu
+  hâlâ sizin onayınızı bekler (bkz. `DEPLOYMENT.md` bölüm 6).
+- **Yeni:** Stripe anahtarı yokken kartla "ödeme" simülasyonu artık canlı modda reddedilir (önceden herkes
+  ödemesiz sipariş verebiliyordu).
+- Şifre sıfırlama/doğrulama bağlantıları canlı modda yanıtta dönmez.
+
 ### Bulguların doğrulama düzeyi
 
 - **[T]** Canlı önizlemede denendi, sonuç aşağıda.

@@ -6,7 +6,8 @@ import { sniffImage } from "@/lib/product-input";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// Vercel Functions reject request bodies over 4.5 MB, so stay safely under it.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 /** Upload one product photo; returns the URL to store on the product. */
 export async function POST(request: Request) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Attach a JPG, PNG, WebP or GIF photo." }, { status: 400 });
     }
     if (file.size > MAX_BYTES) {
-      return Response.json({ error: "Photos are limited to 5 MB each." }, { status: 400 });
+      return Response.json({ error: "Photos are limited to 4 MB each." }, { status: 400 });
     }
 
     const data = Buffer.from(await file.arrayBuffer());

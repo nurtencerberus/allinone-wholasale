@@ -65,7 +65,7 @@ export function SiteFooter() {
             </span>
           </div>
           <p className="mt-5 max-w-xs text-[12.5px] leading-relaxed text-cream/60">
-            A wholesale supplier for independent American retail: NSF-certified wellness, shelf-stable
+            A wholesale supplier for independent American retail: wellness, shelf-stable
             provisions and small-batch home goods from one Paterson warehouse.
           </p>
           <div className="mt-6 space-y-2.5 text-[12.5px] text-cream/70">

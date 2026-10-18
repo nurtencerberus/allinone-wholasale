@@ -738,7 +738,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                 </div>
               </Section>
 
-              <Section step={5} title="Photos" hint="The first photo is the main image. JPG, PNG, WebP or GIF, up to 5 MB each, 8 photos max.">
+              <Section step={5} title="Photos" hint="The first photo is the main image. JPG, PNG, WebP or GIF, up to 4 MB each, 8 photos max.">
                 <div className="flex flex-wrap gap-3">
                   {form.images.map((url, index) => (
                     <div key={url} className="group relative">

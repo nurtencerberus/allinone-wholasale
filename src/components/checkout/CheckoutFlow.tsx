@@ -75,7 +75,7 @@ export function CheckoutFlow({
   const [quote, setQuote] = useState<PricedOrder | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [couponCode, setCouponCode] = useState("");
-  const [intent, setIntent] = useState<{ mode: "stripe" | "demo"; clientSecret: string | null; publishableKey: string | null } | null>(null);
+  const [intent, setIntent] = useState<{ mode: "stripe" | "demo" | "unavailable"; clientSecret: string | null; publishableKey: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -117,6 +117,10 @@ async function seedSampleWholesaleLists(): Promise<void> {
 }
 
 async function seed(): Promise<void> {
+  // A live deployment starts empty. The business enters its own products, and no sample
+  // catalog, reviews, coupon codes, accounts or orders are ever created in it.
+  if (!shouldSeedDemoData()) return;
+
   // Catalog ------------------------------------------------------------
   const inserted = await db
     .insert(products)

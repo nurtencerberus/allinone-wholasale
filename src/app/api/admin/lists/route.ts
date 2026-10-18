@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Attach an .xlsx, .xls or .csv file." }, { status: 400 });
     }
     if (file.size > MAX_LIST_BYTES) {
-      return Response.json({ error: "Files are limited to 10 MB." }, { status: 400 });
+      return Response.json({ error: "Files are limited to 4 MB." }, { status: 400 });
     }
 
     const title = String(form.get("title") ?? "").trim() || file.name.replace(/\.[^.]+$/, "");

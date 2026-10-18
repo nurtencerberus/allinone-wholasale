@@ -1,270 +1,221 @@
-# Canlıya Alma Rehberi — Meridian Supply Co.
+# Canlıya Alma Rehberi — ciputracorp.com
 
-Bu proje **Next.js 16 (App Router) + PostgreSQL (Drizzle ORM)** ile hazırlandı.
-Aşağıda Vercel ve VPS olmak üzere iki dağıtım yolu, ortam değişkenleri ve canlıya
-almadan önce uygulanması gereken kontrol listesi yer alıyor.
+**Yol:** Uygulama **Vercel**'de, veritabanı **Neon**'da (PostgreSQL), alan adı ve e-posta **GoDaddy**'de kalır.
+
+> Vercel ve GoDaddy bilgileri Ekim 2026'da bu şirketlerin kendi sayfalarından kontrol edildi. Fiyatlar,
+> kurallar ve arayüz adları değişebilir; emin olmadığınız yerde ilgili sayfadan teyit edin.
+> Neon'un ekran adlarını bu rehber için belgesinden doğrulamadım — adlar farklıysa benzer menüyü izleyin.
 
 ---
 
-## 0. ciputracorp.com — GoDaddy alan adı ve hosting ile yayına alma
+## 1. Hangi parça nerede çalışır
 
-> Son kontrol: GoDaddy'nin kendi SSS sayfası ve basın haberleri. Node.js hosting **beta** olarak
-> işaretli ve kurallar değişebilir; satın almadan/kurmadan önce güncel hâlini doğrulayın.
-
-### Önce bilmeniz gereken
-Bu proje **PostgreSQL** kullanır. GoDaddy'nin yeni Node.js hosting'i (Economy/Deluxe/Ultimate
-Web Hosting planlarına dahil, Node.js 22, zip veya GitHub ile yükleme) şu kısıtlarla geliyor:
-
-| Konu | GoDaddy Node.js hosting | Bu projeye etkisi |
+| Parça | Yer | Not |
 | --- | --- | --- |
-| Veritabanı | Yalnızca GoDaddy'nin yönetilen **MySQL**'i | Proje PostgreSQL'e yazılı, MySQL'de **çalışmaz** |
-| Dışarıya bağlantı | Yalnızca 80/443 portları ve GoDaddy MySQL (basın haberine göre) | Dışarıdaki PostgreSQL (5432) **erişilemez olabilir** |
-| E-posta | Giden SMTP yok | Proje Resend'in HTTPS API'sini kullanır, **sorun yok** |
-| package.json | `name`, `version`, `main` dolu olmalı; build/start betikleri; `PORT` okunmalı | Bu projede `version` ve `main` **yok** |
-| Bağımlılıklar | Build/start için gerekenler `dependencies` içinde olmalı | `typescript`, `tailwindcss`, `@types/*` şu an `devDependencies` içinde |
+| Site (Next.js) | **Vercel** | GitHub'daki `main` dalından otomatik deploy |
+| Veritabanı | **Neon** (PostgreSQL) | Vercel'in varsayılan bölgesiyle aynı: AWS **us-east-1** (N. Virginia) |
+| Alan adı, DNS, `info@ciputracorp.com` kutusu | **GoDaddy** | Yalnızca `@` A kaydı ve `www` CNAME değişir |
+| Sistem e-postaları (doğrulama, şifre sıfırlama, sipariş onayı) | **Resend** | GoDaddy DNS'e DKIM/SPF kaydı eklenir |
+| Kart ödemesi | **Stripe** | Anahtar girilene kadar kart ödemesi **kapalıdır** |
 
-**Sonuç:** Projeyi GoDaddy Node.js hosting'inde olduğu gibi çalıştıramazsınız. Üç gerçekçi yol var:
+---
 
-### Yol A — Önerilen: uygulama Vercel + Neon'da, alan adı GoDaddy'de kalır
-Test edilmiş yığın budur. Alan adınız, DNS'iniz ve e-posta kutunuz (info@ciputracorp.com) GoDaddy'de
-kalır; yalnızca siteyi gösteren kayıtları değiştirirsiniz.
+## 2. Başlamadan önce bilmeniz gerekenler
 
-1. **Veritabanı:** [neon.tech](https://neon.tech) → proje oluşturun → **pooled** bağlantı adresini kopyalayın
-   (host adında `-pooler` geçer). Tabloları bir kez oluşturun:
-   ```bash
-   npx drizzle-kit push --url "postgresql://KULLANICI:PAROLA@HOST/DB?sslmode=require"
-   ```
-2. **Vercel:** [vercel.com/new](https://vercel.com/new) → GitHub deposunu seçin → Environment Variables:
+1. **Vercel'in ücretsiz Hobby planı yalnızca "ticari olmayan, kişisel kullanım" içindir** (Vercel'in kendi
+   Hobby sayfası). Bir B2B mağaza ticari olduğu için **Pro** plan gerekir. O sayfaya göre Pro'da geliştirici
+   koltuğu kullanıcı başına ayda 20 USD.
+2. **Vercel istek gövdesini 4,5 MB ile sınırlar** (aşılırsa `413 FUNCTION_PAYLOAD_TOO_LARGE`). Bu yüzden ürün
+   fotoğrafı, sipariş formu ve tedarikçi fiyat listesi yüklemeleri **4 MB** ile sınırlandı.
+3. **`public/downloads/` klasörüne dosya koyma yöntemi Vercel'de çalışmaz** (fonksiyon paketinde dosya sistemi
+   yok). Tedarikçi listelerini **`/admin/lists`** sayfasından yükleyin.
+4. **Neon'un ücretsiz planı boşta kalan veritabanını uyutabilir** (sık görülen davranış, güncel planı
+   neon.com/pricing'den kontrol edin). İlk istek birkaç saniye sürebilir; bağlantı zaman aşımı 15 sn'dir.
+
+### Canlı mod (`SEED_DEMO_DATA=false`) neyi değiştirir
+
+Bunu **mutlaka** ayarlayın. Ayar yoksa site demo modunda açılır: herkesin bildiği `Admin123!` parolası, sahte
+yorumlar ve `MERIDIAN10` kuponu canlıya çıkar.
+
+| Konu | Demo mod (varsayılan) | Canlı mod |
+| --- | --- | --- |
+| Örnek katalog, yorum, kupon, hesap, sipariş | Oluşturulur | **Hiçbiri oluşturulmaz** — mağaza boş başlar, ürünleri siz eklersiniz |
+| Giriş sayfasında demo hesaplar | Görünür | Gizli |
+| Ana sayfadaki sayılar, sertifika şeridi, müşteri yorumları | Görünür | **Gizli** (uydurma verilerdir) |
+| Kartla ödeme, Stripe anahtarı yokken | Test kartı simülasyonu | **Reddedilir**; ACH/havale ve (onaylı hesaplara) Net-30 çalışır |
+| Şifre sıfırlama / doğrulama bağlantısı | E-posta gidemezse ekranda gösterilir | **Yalnızca e-postayla** gönderilir |
+| Ürün yapısal verisinde örnek kargo ücreti ve "30 gün iade" | Yayınlanır | Yayınlanmaz |
+
+---
+
+## 3. Adım adım
+
+### 3.1 Neon — veritabanı
+1. [neon.com](https://neon.com) → hesap → yeni proje. **Region: AWS US East 1 (N. Virginia)**.
+2. **SQL Editor**'ü açın. GitHub'daki **`db/schema.sql`** dosyasını açın (Raw), tümünü kopyalayın,
+   editöre yapıştırıp **Run** deyin. Bu 11 tabloyu kurar.
+   - **Yalnızca boş veritabanında, bir kez** çalıştırın. İkinci çalıştırma `already exists` ile hata verir
+     (zararsızdır, veriyi çoğaltmaz).
+   - Bu dosyanın, `drizzle-kit push` ile oluşan şemayla sütun, indeks ve yabancı anahtar düzeyinde birebir
+     aynı olduğunu boş bir PostgreSQL üzerinde karşılaştırarak doğruladım.
+3. **Connect** penceresinden **pooled** bağlantı adresini kopyalayın (host adında `-pooler` geçer). Vercel'e
+   bunu vereceksiniz. Adres `postgresql://...` ile başlar ve içinde parolanız vardır; kimseyle paylaşmayın.
+
+### 3.2 Vercel — site
+1. [vercel.com](https://vercel.com) → **Pro** plan → **Add New → Project** → GitHub'dan
+   `nurtencerberus/allinone-wholasale` deposunu seçin. Depo özel (private) olduğu için Vercel'in GitHub
+   uygulamasına bu depoya erişim izni vermeniz gerekir.
+2. Framework otomatik **Next.js** olarak gelir. **Environment Variables** (Production):
 
    | Değişken | Değer |
    | --- | --- |
-   | `DATABASE_URL` | Neon pooled adresi |
-   | `NEXT_PUBLIC_SITE_URL` | `https://ciputracorp.com` |
-   | `SEED_DEMO_DATA` | `false` (**zorunlu**: demo parolalar ve ekrana basılan bağlantılar kapanır) |
-   | `RESEND_API_KEY`, `RESEND_FROM` | bkz. adım 5 |
-   | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | canlı Stripe anahtarları (ödeme almadan önce) |
+   | `DATABASE_URL` | Neon **pooled** adresi |
+   | `NEXT_PUBLIC_SITE_URL` | `https://ciputracorp.com` (kanonik adresiniz `www` ise onu yazın) |
+   | `SEED_DEMO_DATA` | `false` |
+   | `RESEND_API_KEY`, `RESEND_FROM` | bkz. 3.6 |
+   | `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | bkz. 3.7 |
+   | `DATABASE_POOL_MAX` | isteğe bağlı, varsayılan 5 |
 
-   `NEXT_PUBLIC_*` değerleri **derleme sırasında** koda gömülür; değiştirirseniz yeniden deploy edin.
-3. **Vercel → Project → Settings → Domains:** `ciputracorp.com` ve `www.ciputracorp.com` ekleyin.
-   Vercel size tam DNS kayıtlarını gösterir; **ekranda yazan değerleri kullanın**.
-4. **GoDaddy → My Products → ciputracorp.com → DNS:**
-   - `@` için **A** kaydı: Vercel'in gösterdiği IP (genellikle `76.76.21.21`). GoDaddy'nin varsayılan
-     "Parked"/yönlendirme A kaydını silin veya düzenleyin.
-   - `www` için **CNAME**: Vercel'in gösterdiği değer (genellikle `cname.vercel-dns.com`).
-   - **MX ve TXT kayıtlarına dokunmayın.** info@ciputracorp.com e-postanız onlara bağlı.
-   - Yayılma dakikalar–birkaç saat sürer. Vercel sertifikayı (HTTPS) otomatik alır.
-   - Dikkat: A kaydını Vercel'e çevirmek, GoDaddy hosting'indeki mevcut web sitesini yayından kaldırır.
-5. **Sistem e-postaları (doğrulama, şifre sıfırlama, sipariş onayı):** [resend.com](https://resend.com) →
-   Domains → `ciputracorp.com` ekleyin → Resend'in verdiği **DKIM/SPF** kayıtlarını GoDaddy DNS'e girin →
-   "Verified" olunca `RESEND_FROM="Meridian Supply Co. <info@ciputracorp.com>"` ve `RESEND_API_KEY` ayarlayın.
-   Alan adı doğrulanmadan Resend gönderimi reddeder ve müşteriye hiçbir e-posta gitmez.
-6. **İlk admin hesabı:** sitede `/signup` ile hesap açın, sonra Neon SQL Editor'de:
+3. **Deploy**. Site önce `https://<proje>.vercel.app` adresinde açılır. Derleme için `DATABASE_URL`
+   gerekmez; veritabanı yalnızca çalışma anında kullanılır.
+4. `NEXT_PUBLIC_*` değerleri **derleme sırasında** koda gömülür. Birini değiştirirseniz **yeniden deploy**
+   edin.
+
+### 3.3 İlk admin hesabı
+Alan adını bağlamadan **önce**, `*.vercel.app` adresinde yapın:
+1. `https://<proje>.vercel.app/signup` → `info@ciputracorp.com` ile **güçlü, benzersiz bir parolayla** kayıt.
+2. Neon **SQL Editor**'de:
    ```sql
    UPDATE users SET role='admin', email_verified=true WHERE email='info@ciputracorp.com';
    ```
+3. `/login` ile girin; `/admin` açılmalıdır.
 
-### Yol B — GoDaddy Node.js hosting'inde çalıştırmak (ek geliştirme gerekir)
-Hosting planınızı kullanmak istiyorsanız önce şunlar gerekir ve **hiçbiri bu depoda henüz yapılmadı**:
-1. `package.json`'a `version` ve `main` alanları eklemek.
-2. `typescript`, `@types/node`, `@types/react`, `@types/react-dom`, `tailwindcss`, `@tailwindcss/postcss`,
-   `postcss` paketlerini `dependencies`'e taşımak.
-3. **Veritabanı kararı** (asıl engel): (a) 443 portundan erişilebilen bir PostgreSQL (ör. Neon'un HTTPS
-   sürücüsü) ve `src/db/index.ts`'in o sürücüye geçirilmesi, ya da (b) şemanın GoDaddy MySQL'e
-   taşınması (jsonb, bytea ve serial alanları nedeniyle büyük bir iş).
-4. Ortam değişkenlerini GoDaddy panelinde tanımlamak, GitHub deposunu bağlamak, alan adını uygulamanın
-   Settings bölümünden bağlamak.
+Kayıt sırasında e-posta doğrulanmadığı için bu adımı siteyi duyurmadan ve alan adını bağlamadan yapın: o
+e-postayla başkası önce kayıt olursa admin yetkisini ona vermiş olursunuz.
 
-Madde 3'ün (a) seçeneğini GoDaddy ortamında denemeden "çalışır" diyemem.
+### 3.4 Ürünlerinizi girin
+Mağaza boş başlar.
+- **`/admin/products` → Add product:** tek tek ürün, fotoğraf yükleme (fotoğraf başına 4 MB).
+- **`/admin/catalog`:** JSON ile toplu içe aktarma.
+- **`/admin/lists`:** tedarikçi .xlsx / .csv fiyat listeleri (4 MB).
+- Kupon yönetim ekranı yoktur; kupon gerekiyorsa `coupons` tablosuna SQL ile eklenir.
 
-### Yol C — GoDaddy VPS
-Tam kontrol ister ve her şeyi GoDaddy'de tutmak isterseniz VPS alıp aşağıdaki **5. bölümdeki** adımlarla
-PostgreSQL'i aynı sunucuya kurabilirsiniz. En esnek, ama sunucu güvenliği, yedekleme ve güncellemeler
-sizin sorumluluğunuzda. GoDaddy'nin paylaşımlı hosting planı bu iş için yeterli değildir.
+### 3.5 Alan adı — GoDaddy DNS
+1. Vercel → proje → **Settings → Domains** → `ciputracorp.com` ve `www.ciputracorp.com` ekleyin.
+   Vercel her alan adı için **tam kaydı ekranda gösterir; oradaki değeri kullanın.**
+2. GoDaddy → **My Products → ciputracorp.com → DNS**:
+   - `@` için **A** kaydı: Vercel'in gösterdiği IP. Çoğu projede `76.76.21.21`; yeni projelerde farklı bir
+     adres (ör. `216.198.79.1`) görünebilir, kart neyi gösteriyorsa onu girin.
+   - `www` için **CNAME**: Vercel'in gösterdiği hedef (çoğu projede `cname.vercel-dns.com`).
+   - **Eski `@` A kaydını ve GoDaddy'nin "Parked" kaydını silin.** Eski kayıtlar doğrulamayı engeller.
+   - **MX ve TXT kayıtlarına dokunmayın**: `info@ciputracorp.com` e-postanız onlara bağlıdır.
+3. Vercel'de iki adresten birini kanonik seçip diğerini ona yönlendirin. `NEXT_PUBLIC_SITE_URL` bu
+   kanonik adres olmalıdır (sitemap, robots ve Google verisi buna göre üretilir).
+4. Vercel kartı **Valid Configuration** gösterdiğinde HTTPS sertifikası otomatik verilir. Yayılma dakikalar
+   ile birkaç saat sürebilir.
 
-### Canlıya almadan önce (her yol için)
-- [ ] `SEED_DEMO_DATA=false` ayarlı (yoksa herkesin bildiği `Admin123!` parolası geçerli kalır).
-- [ ] Resend alan adı doğrulandı ve gerçek bir e-postayla şifre sıfırlama denendi.
-- [ ] Stripe **canlı** anahtarları ve gerçek bir küçük tutarlı ödeme denemesi.
-- [ ] `B2B_ROADMAP.md` Faz 0 maddeleri kapatıldı.
+> **Dikkat:** `@` kaydını Vercel'e çevirmek, alan adının şu an GoDaddy hostingde gösterdiği siteyi yayından
+> kaldırır.
+
+### 3.6 E-posta — Resend
+Resend olmadan müşteriye **hiçbir e-posta gitmez** (doğrulama, şifre sıfırlama, sipariş onayı).
+1. [resend.com](https://resend.com) → **Domains** → `ciputracorp.com` ekleyin.
+2. Resend'in gösterdiği DKIM/SPF kayıtlarını GoDaddy DNS'e **aynen** ekleyin. Aynı isimde ikinci bir
+   `v=spf1` TXT kaydı eklemeyin (iki SPF kaydı SPF'i bozar); Resend ayrı bir alt alan adı verirse sorun olmaz.
+3. **Verified** olunca Vercel'e `RESEND_API_KEY` ve
+   `RESEND_FROM="Meridian Supply Co. <info@ciputracorp.com>"` ekleyip yeniden deploy edin.
+4. Gerçek bir e-postayla **şifre sıfırlamayı** deneyin.
+
+### 3.7 Kart ödemesi — Stripe
+Anahtar girilene kadar canlı sitede **kartla ödeme kapalıdır** ve müşteri ACH/havale seçeneğini görür.
+1. Stripe hesabınızı etkinleştirin; **canlı** anahtarları (`sk_live_…`, `pk_live_…`) Vercel'e ekleyin ve
+   yeniden deploy edin.
+2. Küçük gerçek bir tutarla ödeme deneyin, sonra Stripe panelinden iade edin.
+3. **Stripe webhook'u yoktur.** Müşteri ödeme sonrası sekmeyi kapatırsa para alınır ama sipariş oluşmayabilir.
+   Webhook eklenene kadar Stripe panelini sipariş listesiyle düzenli karşılaştırın (`B2B_ROADMAP.md`, P0-6).
 
 ---
 
-## 1. Kod tabanı yapısı
+## 4. Yayından sonra doğrulama
 
-| Klasör / dosya | Görev |
+```bash
+curl https://ciputracorp.com/api/health             # {"ok":true}
+curl https://ciputracorp.com/sitemap.xml | head     # adresler ciputracorp.com olmalı
+curl https://ciputracorp.com/robots.txt             # Sitemap: https://ciputracorp.com/sitemap.xml
+curl -s https://ciputracorp.com/login | grep -c "Admin123"    # 0 olmalı
+```
+Sonra: bir ürün ekleyin, ACH ile deneme siparişi verin, `/admin/orders`'ta "Mark paid" ve takip numarası
+girin, `/account` ve şifre sıfırlamayı deneyin.
+
+---
+
+## 5. Gerçek müşteri almadan önce açık işler
+
+Aşağıdakiler `B2B_ROADMAP.md`'de ayrıntılıdır ve **kapatılmadı**:
+- **Stoktan fazla sipariş alınabiliyor** (P0-3) ve asgari sipariş/MOQ sunucuda denetlenmiyor.
+- **Giriş ve kayıt uçlarında deneme sınırı yok** (P0-5).
+- **Stripe webhook yok** (P0-6).
+- **Güvenlik uyarısı olan bağımlılıklar** (P0-7): `xlsx` paketinin npm'de düzeltilmiş sürümü yok.
+- **Yasal sayfalar yok** (P0-9): satış şartları, gizlilik, iade, kargo.
+- **Satış vergisi:** yerleşik oranlar bir tahmindir. Hangi eyaletlerde vergi toplamanız gerektiğini mali
+  müşavirinizle belirleyin ve TaxJar'ı yapılandırın.
+- Net-30 yalnızca bir seçenektir: kredi limiti, kredi kontrolü, PDF fatura ve tahsilat takibi yoktur.
+
+---
+
+## 6. Sizin onaylamanız gereken metinler
+
+Bunlar benim yazdığım yer tutuculardır; işletmenizin gerçek politikası olduğundan emin olun:
+- **Marka adı** "Meridian Supply Co." (`src/lib/site.ts` içindeki `SITE.name` ve sayfa metinleri).
+- **Ücretsiz kargo eşiği 750 USD** ve **asgari sipariş 150 USD** (`SITE`).
+- Üst çubuktaki "Net 30 for approved retailers" ve `/wholesale` sayfasındaki "1 day EIN decision",
+  "0% membership fee", "48 states", "Net 30 after two prepaid orders" ifadeleri. Kasada Net-30 şu an her
+  onaylı hesaba açık; metinle tutarlı olmayabilir.
+- Ana sayfa **SSS cevapları** ve alt bilgideki ödeme/PCI ifadeleri.
+- Ana sayfadaki **depo fotoğrafı yapay zekâ ile üretilmiş bir yer tutucudur**, gerçek deponuz değildir.
+- Kargo çıkış noktası olarak **238 Lindbergh Pl, Paterson, NJ 07503** kullanılıyor. Depo başka yerdeyse
+  `SITE.originZip` ve `SITE.city` değiştirilmelidir.
+
+---
+
+## 7. Diğer yollar (önermiyorum)
+
+- **GoDaddy Node.js hosting** (beta): yalnızca GoDaddy'nin yönetilen **MySQL**'ini sunuyor, proje ise
+  PostgreSQL'e yazılı; basın haberlerine göre dışarıya çıkış da yalnızca 80/443 portlarına açık. Ayrıca
+  `package.json`'a `version` ve `main` eklenmeli, derleme paketleri `dependencies`'e taşınmalı. Bunların
+  hiçbiri bu depoda yapılmadı ve GoDaddy'de denenmedi.
+- **VPS** (GoDaddy veya başka): Node 22, PostgreSQL, Nginx ve sertifikayı kendiniz kurarsınız;
+  güvenlik, yedekleme ve güncellemeler sizdedir. `npm ci && npm run build`, ardından `npm run start`
+  (port 3000) ve Nginx ters proxy; yüklemeler için `client_max_body_size 5m`.
+
+---
+
+## 8. Sorun giderme
+
+| Belirti | Neden / çözüm |
 | --- | --- |
-| `src/app/**` | Sayfalar (mağaza, ürün, checkout, hesap, admin, quick-order) + API route'ları |
-| `src/db/schema.ts` | Drizzle tabloları (users, sessions, products, orders, applications…) |
-| `src/lib/**` | Fiyatlama, boyutsal kargo, satış vergisi, scrypt auth, e-posta, XLS/CSV |
-| `public/images/**` | Ürün ve kategori görselleri |
-| `DEPLOYMENT.md` | Bu dosya |
-
-Yerel komutlar:
-
-```bash
-npm install
-npx drizzle-kit push --url "postgresql://USER:PASS@HOST:5432/app_db"   # şemayı uygula
-npm run dev        # geliştirme
-npm run build      # üretim derlemesi
-npm run start      # üretim sunucusu
-```
-
-> Şema ilk istekte otomatik tohumlanır (`ensureSeeded()`), elle migration üretmeniz gerekmez.
+| Her sayfa 500, günlükte `DATABASE_URL is not set` | Vercel'de değişken yok/yanlış → ekleyin, yeniden deploy |
+| `relation "…" does not exist` | `db/schema.sql` çalıştırılmadı (bkz. 3.1) |
+| İlk istek yavaş veya zaman aşımı | Neon uyanıyor; yenileyin. Ücretli planda uykuyu kapatabilirsiniz |
+| Bağlantı hatası `channel_binding` ile ilgili | Adresin sonundaki `&channel_binding=require` ifadesini silip deneyin (bu projede denenmedi) |
+| Yüklemede `413` | Dosya 4 MB'tan büyük |
+| Kasada kart formu yok | Stripe anahtarları eksik ya da `NEXT_PUBLIC_…` değeri eklenip yeniden deploy edilmedi |
+| E-posta gelmiyor | Resend'de alan adı **Verified** değil ya da `RESEND_FROM` doğrulanmış alan adında değil |
+| Vercel "Invalid Configuration" | DNS kayıtları yanlış veya yayılıyor; eski `@` A kaydını sildiniz mi? |
+| Sitemap'te yanlış alan adı | `NEXT_PUBLIC_SITE_URL` düzeltip yeniden deploy |
 
 ---
 
-## 2. Hızlı yol — Vercel + Neon/Supabase Postgres (önerilen)
+## 9. Şema değişirse
 
-### 2.1 Veritabanı
-1. [neon.tech](https://neon.tech), [Supabase](https://supabase.com) veya Vercel Postgres'te bir **PostgreSQL** veritabanı açın.
-2. **Connection pooling** açık olan bağlantı string'ini kopyalayın (Neon için `...-pooler...` host'lu URL).
-   Serverless fonksiyonlarda her örnek kendi havuzunu açar; pooling açık olmazsa
-   `too many connections` hatası alırsınız.
-3. Şemayı bir kez uygulayın (bilgisayarınızdan):
-
+`src/db/schema.ts` değiştiğinde:
 ```bash
-npx drizzle-kit push --url "postgresql://user:pass@region.pooler.neon.tech/dbname?sslmode=require"
+npx drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts --sql > db/schema.sql
 ```
-
-### 2.2 Vercel
-1. Projeyi bir Git reposuna gönderin (`git init && git add . && git commit && git push`).
-2. [vercel.com/new](https://vercel.com/new) → repoyu **Import** edin.
-3. Framework **Next.js** olarak otomatik tanınır. Build komutu `npm run build`, output klasörü varsayılan.
-4. **Environment Variables** bölümüne aşağıdaki tablodaki değişkenleri ekleyin.
-5. **Deploy** deyin.
-
-### 2.3 Alan adı
-1. Vercel → Project → **Domains** → kendi alan adınızı ekleyin (`ciputracorp.com`).
-2. DNS sağlayıcınızda Vercel'in istediği `A` / `CNAME` kayıtlarını girin.
-3. `NEXT_PUBLIC_SITE_URL` değerini **https://ciputracorp.com** yapın ve **yeniden deploy edin**
-   (bu değişken derleme sırasında koda gömülür).
-
----
-
-## 3. Ortam değişkenleri
-
-| Değişken | Zorunlu | Ne işe yarar | Yoksa ne olur |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | **Evet** | PostgreSQL bağlantı string'i | Uygulama açılmaz |
-| `NEXT_PUBLIC_SITE_URL` | **Evet** | Kanonik URL: sitemap.xml, robots.txt, JSON-LD, OG etiketleri | `https://ciputracorp.com` kullanılır |
-| `SEED_DEMO_DATA` | Hayır | `false` yapınca demo hesap/siparişler tohumlanmaz | Demo veriler eklenir |
-| `STRIPE_SECRET_KEY` | Önerilir | PaymentIntent oluşturma + ödeme doğrulama | PCI-güvenli demo ödeme akışı |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Önerilir | Stripe Elements iframe'leri | Kart alanı hiç render edilmez |
-| `TAXJAR_API_KEY` | Opsiyonel | Eyalet satış vergisi oranı (adres/ZIP bazlı) | Dahili nexus tablosu kullanılır |
-| `EASYPOST_API_KEY` | Opsiyonel | UPS/FedEx canlı kargo teklifleri | Dahili boyutsal kargo matrisi |
-| `RESEND_API_KEY` | Opsiyonel | Doğrulama / şifre sıfırlama / sipariş e-postaları | Bağlantılar sunucu loguna yazılır |
-| `RESEND_FROM` | Opsiyonel | Gönderen adresi | `Meridian Supply Co. <info@ciputracorp.com>` |
-
-**Stripe canlıya geçiş:** Test anahtarları (`sk_test_…`, `pk_test_…`) yerine canlı
-anahtarları (`sk_live_…`, `pk_live_…`) girin. Kart verisi sunucunuza hiç gelmez;
-Stripe Elements içinde token'lanır, API'nize yalnızca `paymentIntent` id'si ulaşır
-(bu yüzden PCI-DSS kapsamı SAQ-A'dır).
-
----
-
-## 4. Canlıya almadan önce kontrol listesi
-
-- [ ] `NEXT_PUBLIC_SITE_URL` gerçek alan adınıza ayarlandı ve **yeniden deploy** edildi.
-- [ ] `DATABASE_URL` canlı veritabanını gösteriyor ve `npx drizzle-kit push` çalıştırıldı.
-- [ ] `SEED_DEMO_DATA=false` yapıldı.
-- [ ] Stripe canlı anahtarları girildi; `stripe listen` webhook'ı **gerekmez** (doğrulama PaymentIntent üzerinden yapılır).
-- [ ] Resend API anahtarı + gönderen adresi eklendi (e-posta doğrulama ve şifre sıfırlama çalışır).
-- [ ] İlk admin hesabı oluşturuldu (aşağıda).
-- [ ] Demo sipariş/başvurular temizlendi (aşağıda).
-- [ ] `/api/health`, `/sitemap.xml`, `/robots.txt` canlı domainde 200 dönüyor.
-- [ ] Admin panelindeki **Integration status** kutuları “Live” gösteriyor.
-
-### İlk admin hesabı
-
-Kayıt formundan normal hesap açıp veritabanında rolü yükseltin:
-
+Bu dosya yalnızca **sıfırdan kurulum** içindir. Dolu veritabanına yalnızca farkı uygulayın; bunun için
+Neon'un **doğrudan** (pooler olmayan) adresiyle şunu kullanabilirsiniz:
 ```bash
-psql "$DATABASE_URL" -c "UPDATE users SET role='admin', email_verified=true WHERE email='info@ciputracorp.com';"
+npx drizzle-kit push --dialect=postgresql --schema=./src/db/schema.ts --url="postgresql://…"
 ```
-
-### Demo verileri temizleme (canlı için)
-
-```bash
-psql "$DATABASE_URL" <<'SQL'
-DELETE FROM order_items;
-DELETE FROM orders;
-DELETE FROM wholesale_applications;
-DELETE FROM addresses;
-DELETE FROM sessions;
-DELETE FROM users WHERE email IN ('admin@meridiansupply.co','buyer@harborhouse.com','customer@example.com');
-SQL
-```
-
-Katalog, yorumlar ve kuponlar kalsın istiyorsanız `products`, `reviews`, `coupons`
-tablolarına dokunmayın. `SEED_DEMO_DATA=false` olduğunda bu kayılar zaten bir daha
-oluşturulmaz.
-
----
-
-## 5. VPS / kendi sunucunuz (Docker kullanmadan)
-
-```bash
-# Ubuntu 22.04+ örneği
-sudo apt update && sudo apt install -y nodejs npm postgresql nginx
-git clone <repo-url> /var/www/meridian && cd /var/www/meridian
-npm ci
-npm run build
-
-# şemayı uygula
-npx drizzle-kit push --url "$DATABASE_URL"
-
-# süreç yöneticisi
-sudo npm i -g pm2
-DATABASE_URL=... NEXT_PUBLIC_SITE_URL=https://ciputracorp.com SEED_DEMO_DATA=false \
-  STRIPE_SECRET_KEY=... NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=... RESEND_API_KEY=... \
-  pm2 start npm --name meridian -- start
-pm2 save && pm2 startup
-```
-
-Nginx'i 3000 portuna yönlendirin:
-
-```nginx
-server {
-  listen 80;
-  server_name ciputracorp.com;
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 10m;   # XLS/CSV yüklemeleri için
-  }
-}
-```
-
-Ardından `certbot --nginx` ile ücretsiz SSL sertifikası alın.
-`NODE_ENV=production` olduğu için oturum çerezleri `secure` işaretli gönderilir — SSL zorunludur.
-
----
-
-## 6. Yayından sonra doğrulama
-
-```bash
-curl https://ciputracorp.com/api/health          # {"ok":true}
-curl -I https://ciputracorp.com/sitemap.xml      # 200
-curl https://ciputracorp.com/robots.txt          # account/checkout/admin/api disallow
-curl -o test.xlsx https://ciputracorp.com/api/order-sheet/download?format=xlsx
-curl -X POST -F "file=@test.xlsx" https://ciputracorp.com/api/order-sheet/import
-```
-
-Sayfa kaynaklarında ürün detaylarında `application/ld+json` (AggregateRating,
-Offer/Price, InStock, ShippingDetails) bloklarını görebilirsiniz.
-
----
-
-## 7. Sık karşılaşılan sorunlar
-
-| Belirti | Sebep / çözüm |
-| --- | --- |
-| `DATABASE_URL is required` | Değişken ortama eklenmemiş, deploy sonrası **rebuild** gerekiyor |
-| `too many connections` | Pooling'li (Neon `-pooler`) bağlantı string'i kullanın |
-| Sitemap'te yanlış domain | `NEXT_PUBLIC_SITE_URL` değiştiyse yeniden deploy edin |
-| Stripe Elements görünmüyor | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` eksik — demo paneli gösterilir |
-| E-posta gelmiyor | `RESEND_API_KEY` yoksa bağlantılar sunucu loguna düşer; Resend'de gönderen domain doğrulanmış olmalı |
-| Vergi her eyalette 0 | Vergi muafiyetli (resale) hesapla giriş yapmışsınızdır veya TaxJar anahtarı yok |
-| 504 / yavaş ilk açılış | Serverless cold start; ilk istek şemayı tohumlar, sonrakiler hızlıdır |
-| XLS yüklenmiyor | Dosya 8 MB sınırını aşıyor veya `.xls` yerine `.csv`/`.xlsx` ile deneyin |
+`--url` tek başına çalışmaz: `--dialect` ve `--schema` ile birlikte verilmelidir. Veri kaybı uyarısını okumadan
+onaylamayın.

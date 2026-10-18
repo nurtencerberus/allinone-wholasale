@@ -22,7 +22,7 @@ export const SITE = {
   domain: CANONICAL_URL,
   tagline: "Wholesale provisions for modern American retail.",
   description:
-    "B2B wholesale supplier of NSF-certified vitamins and supplements, pantry staples, and considered home goods. Case pricing, dimensional freight quotes, resale tax exemption and net terms for verified retailers.",
+    "B2B wholesale supplier of vitamins and supplements, pantry staples and home goods. Case pricing, dimensional freight quotes, resale tax exemption and trade terms for verified retailers.",
   email: "info@ciputracorp.com",
   phone: "+1 516-567-6662",
   phoneHref: "+15165676662",
@@ -55,9 +55,9 @@ export const CATEGORIES: {
     shortName: "Supplements",
     eyebrow: "Wellness",
     blurb:
-      "NSF-certified capsules, softgels and gummies from cGMP facilities. Full CoA packets with every pallet.",
+      "Vitamins, capsules, softgels and gummies, case-packed for independent retail.",
     image: "/images/cat-supplements.jpg",
-    specs: "4 stock-keeping units · cGMP · NSF certified",
+    specs: "Case-packed for retail",
   },
   {
     key: "pantry",
@@ -65,9 +65,9 @@ export const CATEGORIES: {
     shortName: "Pantry",
     eyebrow: "Provisions",
     blurb:
-      "Shelf-stable, retail-ready provisions with 12+ month dates. Consolidate dry goods into one inbound freight lane.",
+      "Shelf-stable, retail-ready provisions. Consolidate dry goods into one inbound freight lane.",
     image: "/images/cat-pantry.jpg",
-    specs: "4 stock-keeping units · 12+ month shelf life",
+    specs: "Shelf-stable, case-packed",
   },
   {
     key: "home",
@@ -75,9 +75,9 @@ export const CATEGORIES: {
     shortName: "Home",
     eyebrow: "Home",
     blurb:
-      "Small-batch ceramics, candles and textiles with case-packed protection. LTL freight eligible on pallet builds.",
+      "Ceramics, candles, textiles and décor, case-packed for protection. LTL freight on pallet builds.",
     image: "/images/cat-home.jpg",
-    specs: "4 stock-keeping units · LTL freight ready",
+    specs: "LTL freight on pallet builds",
   },
 ];
 
