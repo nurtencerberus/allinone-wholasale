@@ -1,0 +1,117 @@
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { users, wholesaleApplications } from "@/db/schema";
+import { requireAdmin } from "@/lib/auth";
+import { sendEmail, wholesaleDecisionTemplate } from "@/lib/email";
+
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const admin = await requireAdmin();
+    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+
+    const { id } = await context.params;
+    const applicationId = Number(id);
+    if (!Number.isFinite(applicationId)) {
+      return Response.json({ error: "Invalid application id." }, { status: 400 });
+    }
+
+    const body = (await request.json()) as {
+      action?: "approve" | "reject";
+      discountPct?: number;
+      taxExempt?: boolean;
+      verifyEin?: boolean;
+      reason?: string;
+    };
+
+    const [application] = await db
+      .select()
+      .from(wholesaleApplications)
+      .where(eq(wholesaleApplications.id, applicationId))
+      .limit(1);
+
+    if (!application) return Response.json({ error: "Application not found." }, { status: 404 });
+
+    if (body.action === "approve") {
+      const discountPct = Math.min(Math.max(Math.round(body.discountPct ?? 5), 0), 40);
+      const taxExempt = Boolean(body.taxExempt);
+
+      await db
+        .update(wholesaleApplications)
+        .set({
+          status: "approved",
+          discountPct,
+          taxExempt,
+          verifiedEin: true,
+          rejectionReason: null,
+          reviewedAt: new Date(),
+        })
+        .where(eq(wholesaleApplications.id, applicationId));
+
+      const [account] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, application.email))
+        .limit(1);
+
+      const targetId = application.userId ?? account?.id;
+      if (targetId) {
+        await db
+          .update(users)
+          .set({
+            accountTier: "wholesale",
+            wholesaleDiscountPct: discountPct,
+            taxExempt,
+            taxExemptState: taxExempt ? application.state : null,
+            ein: application.ein,
+            company: application.companyName,
+            emailVerified: true,
+          })
+          .where(eq(users.id, targetId));
+      }
+
+      const origin = new URL(request.url).origin;
+      const template = wholesaleDecisionTemplate({
+        company: application.companyName,
+        approved: true,
+        discountPct,
+        url: `${origin}/login`,
+      });
+      await sendEmail({ to: application.email, subject: template.subject, html: template.html });
+
+      return Response.json({
+        ok: true,
+        accountLinked: Boolean(targetId),
+        message: `Approved with ${discountPct}% account pricing${taxExempt ? " and resale tax exemption" : ""}.`,
+      });
+    }
+
+    if (body.action === "reject") {
+      const reason = (body.reason ?? "").trim();
+      if (reason.length < 5) {
+        return Response.json({ error: "A rejection reason is required." }, { status: 400 });
+      }
+
+      await db
+        .update(wholesaleApplications)
+        .set({ status: "rejected", rejectionReason: reason, reviewedAt: new Date() })
+        .where(eq(wholesaleApplications.id, applicationId));
+
+      const origin = new URL(request.url).origin;
+      const template = wholesaleDecisionTemplate({
+        company: application.companyName,
+        approved: false,
+        discountPct: 0,
+        reason,
+        url: `${origin}/wholesale/apply`,
+      });
+      await sendEmail({ to: application.email, subject: template.subject, html: template.html });
+
+      return Response.json({ ok: true, message: "Application rejected and applicant notified." });
+    }
+
+    return Response.json({ error: "Unknown action." }, { status: 400 });
+  } catch (error) {
+    console.error("[admin-application]", error);
+    return Response.json({ error: "Review action failed." }, { status: 500 });
+  }
+}

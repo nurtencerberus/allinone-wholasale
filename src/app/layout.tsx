@@ -1,0 +1,122 @@
+import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
+import "./globals.css";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { CartDrawer } from "@/components/cart/CartDrawer";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { getSessionUser, type SessionUser } from "@/lib/auth";
+import { ensureSeeded } from "@/lib/seed";
+import { SITE } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE.domain),
+  title: {
+    default: "Meridian Supply Co. — Wholesale Vitamins, Pantry Staples & Home Goods",
+    template: "%s · Meridian Supply Co.",
+  },
+  description: SITE.description,
+  keywords: [
+    "wholesale supplements",
+    "B2B vitamin distributor",
+    "wholesale pantry staples",
+    "home goods wholesale USA",
+    "resale tax exemption",
+    "case pricing",
+    "LTL freight wholesale",
+  ],
+  openGraph: {
+    title: "Meridian Supply Co. — Wholesale for modern American retail",
+    description: SITE.description,
+    type: "website",
+    url: SITE.domain,
+    siteName: SITE.name,
+    images: [{ url: "/images/hero-warehouse.jpg", width: 1200, height: 630, alt: "Meridian Supply Co. warehouse" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Meridian Supply Co. — Wholesale for modern American retail",
+    description: SITE.description,
+  },
+  robots: { index: true, follow: true },
+  alternates: { canonical: "/" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#14241c",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  let user: SessionUser | null = null;
+  try {
+    await ensureSeeded();
+    user = await getSessionUser();
+  } catch (error) {
+    console.error("[layout] session/seed unavailable", error);
+  }
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE.name,
+    url: SITE.domain,
+    logo: `${SITE.domain}/images/hero-warehouse.jpg`,
+    description: SITE.description,
+    email: SITE.email,
+    telephone: SITE.phone,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "1401 Raymond Boulevard",
+      addressLocality: "Newark",
+      addressRegion: "NJ",
+      postalCode: "07102",
+      addressCountry: "US",
+    },
+    sameAs: ["https://www.linkedin.com/company/meridian-supply-co"],
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE.name,
+    url: SITE.domain,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE.domain}/shop?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  return (
+    <html lang="en-US">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@300..800&display=swap"
+          rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+      </head>
+      <body className="min-h-screen bg-cream text-ink antialiased">
+        <CartProvider>
+          <SiteHeader user={user} />
+          <main>{children}</main>
+          <SiteFooter />
+          <CartDrawer user={user} />
+        </CartProvider>
+      </body>
+    </html>
+  );
+}
