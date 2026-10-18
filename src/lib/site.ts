@@ -17,8 +17,8 @@ function resolveCanonicalUrl(): string {
 const CANONICAL_URL = resolveCanonicalUrl();
 
 export const SITE = {
-  name: "Meridian Supply Co.",
-  shortName: "Meridian",
+  name: "Ciputra Corp",
+  shortName: "Ciputra",
   domain: CANONICAL_URL,
   tagline: "Wholesale provisions for modern American retail.",
   description:
