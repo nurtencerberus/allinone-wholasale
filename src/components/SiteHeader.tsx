@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import type { SessionUser } from "@/lib/auth";
+import { SITE } from "@/lib/site";
 
 const NAV = [
   { href: "/shop?category=supplements", label: "Vitamins & Supplements" },
@@ -41,8 +42,8 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
             <span className="hidden text-cream/40 md:inline">|</span>
             <span className="hidden md:inline">Net 30 for approved retailers</span>
           </div>
-          <a href="tel:+12015550142" className="hidden text-cream/80 hover:text-cream sm:inline">
-            Trade desk +1 (201) 555-0142
+          <a href={`tel:${SITE.phoneHref}`} className="hidden text-cream/80 hover:text-cream sm:inline">
+            Trade desk {SITE.phone}
           </a>
         </div>
       </div>

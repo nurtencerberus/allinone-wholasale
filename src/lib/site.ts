@@ -1,16 +1,16 @@
 /**
  * Canonical production URL. Set NEXT_PUBLIC_SITE_URL in the deployment
- * environment (for example https://meridiansupply.co) — it is inlined at build
+ * environment (for example https://ciputracorp.com) — it is inlined at build
  * time and feeds sitemap.xml, robots.txt, JSON-LD and Open Graph metadata.
  */
 function resolveCanonicalUrl(): string {
   // Empty strings count as "not set" — hosting dashboards often create blank slots.
-  const candidate = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim() || "https://meridiansupply.co";
+  const candidate = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim() || "https://ciputracorp.com";
   const withProtocol = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
   try {
     return new URL(withProtocol).origin;
   } catch {
-    return "https://meridiansupply.co";
+    return "https://ciputracorp.com";
   }
 }
 
@@ -23,10 +23,16 @@ export const SITE = {
   tagline: "Wholesale provisions for modern American retail.",
   description:
     "B2B wholesale supplier of NSF-certified vitamins and supplements, pantry staples, and considered home goods. Case pricing, dimensional freight quotes, resale tax exemption and net terms for verified retailers.",
-  email: "trade@meridiansupply.co",
-  phone: "+1 (201) 555-0142",
-  address: "1401 Raymond Boulevard, Newark, NJ 07102",
-  originZip: "07102",
+  email: "info@ciputracorp.com",
+  phone: "+1 516-567-6662",
+  phoneHref: "+15165676662",
+  street: "238 Lindbergh Pl",
+  city: "Paterson",
+  state: "NJ",
+  zip: "07503",
+  address: "238 Lindbergh Pl, Paterson, NJ 07503",
+  // Freight and tax are calculated from this origin.
+  originZip: "07503",
   originState: "NJ",
   freeFreightThreshold: 75000,
   minOrderValue: 15000,

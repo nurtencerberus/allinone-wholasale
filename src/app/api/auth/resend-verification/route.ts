@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { randomToken } from "@/lib/password";
 import { sendEmail, verifyEmailTemplate } from "@/lib/email";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       deliverySent: delivery.sent,
-      devVerifyUrl: delivery.sent ? null : url,
+      devVerifyUrl: !delivery.sent && demoModeEnabled() ? url : null,
     });
   } catch (error) {
     console.error("[resend-verification]", error);

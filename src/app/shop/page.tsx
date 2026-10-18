@@ -133,7 +133,7 @@ export default async function ShopPage({
                 {list.length} of {totalCount} SKUs
               </span>
               <span className="rounded-full border border-ink/15 bg-[#fffdf8] px-3 py-1.5">
-                Case-packed · FOB Newark
+                Case-packed · FOB Paterson
               </span>
             </div>
           </div>

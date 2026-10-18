@@ -251,7 +251,7 @@ export default async function AccountPage() {
                     ? ` · ${application.discountPct}% pricing${application.taxExempt ? ", resale exempt" : ""}`
                     : application.status === "rejected"
                       ? ` · ${application.rejectionReason}`
-                      : " · under review by the Newark trade desk"}
+                      : " · under review by the trade desk"}
                 </p>
               </>
             ) : (

@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 type EmailInput = {
   to: string;
   subject: string;
@@ -14,7 +16,7 @@ export type EmailResult = { sent: boolean; provider: "resend" | "console"; id?: 
  */
 export async function sendEmail({ to, subject, html, replyTo }: EmailInput): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM?.trim() || "Meridian Supply Co. <trade@meridiansupply.co>";
+  const from = process.env.RESEND_FROM?.trim() || `${SITE.name} <${SITE.email}>`;
 
   if (!apiKey) {
     console.info(`[email:dev] to=${to} subject="${subject}"`);
@@ -48,7 +50,7 @@ const shell = (heading: string, body: string, cta?: { label: string; url: string
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #E4DCCB;border-radius:16px;overflow:hidden">
     <div style="background:#14241C;color:#F7F3EA;padding:20px 28px">
       <div style="font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#C9B78E">Meridian Supply Co.</div>
-      <div style="font-size:14px;color:#D8D2C2;margin-top:4px">Wholesale · Newark, NJ</div>
+      <div style="font-size:14px;color:#D8D2C2;margin-top:4px">Wholesale · ${SITE.city}, ${SITE.state}</div>
     </div>
     <div style="padding:28px">
       <h1 style="font-family:Georgia,serif;font-size:24px;margin:0 0 12px">${heading}</h1>
@@ -61,7 +63,7 @@ const shell = (heading: string, body: string, cta?: { label: string; url: string
       }
     </div>
   </div>
-  <p style="text-align:center;font-size:11px;color:#7A857D;margin-top:16px">1401 Raymond Boulevard, Newark, NJ 07102 · trade@meridiansupply.co</p>
+  <p style="text-align:center;font-size:11px;color:#7A857D;margin-top:16px">${SITE.address} · ${SITE.email}</p>
 </div>`;
 
 export const verifyEmailTemplate = (name: string, url: string) => ({
@@ -91,7 +93,7 @@ export const orderConfirmationTemplate = (input: {
   subject: `Order ${input.orderNumber} confirmed · Meridian Supply Co.`,
   html: shell(
     `Thank you, ${input.name.split(" ")[0]}.`,
-    `Order <strong>${input.orderNumber}</strong> for <strong>${input.total}</strong> is confirmed and queued for picking at our Newark warehouse. Tracking is added to your account the moment the carrier scans the pallet.`,
+    `Order <strong>${input.orderNumber}</strong> for <strong>${input.total}</strong> is confirmed and queued for picking at our ${SITE.city}, ${SITE.state} warehouse. Tracking is added to your account the moment the carrier scans the pallet.`,
     { label: "View order", url: input.url },
   ),
 });

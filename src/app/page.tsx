@@ -39,7 +39,7 @@ export const metadata = {
 const PROOF = [
   { value: "1,400+", label: "Independent retail accounts" },
   { value: "98.6%", label: "Case fill rate, trailing 12mo" },
-  { value: "2 days", label: "Average Newark dispatch" },
+  { value: "2 days", label: "Average dispatch time" },
   { value: "48", label: "States served, LTL included" },
 ];
 
@@ -217,7 +217,7 @@ export default async function HomePage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-clay" /> B2B only · USA
               </span>
               <span className="text-[11px] font-medium tracking-wide text-ink/50">
-                Shipping from Newark, NJ · 07102
+                Shipping from {SITE.city}, {SITE.state} · {SITE.zip}
               </span>
             </div>
             <h1 className="display mt-5 text-[42px] leading-[0.98] sm:text-[58px] lg:text-[64px]">
@@ -261,14 +261,14 @@ export default async function HomePage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/hero-warehouse.jpg"
-                alt="Meridian Supply Co. wholesale warehouse in Newark, New Jersey"
+                alt="Wholesale warehouse shelves stocked with cartons, supplement bottles and home goods"
                 className="h-[380px] w-full object-cover sm:h-[460px] lg:h-[540px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
               <div className="absolute left-4 top-4 rounded-lg bg-cream/95 px-3 py-2 backdrop-blur">
-                <p className="text-[9px] font-bold tracking-[0.18em] text-fern uppercase">Warehouse 01</p>
+                <p className="text-[9px] font-bold tracking-[0.18em] text-fern uppercase">Ships from</p>
                 <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold">
-                  <MapPin size={11} /> Newark, NJ · 42,000 sq ft
+                  <MapPin size={11} /> {SITE.city}, {SITE.state}
                 </p>
               </div>
               <div className="absolute inset-x-4 bottom-4 rounded-xl border border-cream/20 bg-ink/75 p-4 backdrop-blur-md">
@@ -415,7 +415,7 @@ export default async function HomePage() {
                 <div>
                   <p className="text-[12.5px] font-bold">Buying for a shop, gym or hotel?</p>
                   <p className="mt-1 text-[11.5px] leading-relaxed text-ink/60">
-                    Trade applications are reviewed by a human in Newark — most are approved within one
+                    Trade applications are reviewed by a human on our trade team — most are approved within one
                     business day.
                   </p>
                   <Link
@@ -653,7 +653,7 @@ export default async function HomePage() {
               Everything a new buyer asks us.
             </h2>
             <p className="mt-4 text-[13px] leading-relaxed text-ink/60">
-              Still unsure? The Newark trade desk answers within one business hour,{" "}
+              Still unsure? The trade desk answers within one business hour,{" "}
               {new Date().getHours() < 17 ? "Monday to Friday" : "next business morning"}.
             </p>
             <a href={`mailto:${SITE.email}`} className="btn btn-outline btn-sm mt-5">
@@ -690,7 +690,7 @@ export default async function HomePage() {
               Send us your EIN. We will send back your pricing.
             </h2>
             <p className="mt-3 max-w-lg text-[13px] leading-relaxed text-cream/65">
-              Applications are reviewed by the Newark trade team, not an auto-approval script. Most
+              Applications are reviewed by the trade team, not an auto-approval script. Most
               decisions land within one business day.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">

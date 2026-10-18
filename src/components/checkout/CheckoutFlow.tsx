@@ -750,7 +750,7 @@ export function CheckoutFlow({
                 <span className="display text-[24px] leading-none">{formatMoney(displayTotal)}</span>
               </div>
               <p className="pt-1 text-[9.5px] leading-relaxed text-ink/40">
-                USD · FOB Newark, NJ. Sales tax and freight are recalculated server-side on order
+                USD · FOB Paterson, NJ. Sales tax and freight are recalculated server-side on order
                 submission.
               </p>
             </div>

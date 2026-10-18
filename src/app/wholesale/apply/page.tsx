@@ -21,7 +21,7 @@ export default function ApplyPage() {
             Trade application
           </h1>
           <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink/60">
-            Four short sections. A Newark trade specialist verifies your EIN and resale documentation —
+            Four short sections. A trade specialist verifies your EIN and resale documentation —
             most applications are decided within one business day. You can keep ordering at catalog case
             pricing in the meantime.
           </p>
@@ -71,10 +71,10 @@ export default function ApplyPage() {
           <div className="rounded-xl bg-ink p-5 text-cream">
             <p className="text-[10.5px] font-bold tracking-[0.16em] text-gold uppercase">Need help?</p>
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-cream/65">
-              The Newark trade desk answers EIN and freight questions directly, Monday–Friday 8am–6pm ET.
+              The trade desk answers EIN and freight questions directly, Monday–Friday 8am–6pm ET.
             </p>
-            <a href="mailto:trade@meridiansupply.co" className="mt-3 inline-block text-[11px] font-bold text-cream underline">
-              trade@meridiansupply.co
+            <a href="mailto:info@ciputracorp.com" className="mt-3 inline-block text-[11px] font-bold text-cream underline">
+              info@ciputracorp.com
             </a>
           </div>
         </aside>

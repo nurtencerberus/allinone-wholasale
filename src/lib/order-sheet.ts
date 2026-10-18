@@ -249,7 +249,7 @@ export async function buildOrderSheetXlsx(products: OrderSheetProduct[]): Promis
   guide.columns = [{ width: 4 }, { width: 92 }];
   const steps = [
     ["", "Meridian Supply Co. — wholesale order sheet"],
-    ["", "12 active SKUs · case-packed · FOB Newark, NJ 07102"],
+    ["", "12 active SKUs · case-packed · FOB Paterson, NJ 07503"],
     ["", ""],
     ["1.", "Download this workbook from your trade portal or /quick-order."],
     ["2.", "Fill the orange “Cases to order” column on the Order Sheet tab. Leave a line blank to skip it."],

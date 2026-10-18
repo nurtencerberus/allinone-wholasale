@@ -168,7 +168,7 @@ export default function WholesalePage() {
             {
               icon: BadgeCheck,
               title: "2 · Verify",
-              body: "We confirm your entity and resale certificate. A human reviews every application in Newark.",
+              body: "We confirm your entity and resale certificate. A human reviews every application.",
             },
             {
               icon: Percent,
@@ -286,7 +286,7 @@ export default function WholesalePage() {
               <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
                 <Calculator size={13} /> Worked freight examples
               </p>
-              <span className="chip">FOB Newark 07102</span>
+              <span className="chip">FOB Paterson 07503</span>
             </div>
             <div className="divide-y divide-ink/8">
               {FREIGHT_EXAMPLES.map((example) => (

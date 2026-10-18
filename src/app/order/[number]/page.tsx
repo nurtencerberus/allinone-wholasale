@@ -142,7 +142,7 @@ export default async function OrderPage({
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-cream/70">
               Order <strong className="font-bold text-cream">{order.orderNumber}</strong> was placed{" "}
-              {formatDateTime(order.createdAt)} and is queued at our Newark, NJ warehouse. A confirmation
+              {formatDateTime(order.createdAt)} and is queued at our Paterson, NJ warehouse. A confirmation
               was sent to {order.email}.
             </p>
           </div>
@@ -307,7 +307,7 @@ export default async function OrderPage({
             <ol className="mt-3 grid gap-3 text-[11.5px] leading-relaxed text-cream/70 sm:grid-cols-3">
               <li>
                 <strong className="block text-cream">1. Pick &amp; pack</strong>
-                Cases are staged in Newark within two business days.
+                Cases are staged in Paterson within two business days.
               </li>
               <li>
                 <strong className="block text-cream">2. Carrier scan</strong>

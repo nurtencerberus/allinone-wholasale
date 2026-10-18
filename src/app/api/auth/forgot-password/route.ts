@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { randomToken } from "@/lib/password";
 import { resetPasswordTemplate, sendEmail } from "@/lib/email";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
 
 export async function POST(request: Request) {
@@ -37,8 +38,7 @@ export async function POST(request: Request) {
     return Response.json({
       ok: true,
       message: "If that email is on file, a reset link is on its way.",
-      deliverySent: delivery.sent,
-      devResetUrl: delivery.sent ? null : url,
+      devResetUrl: !delivery.sent && demoModeEnabled() ? url : null,
     });
   } catch (error) {
     console.error("[forgot-password]", error);

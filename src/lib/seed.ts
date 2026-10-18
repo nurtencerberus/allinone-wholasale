@@ -14,6 +14,7 @@ import {
 import { COUPON_SEED, PRODUCTS, REVIEW_SEED } from "@/lib/catalog";
 import { buildOrderSheetCsv, buildOrderSheetXlsx, type OrderSheetProduct } from "@/lib/order-sheet";
 import { parseListFile } from "@/lib/wholesale-lists";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { hashPassword } from "@/lib/password";
 
 const globalForSeed = globalThis as typeof globalThis & {
@@ -25,10 +26,7 @@ const globalForSeed = globalThis as typeof globalThis & {
  * the storefront is explorable out of the box. Set SEED_DEMO_DATA=false on a
  * live deployment and only catalog, reviews and coupons are created.
  */
-export function shouldSeedDemoData(): boolean {
-  const flag = (process.env.SEED_DEMO_DATA ?? "").trim().toLowerCase() || "true";
-  return !["false", "0", "off", "no"].includes(flag);
-}
+export const shouldSeedDemoData = demoModeEnabled;
 
 /**
  * Three clearly-labelled sample lists generated from our own catalog so the

@@ -132,7 +132,7 @@ function matrixOptions(input: {
     dimWeightLbs: input.dimWeightLbs,
     note: allowance
       ? "Freight allowance applied — order exceeds $750 and ships free to zone 1–6."
-      : `Billed on dimensional weight (${lbs.toFixed(1)} lb) from Newark, NJ · zone ${zone} · ${stateName(input.state)}.`,
+      : `Billed on dimensional weight (${lbs.toFixed(1)} lb) from ${SITE.city}, ${SITE.state} · zone ${zone} · ${stateName(input.state)}.`,
   });
 
   options.push({
@@ -182,7 +182,7 @@ async function easyPostOptions(input: {
       body: JSON.stringify({
         shipment: {
           to_address: { country: "US", state: input.state, zip: input.zip, city: input.city },
-          from_address: { country: "US", state: SITE.originState, zip: SITE.originZip, city: "Newark" },
+          from_address: { country: "US", state: SITE.originState, zip: SITE.originZip, city: SITE.city },
           parcel: {
             weight: Math.max(1, Math.round(input.billableLbs * 16)),
             length: Math.max(6, heaviest.l),

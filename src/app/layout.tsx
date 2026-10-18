@@ -70,13 +70,12 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     telephone: SITE.phone,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "1401 Raymond Boulevard",
-      addressLocality: "Newark",
-      addressRegion: "NJ",
-      postalCode: "07102",
+      streetAddress: SITE.street,
+      addressLocality: SITE.city,
+      addressRegion: SITE.state,
+      postalCode: SITE.zip,
       addressCountry: "US",
     },
-    sameAs: ["https://www.linkedin.com/company/meridian-supply-co"],
   };
 
   const websiteJsonLd = {

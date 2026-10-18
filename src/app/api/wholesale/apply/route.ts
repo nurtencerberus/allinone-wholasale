@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       ok: true,
       applicationId: application?.id,
       message:
-        "Application received. A Newark trade specialist will verify your EIN and confirm resale documentation within one business day.",
+        "Application received. A trade specialist will verify your EIN and confirm resale documentation within one business day.",
     });
   } catch (error) {
     console.error("[wholesale-apply]", error);

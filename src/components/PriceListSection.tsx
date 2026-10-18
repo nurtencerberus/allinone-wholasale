@@ -243,7 +243,7 @@ export function PriceListSection({
         ) : null}
 
         <p className="mt-6 text-[10.5px] leading-relaxed text-ink/45">
-          Prices in USD per case, FOB Newark NJ. Lists are regenerated from live inventory on every
+          Prices in USD per case, FOB Paterson NJ. Lists are regenerated from live inventory on every
           download. Approved trade accounts see contract pricing in{" "}
           <Link href="/quick-order" className="underline">
             Quick order
@@ -401,7 +401,7 @@ export function PriceListSection({
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 bg-parchment/50 px-5 py-3">
               <p className="text-[10.5px] text-ink/50">
-                USD per case, FOB Newark NJ · 2+/5+/10+ are volume-tier case prices.
+                USD per case, FOB Paterson NJ · 2+/5+/10+ are volume-tier case prices.
               </p>
               <Link href="/quick-order" onClick={() => setOpen(false)} className="btn btn-primary btn-sm">
                 Order from this list <ArrowRight size={13} />

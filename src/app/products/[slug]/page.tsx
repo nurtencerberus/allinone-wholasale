@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
     return {
       title: `${product.name} — wholesale case of ${product.caseSize}`,
-      description: `${product.tagline}. ${product.description.slice(0, 140)}… Case price ${formatMoney(product.casePrice)} FOB Newark, NJ.`,
+      description: `${product.tagline}. ${product.description.slice(0, 140)}… Case price ${formatMoney(product.casePrice)} FOB Paterson, NJ.`,
       alternates: { canonical: `/products/${product.slug}` },
       openGraph: {
         title: `${product.name} · wholesale`,
@@ -344,7 +344,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <div className="rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5">
                 <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Case</p>
                 <p className="mt-1 text-[15px] font-bold">{formatMoney(product.casePrice)}</p>
-                <p className="text-[10.5px] text-ink/45">{product.caseSize} units · FOB Newark</p>
+                <p className="text-[10.5px] text-ink/45">{product.caseSize} units · FOB Paterson</p>
               </div>
             </div>
           </div>

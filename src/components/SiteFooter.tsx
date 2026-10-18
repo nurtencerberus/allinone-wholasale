@@ -61,12 +61,12 @@ export function SiteFooter() {
           <div className="flex flex-col leading-none">
             <span className="display text-[26px] text-cream">Meridian</span>
             <span className="text-[8.5px] font-semibold tracking-[0.36em] text-sage uppercase">
-              Supply Co. · Est. 2016
+              Supply Co.
             </span>
           </div>
           <p className="mt-5 max-w-xs text-[12.5px] leading-relaxed text-cream/60">
             A wholesale supplier for independent American retail: NSF-certified wellness, shelf-stable
-            provisions and small-batch home goods from one Newark warehouse.
+            provisions and small-batch home goods from one Paterson warehouse.
           </p>
           <div className="mt-6 space-y-2.5 text-[12.5px] text-cream/70">
             <p className="flex items-start gap-2.5">
@@ -76,7 +76,7 @@ export function SiteFooter() {
             <a href={`mailto:${SITE.email}`} className="flex items-center gap-2.5 hover:text-cream">
               <Mail size={14} className="text-sage" /> {SITE.email}
             </a>
-            <a href="tel:+12015550142" className="flex items-center gap-2.5 hover:text-cream">
+            <a href={`tel:${SITE.phoneHref}`} className="flex items-center gap-2.5 hover:text-cream">
               <Phone size={14} className="text-sage" /> {SITE.phone}
             </a>
           </div>
@@ -109,7 +109,7 @@ export function SiteFooter() {
 
       <div className="border-t border-cream/12">
         <div className="wrap flex flex-col gap-4 py-6 text-[11px] text-cream/50 md:flex-row md:items-center md:justify-between">
-          <p>© 2026 Meridian Supply Co. · EIN 84-2210977 · Prices in USD, FOB Newark NJ.</p>
+          <p>© 2026 Meridian Supply Co. · Prices in USD, FOB Paterson NJ.</p>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span>Secure payments by Stripe · PCI-DSS SAQ-A</span>
             <span className="hidden h-3 w-px bg-cream/20 sm:block" />

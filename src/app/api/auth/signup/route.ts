@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { createSession, toSessionUser } from "@/lib/auth";
 import { hashPassword, randomToken } from "@/lib/password";
 import { sendEmail, verifyEmailTemplate } from "@/lib/email";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
 
 export async function POST(request: Request) {
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
       ok: true,
       user: toSessionUser(created),
       verificationSent: delivery.sent,
-      devVerifyUrl: delivery.sent ? null : verifyUrl,
+      devVerifyUrl: !delivery.sent && demoModeEnabled() ? verifyUrl : null,
     });
   } catch (error) {
     console.error("[signup]", error);
