@@ -7,6 +7,16 @@ type EmailInput = {
   replyTo?: string;
 };
 
+/** Names, company names and free text reach e-mail HTML: escape them everywhere. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export type EmailResult = { sent: boolean; provider: "resend" | "console"; id?: string };
 
 /**
@@ -69,7 +79,7 @@ const shell = (heading: string, body: string, cta?: { label: string; url: string
 export const verifyEmailTemplate = (name: string, url: string) => ({
   subject: "Confirm your Meridian trade account",
   html: shell(
-    `Confirm your email, ${name.split(" ")[0]}`,
+    `Confirm your email, ${escapeHtml(name.split(" ")[0])}`,
     "You are one step from case pricing, dimensional freight quotes and resale tax exemption. Confirm your email address to activate ordering on your account. This link is single-use and expires in 24 hours.",
     { label: "Confirm email address", url },
   ),
@@ -90,10 +100,10 @@ export const orderConfirmationTemplate = (input: {
   total: string;
   url: string;
 }) => ({
-  subject: `Order ${input.orderNumber} confirmed · Meridian Supply Co.`,
+  subject: `Order ${escapeHtml(input.orderNumber)} confirmed · Meridian Supply Co.`,
   html: shell(
-    `Thank you, ${input.name.split(" ")[0]}.`,
-    `Order <strong>${input.orderNumber}</strong> for <strong>${input.total}</strong> is confirmed and queued for picking at our ${SITE.city}, ${SITE.state} warehouse. Tracking is added to your account the moment the carrier scans the pallet.`,
+    `Thank you, ${escapeHtml(input.name.split(" ")[0])}.`,
+    `Order <strong>${escapeHtml(input.orderNumber)}</strong> for <strong>${escapeHtml(input.total)}</strong> is confirmed and queued for picking at our ${SITE.city}, ${SITE.state} warehouse. Tracking is added to your account the moment the carrier scans the pallet.`,
     { label: "View order", url: input.url },
   ),
 });
@@ -109,10 +119,10 @@ export const wholesaleDecisionTemplate = (input: {
     ? "Your Meridian wholesale account is approved"
     : "Update on your Meridian wholesale application",
   html: shell(
-    input.approved ? `Welcome aboard, ${input.company}` : `Application update · ${input.company}`,
+    input.approved ? `Welcome aboard, ${escapeHtml(input.company)}` : `Application update · ${escapeHtml(input.company)}`,
     input.approved
       ? `Your trade application has been approved and your EIN verified. Account pricing of <strong>${input.discountPct}% off catalog case pricing</strong> is now active, and resale tax exemption is applied automatically at checkout.`
-      : `We were not able to approve the application as submitted. Reason: ${input.reason ?? "documentation could not be verified"}. You are welcome to reply with corrected documents and we will re-open the review.`,
+      : `We were not able to approve the application as submitted. Reason: ${escapeHtml(input.reason ?? "documentation could not be verified")}. You are welcome to reply with corrected documents and we will re-open the review.`,
     { label: "Open trade portal", url: input.url },
   ),
 });

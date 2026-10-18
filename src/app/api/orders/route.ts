@@ -1,9 +1,10 @@
 import Stripe from "stripe";
+import { randomInt } from "node:crypto";
 import { cookies } from "next/headers";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { randomToken } from "@/lib/password";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
 import { demoModeEnabled } from "@/lib/demo-mode";
-import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { orderItems, orders, products } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
@@ -12,10 +13,37 @@ import { ensureSeeded } from "@/lib/seed";
 import { orderConfirmationTemplate, sendEmail } from "@/lib/email";
 import { formatMoney } from "@/lib/money";
 import { SITE } from "@/lib/site";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const MAX_ATTEMPTS = 3;
+
+/** Thrown inside the order transaction when a line can no longer be reserved. */
+class StockShortError extends Error {
+  constructor(public readonly productName: string) {
+    super(`${productName} no longer has enough stock.`);
+  }
+}
+
+function pgConstraint(error: unknown): string | undefined {
+  const candidate = error as { constraint?: string; cause?: { constraint?: string } };
+  return candidate.constraint ?? candidate.cause?.constraint;
+}
+
+/** Unguessable-enough, non-sequential order number. Collisions are retried. */
+function newOrderNumber(): string {
+  return `MSC-${randomInt(1_000_000, 10_000_000)}`;
+}
 
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+
+    const limit = await consumeRateLimit("order", clientIp(request), 20, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
+
     const body = (await request.json()) as {
       items?: CartItemInput[];
       couponCode?: string;
@@ -133,71 +161,107 @@ export async function POST(request: Request) {
       paymentRef = `demo_${Date.now()}`;
     }
 
-    const orderNumber = `MSC-${Date.now().toString().slice(-6)}`;
     const accessToken = randomToken(16);
+    const shippingAddress = {
+      line1: address.line1,
+      line2: address.line2 ?? "",
+      city: address.city,
+      state: address.state,
+      zip: address.zip,
+      country: address.country ?? "United States",
+    };
 
-    const [order] = await db
-      .insert(orders)
-      .values({
-        orderNumber,
-        userId: user?.id ?? null,
-        email,
-        customerName: name,
-        company: (body.company ?? user?.company ?? "").trim() || null,
-        phone: (body.phone ?? "").trim() || null,
-        status: "processing",
-        shippingAddress: {
-          line1: address.line1,
-          line2: address.line2 ?? "",
-          city: address.city,
-          state: address.state,
-          zip: address.zip,
-          country: address.country ?? "United States",
-        },
-        shippingService: priced.shippingService ?? "UPS Ground",
-        shippingCarrier: priced.shippingCarrier ?? "UPS",
-        subtotal: priced.subtotal,
-        accountDiscount: priced.accountDiscount,
-        couponCode: priced.couponCode,
-        couponDiscount: priced.couponDiscount,
-        shippingCost: priced.shippingCost,
-        taxRate: priced.taxQuote.rateX1000,
-        taxAmount: priced.taxAmount,
-        taxExempt: priced.taxQuote.source === "exempt",
-        total: priced.total,
-        isWholesale: priced.isWholesale,
-        paymentStatus,
-        paymentMethod: method,
-        poNumber,
-        accessToken,
-        paymentRef,
-        notes: (body.notes ?? "").trim() || null,
-      })
-      .returning({ id: orders.id, orderNumber: orders.orderNumber });
-
-    if (!order) return Response.json({ error: "Could not create the order." }, { status: 500 });
-
-    await db.insert(orderItems).values(
-      priced.lines.map((line) => ({
-        orderId: order.id,
-        productId: line.productId,
-        name: line.name,
-        sku: line.sku,
-        image: line.image,
-        cases: line.cases,
-        unitsPerCase: line.caseSize,
-        unitPrice: line.unitPrice,
-        lineTotal: line.lineTotal,
-      })),
-    );
-
-    // Decrement case stock so the portal reflects committed inventory.
-    for (const line of priced.lines) {
-      await db
-        .update(products)
-        .set({ stock: sql`greatest(0, ${products.stock} - ${line.cases})` })
-        .where(eq(products.id, line.productId));
+    // One captured payment must never become two orders.
+    if (paymentRef) {
+      const [previous] = await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.paymentRef, paymentRef))
+        .limit(1);
+      if (previous) {
+        return Response.json({ error: "This payment has already been used for an order." }, { status: 409 });
+      }
     }
+
+    // Stock is reserved and the order written in one transaction: either both happen or neither.
+    let order: { id: number; orderNumber: string } | null = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !order; attempt += 1) {
+      const orderNumber = newOrderNumber();
+      try {
+        order = await db.transaction(async (tx) => {
+          for (const line of priced.lines) {
+            const reserved = await tx
+              .update(products)
+              .set({ stock: sql`${products.stock} - ${line.cases}` })
+              .where(and(eq(products.id, line.productId), gte(products.stock, line.cases)))
+              .returning({ id: products.id });
+            if (reserved.length === 0) throw new StockShortError(line.name);
+          }
+
+          const [created] = await tx
+            .insert(orders)
+            .values({
+              orderNumber,
+              userId: user?.id ?? null,
+              email,
+              customerName: name,
+              company: (body.company ?? user?.company ?? "").trim() || null,
+              phone: (body.phone ?? "").trim() || null,
+              status: "processing",
+              shippingAddress,
+              shippingService: priced.shippingService ?? "UPS Ground",
+              shippingCarrier: priced.shippingCarrier ?? "UPS",
+              subtotal: priced.subtotal,
+              accountDiscount: priced.accountDiscount,
+              couponCode: priced.couponCode,
+              couponDiscount: priced.couponDiscount,
+              shippingCost: priced.shippingCost,
+              taxRate: priced.taxQuote.rateX1000,
+              taxAmount: priced.taxAmount,
+              taxExempt: priced.taxQuote.source === "exempt",
+              total: priced.total,
+              isWholesale: priced.isWholesale,
+              paymentStatus,
+              paymentMethod: method,
+              poNumber,
+              accessToken,
+              paymentRef,
+              notes: (body.notes ?? "").trim() || null,
+            })
+            .returning({ id: orders.id, orderNumber: orders.orderNumber });
+          if (!created) throw new Error("Order insert returned no row.");
+
+          await tx.insert(orderItems).values(
+            priced.lines.map((line) => ({
+              orderId: created.id,
+              productId: line.productId,
+              name: line.name,
+              sku: line.sku,
+              image: line.image,
+              cases: line.cases,
+              unitsPerCase: line.caseSize,
+              unitPrice: line.unitPrice,
+              lineTotal: line.lineTotal,
+            })),
+          );
+          return created;
+        });
+      } catch (error) {
+        if (error instanceof StockShortError) {
+          return Response.json(
+            { error: `${error.productName} no longer has enough stock. Please update your cart.` },
+            { status: 409 },
+          );
+        }
+        const constraint = pgConstraint(error);
+        if (constraint === "orders_number_unique" && attempt < MAX_ATTEMPTS) continue;
+        if (constraint === "orders_payment_ref_unique") {
+          return Response.json({ error: "This payment has already been used for an order." }, { status: 409 });
+        }
+        throw error;
+      }
+    }
+    if (!order) return Response.json({ error: "Could not create the order. No payment was taken." }, { status: 500 });
 
     const origin = new URL(request.url).origin;
     const template = orderConfirmationTemplate({

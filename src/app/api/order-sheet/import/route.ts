@@ -1,5 +1,6 @@
 import { formatOrderSheetSummary, parseOrderSheet } from "@/lib/order-sheet";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ const MAX_BYTES = 4 * 1024 * 1024;
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const limit = await consumeRateLimit("sheet-import", clientIp(request), 30, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {

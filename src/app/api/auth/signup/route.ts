@@ -6,10 +6,13 @@ import { hashPassword, randomToken } from "@/lib/password";
 import { sendEmail, verifyEmailTemplate } from "@/lib/email";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const limit = await consumeRateLimit("signup", clientIp(request), 10, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const body = (await request.json()) as {
       name?: string;
       email?: string;

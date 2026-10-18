@@ -28,3 +28,7 @@ yarn-error.log*
 
 # deployment
 .vercel
+
+# local Claude Code settings
+.claude/settings.local.json
+proje-dokumu.txt

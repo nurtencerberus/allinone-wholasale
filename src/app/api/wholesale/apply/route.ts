@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { wholesaleApplications } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const REQUIRED = [
   "companyName",
@@ -21,6 +22,8 @@ const REQUIRED = [
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const limit = await consumeRateLimit("wholesale-apply", clientIp(request), 5, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const body = (await request.json()) as Record<string, string>;
     for (const field of REQUIRED) {
       if (!String(body[field] ?? "").trim()) {

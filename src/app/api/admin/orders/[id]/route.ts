@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { ORDER_STATUSES } from "@/lib/site";
-import { sendEmail } from "@/lib/email";
+import { escapeHtml, sendEmail } from "@/lib/email";
 
 function trackingUrlFor(carrier: string, trackingNumber: string): string | null {
   if (!trackingNumber) return null;
@@ -74,7 +74,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await sendEmail({
         to: existing.email,
         subject: `Order ${existing.orderNumber} has shipped`,
-        html: `<p>Hi ${existing.customerName.split(" ")[0]},</p><p>Order <strong>${existing.orderNumber}</strong> is on the way with ${carrier}. Tracking number: <strong>${trackingNumber}</strong>.</p><p>— Meridian Supply Co. trade desk</p>`,
+        html: `<p>Hi ${escapeHtml(existing.customerName.split(" ")[0])},</p><p>Order <strong>${existing.orderNumber}</strong> is on the way with ${escapeHtml(carrier)}. Tracking number: <strong>${escapeHtml(trackingNumber)}</strong>.</p><p>— Meridian Supply Co. trade desk</p>`,
       });
     }
 

@@ -10,6 +10,8 @@
  * API response would let anyone take over any account.
  */
 export function demoModeEnabled(): boolean {
-  const flag = (process.env.SEED_DEMO_DATA ?? "").trim().toLowerCase() || "true";
+  const flag = (process.env.SEED_DEMO_DATA ?? "").trim().toLowerCase();
+  // Unset: demo only outside production, so a fresh Vercel deploy can never expose demo logins.
+  if (!flag) return process.env.NODE_ENV !== "production";
   return !["false", "0", "off", "no"].includes(flag);
 }

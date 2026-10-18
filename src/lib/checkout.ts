@@ -109,6 +109,9 @@ export async function priceCart(input: {
   for (const item of cleaned) {
     const product = byId.get(item.productId);
     if (!product || !product.active) continue;
+    if (item.cases > product.stock) {
+      return { error: `${product.name}: only ${product.stock} case(s) in stock.` };
+    }
     const listCasePrice = resolveCasePrice(product, item.cases);
     const casePrice = discountPct
       ? Math.round(listCasePrice * (1 - discountPct / 100))

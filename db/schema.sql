@@ -113,6 +113,12 @@ CREATE TABLE "products" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE "rate_limits" (
+	"key" text PRIMARY KEY NOT NULL,
+	"count" integer DEFAULT 0 NOT NULL,
+	"reset_at" timestamp with time zone NOT NULL
+);
+
 CREATE TABLE "reviews" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"product_id" integer NOT NULL,
@@ -210,6 +216,7 @@ CREATE INDEX "addresses_user_idx" ON "addresses" USING btree ("user_id");
 CREATE UNIQUE INDEX "coupons_code_unique" ON "coupons" USING btree ("code");
 CREATE INDEX "order_items_order_idx" ON "order_items" USING btree ("order_id");
 CREATE UNIQUE INDEX "orders_number_unique" ON "orders" USING btree ("order_number");
+CREATE UNIQUE INDEX "orders_payment_ref_unique" ON "orders" USING btree ("payment_ref");
 CREATE INDEX "orders_user_idx" ON "orders" USING btree ("user_id");
 CREATE UNIQUE INDEX "products_slug_unique" ON "products" USING btree ("slug");
 CREATE UNIQUE INDEX "products_sku_unique" ON "products" USING btree ("sku");

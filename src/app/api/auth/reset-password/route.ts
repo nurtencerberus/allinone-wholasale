@@ -2,9 +2,12 @@ import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 import { hashPassword } from "@/lib/password";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const limit = await consumeRateLimit("reset-ip", clientIp(request), 20, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const body = (await request.json()) as { token?: string; password?: string };
     const token = (body.token ?? "").trim();
     const password = body.password ?? "";

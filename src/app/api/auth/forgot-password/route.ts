@@ -5,13 +5,18 @@ import { randomToken } from "@/lib/password";
 import { resetPasswordTemplate, sendEmail } from "@/lib/email";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const ipLimit = await consumeRateLimit("forgot-ip", clientIp(request), 20, 3600);
+    if (!ipLimit.allowed) return tooManyRequests(ipLimit.retryAfterSeconds);
     const body = (await request.json()) as { email?: string };
     const email = (body.email ?? "").trim().toLowerCase();
     if (!email) return Response.json({ error: "Email is required." }, { status: 400 });
+    const emailLimit = await consumeRateLimit("forgot-email", email, 5, 3600);
+    if (!emailLimit.allowed) return tooManyRequests(emailLimit.retryAfterSeconds);
 
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
     const origin = new URL(request.url).origin;

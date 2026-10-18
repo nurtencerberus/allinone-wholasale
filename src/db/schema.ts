@@ -228,6 +228,8 @@ export const orders = pgTable(
   },
   (table) => [
     uniqueIndex("orders_number_unique").on(table.orderNumber),
+    // One captured card payment can produce at most one order (NULLs are allowed repeatedly).
+    uniqueIndex("orders_payment_ref_unique").on(table.paymentRef),
     index("orders_user_idx").on(table.userId),
   ],
 );
@@ -285,6 +287,13 @@ export const wholesaleLists = pgTable(
   },
   (table) => [index("wholesale_lists_published_idx").on(table.published)],
 );
+
+/** Fixed-window counters for abuse limits (logins, sign-ups, card attempts, uploads). */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});
 
 export type WholesaleList = typeof wholesaleLists.$inferSelect;
 export type User = typeof users.$inferSelect;

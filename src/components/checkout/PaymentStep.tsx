@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -94,7 +94,7 @@ export function PaymentStep({
   loading: boolean;
   onPlace: (input: PlaceOrderInput) => Promise<void>;
 }) {
-  const [method, setMethod] = useState<PaymentMethod>("card");
+  const [chosen, setMethod] = useState<PaymentMethod>("card");
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,10 +110,9 @@ export function PaymentStep({
   const brand = brandOf(number);
   const unavailable = intent?.mode === "unavailable";
 
-  // Card payments are switched off (live store without Stripe keys): start on a method that works.
-  useEffect(() => {
-    if (unavailable) setMethod((current) => (current === "card" ? (netEligible ? "net30" : "ach") : current));
-  }, [unavailable, netEligible]);
+  // Card payments are switched off (live store without Stripe keys): fall back to a method that works.
+  const method: PaymentMethod =
+    unavailable && chosen === "card" ? (netEligible ? "net30" : "ach") : chosen;
 
   const choose = (next: PaymentMethod) => {
     setMethod(next);

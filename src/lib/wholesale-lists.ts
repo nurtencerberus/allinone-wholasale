@@ -1,5 +1,8 @@
 import type { SessionUser } from "@/lib/auth";
 import { parseCsvMatrix } from "@/lib/order-sheet";
+import { isLegacyXls, matrixToCsv, matrixToXlsx, readXlsxMatrix } from "@/lib/spreadsheet";
+
+const LEGACY_XLS_MESSAGE = "Legacy .xls files are not supported. Save the list as .xlsx or .csv and upload again.";
 
 export type ListFormat = "xlsx" | "xls" | "csv";
 export type ListAudience = "public" | "trade";
@@ -44,24 +47,14 @@ export function detectFormat(data: Buffer, filename: string): ListFormat | null 
 
 /** Reads the first sheet of an .xlsx / .xls / .csv file into a header + preview. */
 export async function parseListFile(data: Buffer, filename: string): Promise<ParsedList> {
+  if (isLegacyXls(data)) throw new Error(LEGACY_XLS_MESSAGE);
   const format = detectFormat(data, filename);
-  if (!format) throw new Error("Upload an .xlsx, .xls or .csv file.");
+  if (!format || format === "xls") throw new Error("Upload an .xlsx or .csv file.");
 
-  let matrix: unknown[][];
-  if (format === "csv") {
-    matrix = parseCsvMatrix(data.toString("utf8"));
-  } else {
-    const XLSX = await import("xlsx");
-    const workbook = XLSX.read(data, { type: "buffer" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    if (!sheet) throw new Error("No readable sheet found in this workbook.");
-    matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-      header: 1,
-      blankrows: false,
-      defval: "",
-      raw: false,
-    });
-  }
+  const matrix: string[][] =
+    format === "csv"
+      ? parseCsvMatrix(data.toString("utf8"))
+      : (await readXlsxMatrix(data)).matrix;
 
   const rows = matrix.map((row) => row.map(clip)).filter((row) => row.some(Boolean));
   if (!rows.length) throw new Error("The file has no readable rows.");
@@ -90,31 +83,16 @@ export async function renderListFile(
   target: "original" | "xlsx" | "csv",
 ): Promise<{ body: Buffer; ext: ListFormat; type: string }> {
   if (target === "original" || target === from) return { body: data, ext: from, type: MIME[from] };
+  if (from === "xls") throw new Error(LEGACY_XLS_MESSAGE);
 
-  const XLSX = await import("xlsx");
   if (target === "csv") {
-    const workbook = XLSX.read(data, { type: "buffer" });
-    const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
-    return { body: Buffer.from(`\uFEFF${csv}`, "utf8"), ext: "csv", type: MIME.csv };
+    const matrix = from === "csv" ? parseCsvMatrix(data.toString("utf8")) : (await readXlsxMatrix(data)).matrix;
+    return { body: Buffer.from(`\uFEFF${matrixToCsv(matrix)}`, "utf8"), ext: "csv", type: MIME.csv };
   }
 
-  let workbook;
-  if (from === "csv") {
-    // Never let the spreadsheet library guess numbers: it reads Turkish/EU
-    // decimals like "8,50" as 850. Only plain dot-decimal values become
-    // numbers; SKUs with leading zeros and comma decimals stay text.
-    const matrix = parseCsvMatrix(data.toString("utf8")).map((row) =>
-      row.map((cell) =>
-        /^-?\d+(\.\d+)?$/.test(cell) && !/^-?0\d/.test(cell) ? Number(cell) : cell,
-      ),
-    );
-    workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(matrix), "List");
-  } else {
-    workbook = XLSX.read(data, { type: "buffer" });
-  }
-  const output = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
-  return { body: output, ext: "xlsx", type: MIME.xlsx };
+  // csv -> xlsx: numbers are only inferred for plain dot-decimal values (see matrixToXlsx).
+  const matrix = parseCsvMatrix(data.toString("utf8"));
+  return { body: await matrixToXlsx(matrix), ext: "xlsx", type: MIME.xlsx };
 }
 
 export function listSlug(title: string): string {

@@ -3,10 +3,13 @@ import { getSessionUser } from "@/lib/auth";
 import { priceCart, type CartItemInput, type CheckoutAddress } from "@/lib/checkout";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const limit = await consumeRateLimit("payment-intent", clientIp(request), 60, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const body = (await request.json()) as {
       items?: CartItemInput[];
       couponCode?: string;

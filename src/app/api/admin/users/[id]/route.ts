@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
-import { sendEmail } from "@/lib/email";
+import { escapeHtml, sendEmail } from "@/lib/email";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -78,7 +78,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       await sendEmail({
         to: updated.email,
         subject: "Your Meridian email is confirmed",
-        html: `<p>Hi ${updated.name.split(" ")[0]},</p><p>Your email address has been confirmed by the Meridian trade desk. Ordering is now enabled on your account.</p><p>— Meridian Supply Co.</p>`,
+        html: `<p>Hi ${escapeHtml(updated.name.split(" ")[0])},</p><p>Your email address has been confirmed by the Meridian trade desk. Ordering is now enabled on your account.</p><p>— Meridian Supply Co.</p>`,
       });
     }
 

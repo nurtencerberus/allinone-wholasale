@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { createSession, toSessionUser } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +16,11 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return Response.json({ error: "Email and password are required." }, { status: 400 });
     }
+
+    const ipLimit = await consumeRateLimit("login-ip", clientIp(request), 30, 900);
+    if (!ipLimit.allowed) return tooManyRequests(ipLimit.retryAfterSeconds);
+    const accountLimit = await consumeRateLimit("login-account", email, 10, 900);
+    if (!accountLimit.allowed) return tooManyRequests(accountLimit.retryAfterSeconds);
 
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (!user || !verifyPassword(password, user.passwordHash)) {

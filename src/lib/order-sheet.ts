@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/money";
+import { isLegacyXls, isOoxml, readXlsxMatrix } from "@/lib/spreadsheet";
 
 export type OrderSheetProduct = {
   sku: string;
@@ -500,27 +501,34 @@ export async function parseOrderSheet(
 ): Promise<OrderSheetParseResult> {
   const warnings: string[] = [];
   const extension = (filename.split(".").pop() ?? "").toLowerCase();
-  const isZip = data[0] === 0x50 && data[1] === 0x4b;
-  const isOle = data[0] === 0xd0 && data[1] === 0xcf;
   let matrix: string[][] = [];
 
-  if (isZip || isOle) {
-    const XLSX = await import("xlsx");
-    const workbook = XLSX.read(data, { type: "buffer", cellDates: false });
-    const sheetName =
-      workbook.SheetNames.find((name) => /order|sipari|sheet|form/i.test(name)) ?? workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) {
+  if (isLegacyXls(data)) {
+    return {
+      rows: [],
+      filename,
+      totalRows: 0,
+      skuColumn: null,
+      quantityColumn: null,
+      warnings: ["Legacy .xls files are not supported. Save the file as .xlsx or .csv and upload again."],
+    };
+  }
+
+  if (isOoxml(data)) {
+    try {
+      ({ matrix } = await readXlsxMatrix(data, (names) =>
+        names.find((name) => /order|sipari|sheet|form/i.test(name)),
+      ));
+    } catch {
       return {
         rows: [],
         filename,
         totalRows: 0,
         skuColumn: null,
         quantityColumn: null,
-        warnings: ["No readable sheet found in this workbook."],
+        warnings: ["Could not read this workbook. Export it as .xlsx or .csv and try again."],
       };
     }
-    matrix = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, blankrows: false, defval: "" }) as string[][];
   } else {
     if (extension && !["csv", "txt", "tsv", "dat"].includes(extension)) {
       warnings.push(`Unrecognised extension “.${extension}” — read as text.`);
