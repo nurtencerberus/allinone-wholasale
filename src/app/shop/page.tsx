@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { and, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
-import { Download, FileSpreadsheet, PackageSearch, SlidersHorizontal, X } from "lucide-react";
+import { Download, FileSpreadsheet, Lock, PackageSearch, SlidersHorizontal, X } from "lucide-react";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { ProductCard } from "@/components/ProductCard";
 import { CATEGORIES } from "@/lib/site";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { toCardProduct } from "@/lib/catalog-view";
 
 type SearchParams = {
   category?: string;
@@ -25,7 +27,6 @@ const SORTS = [
   { key: "featured", label: "Featured" },
   { key: "price-asc", label: "Case price ↑" },
   { key: "price-desc", label: "Case price ↓" },
-  { key: "rating", label: "Trade rating" },
   { key: "newest", label: "Newest" },
 ];
 
@@ -51,10 +52,14 @@ export default async function ShopPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
+  const viewer = await getSessionUser();
+  // Price filters and price sorting would reveal wholesale prices by ordering, so they are trade-only.
+  const showPrices = canSeePrices(viewer);
+  const sorts = showPrices ? SORTS : SORTS.filter((item) => !item.key.startsWith("price"));
   const category = params.category && CATEGORIES.some((c) => c.key === params.category) ? params.category : undefined;
   const q = (params.q ?? "").trim();
-  const sort = params.sort ?? "featured";
-  const band = PRICE_BANDS.find((item) => item.key === params.price);
+  const sort = sorts.some((item) => item.key === params.sort) ? params.sort! : "featured";
+  const band = showPrices ? PRICE_BANDS.find((item) => item.key === params.price) : undefined;
   const inStockOnly = params.stock === "in";
 
   const filters = [eq(products.active, true)];
@@ -80,11 +85,9 @@ export default async function ShopPage({
       ? [asc(products.casePrice)]
       : sort === "price-desc"
         ? [desc(products.casePrice)]
-        : sort === "rating"
-          ? [desc(products.ratingX10), desc(products.reviewCount)]
-          : sort === "newest"
-            ? [desc(products.createdAt)]
-            : [desc(products.featured), desc(products.reviewCount)];
+        : sort === "newest"
+          ? [desc(products.createdAt)]
+          : [desc(products.featured), asc(products.name)];
 
   let list: (typeof products.$inferSelect)[] = [];
   let counts: { category: string; count: number }[] = [];
@@ -180,6 +183,7 @@ export default async function ShopPage({
             </div>
           </div>
 
+          {showPrices ? (
           <div className="mt-5 border-t border-ink/10 pt-5">
             <p className="text-[10px] font-bold tracking-[0.16em] text-ink/45 uppercase">Case price</p>
             <div className="mt-2.5 space-y-0.5">
@@ -196,6 +200,7 @@ export default async function ShopPage({
               ))}
             </div>
           </div>
+          ) : null}
 
           <div className="mt-5 border-t border-ink/10 pt-5">
             <p className="text-[10px] font-bold tracking-[0.16em] text-ink/45 uppercase">Availability</p>
@@ -230,7 +235,7 @@ export default async function ShopPage({
           <div className="flex flex-col gap-3 border-b border-ink/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10.5px] font-bold tracking-[0.12em] text-ink/40 uppercase">Sort</span>
-              {SORTS.map((item) => (
+              {sorts.map((item) => (
                 <Link
                   key={item.key}
                   href={buildHref(params, { sort: item.key })}
@@ -250,6 +255,8 @@ export default async function ShopPage({
                   Results for <span className="font-bold text-ink">“{q}”</span>
                 </p>
               ) : null}
+              {showPrices ? (
+              <>
               <a
                 href="/api/order-sheet/download?format=xlsx"
                 download
@@ -264,8 +271,31 @@ export default async function ShopPage({
               >
                 <Download size={12} /> CSV
               </a>
+              </>
+              ) : null}
             </div>
           </div>
+
+          {!showPrices ? (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gold/40 bg-gold/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="flex items-center gap-1.5 text-[12px] font-bold text-ink">
+                  <Lock size={13} /> Wholesale prices are for approved trade accounts
+                </p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-ink/60">
+                  {viewer
+                    ? "Your account is not approved for wholesale yet. Apply once — most applications are decided within one business day."
+                    : "Sign in to your trade account, or apply with your EIN and resale certificate."}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                {viewer ? null : (
+                  <Link href="/login?next=/shop" className="btn btn-outline btn-sm">Sign in</Link>
+                )}
+                <Link href="/wholesale/apply" className="btn btn-primary btn-sm">Apply for wholesale</Link>
+              </div>
+            </div>
+          ) : null}
 
           {list.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/20 py-24 text-center">
@@ -281,7 +311,7 @@ export default async function ShopPage({
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {list.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard key={product.id} product={toCardProduct(product, showPrices)} index={index} />
               ))}
             </div>
           )}

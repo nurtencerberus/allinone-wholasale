@@ -1,27 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, desc, eq, ne } from "drizzle-orm";
-import { Boxes, MapPin, Package, Ruler, Star, Truck } from "lucide-react";
+import { Boxes, Lock, MapPin, Package, Ruler, Star, Truck } from "lucide-react";
 import { db } from "@/db";
 import { products, reviews } from "@/db/schema";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
-import { getSessionUser } from "@/lib/auth";
-import { demoModeEnabled } from "@/lib/demo-mode";
-import { categoryName, SITE } from "@/lib/site";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { toCardProduct } from "@/lib/catalog-view";
+import { categoryName, jsonLdHtml, SITE } from "@/lib/site";
 import { formatDate, formatMoney, unitPriceOf } from "@/lib/money";
-
-/**
- * The sample shipping rate ($38.46 flat) and "30-day free returns" are placeholders. Search engines
- * display them as the seller's real policy, so only demo deployments publish them.
- */
-function withoutPolicy(offers: object) {
-  const copy: Record<string, unknown> = { ...offers };
-  delete copy.shippingDetails;
-  delete copy.hasMerchantReturnPolicy;
-  return copy;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -32,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
     return {
       title: `${product.name} — wholesale case of ${product.caseSize}`,
-      description: `${product.tagline}. ${product.description.slice(0, 140)}… Case price ${formatMoney(product.casePrice)} FOB Paterson, NJ.`,
+      description: `${product.tagline}. ${product.description.slice(0, 150)}…`,
       alternates: { canonical: `/products/${product.slug}` },
       openGraph: {
         title: `${product.name} · wholesale`,
@@ -70,15 +59,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Archived products are hidden from the public store; admins can still preview them.
   const archivedPreview = !product.active;
   if (archivedPreview && user?.role !== "admin") notFound();
-  const hasReviews = productReviews.length > 0 || product.reviewCount > 0;
+  // Ratings come only from review rows that exist; no stored or imported score is ever shown.
+  const hasReviews = productReviews.length > 0;
+  const showPrices = canSeePrices(user);
   const absolute = (url: string) => (/^https?:\/\//i.test(url) ? url : `${SITE.domain}${url}`);
 
   const dimWeight = (product.dimensions.l * product.dimensions.w * product.dimensions.h) / 139;
   const billable = Math.max(product.weightLbs, Math.round(dimWeight * 10) / 10);
   const palletised = billable >= 150 || product.weightLbs >= 40;
-  const averageRating = productReviews.length
+  const averageRating = hasReviews
     ? productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length
-    : product.ratingX10 / 10;
+    : 0;
   const wholesaleApproved = user?.accountTier === "wholesale";
   const descriptionParagraphs = product.description.split("\n\n");
 
@@ -87,7 +78,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     "@type": "Product",
     name: product.name,
     sku: product.sku,
-    mpn: product.sku,
     image: Array.from(new Set([product.image, ...product.images].filter(Boolean).map(absolute))),
     description: product.description.replace(/\n/g, " "),
     brand: { "@type": "Brand", name: product.brand },
@@ -99,7 +89,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: Number(averageRating.toFixed(1)),
-            reviewCount: Math.max(product.reviewCount, productReviews.length),
+            reviewCount: productReviews.length,
             bestRating: 5,
             worstRating: 1,
           },
@@ -113,53 +103,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       reviewBody: review.body,
       datePublished: new Date(review.createdAt).toISOString().slice(0, 10),
     })),
-    offers: {
-      "@type": "Offer",
-      url: `${SITE.domain}/products/${product.slug}`,
-      priceCurrency: "USD",
-      price: (product.casePrice / 100).toFixed(2),
-      priceValidUntil: "2027-12-31",
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/BackOrder",
-      itemCondition: "https://schema.org/NewCondition",
-      seller: { "@type": "Organization", name: SITE.name },
-      eligibleQuantity: {
-        "@type": "QuantitativeValue",
-        value: product.caseSize,
-        unitText: "units per case",
-      },
-      shippingDetails: {
-        "@type": "OfferShippingDetails",
-        shippingRate: {
-          "@type": "MonetaryAmount",
-          value: "38.46",
-          currency: "USD",
-        },
-        shippingDestination: {
-          "@type": "DefinedRegion",
-          addressCountry: "US",
-          addressRegion: "48 contiguous states",
-        },
-        deliveryTime: {
-          "@type": "ShippingDeliveryTime",
-          handlingTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 2, unitCode: "DAY" },
-          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 6, unitCode: "DAY" },
-        },
-        appliesToDeliveryMethod: "https://schema.org/ParcelDelivery",
-      },
-      hasMerchantReturnPolicy: {
-        "@type": "MerchantReturnPolicy",
-        applicableCountry: "US",
-        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-        merchantReturnDays: 30,
-        returnMethod: "https://schema.org/ReturnByMail",
-        returnFees: "https://schema.org/FreeReturn",
-      },
-    },
   };
 
-  const publishedJsonLd = demoModeEnabled()
-    ? productJsonLd
-    : { ...productJsonLd, offers: withoutPolicy(productJsonLd.offers) };
+  // No Offer: wholesale prices are not public, and an Offer without a price is invalid.
+  const publishedJsonLd = productJsonLd;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -189,11 +136,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       ) : null}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
+        dangerouslySetInnerHTML={jsonLdHtml(publishedJsonLd)}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={jsonLdHtml(breadcrumbJsonLd)}
       />
 
       <div className="wrap py-6">
@@ -254,7 +201,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <span className="ml-1 text-[11.5px] font-bold">{averageRating.toFixed(1)}</span>
                 </span>
                 <a href="#reviews" className="text-[11.5px] text-ink/50 underline underline-offset-4">
-                  {Math.max(product.reviewCount, productReviews.length)} verified buyer reviews
+                  {productReviews.length} buyer review{productReviews.length === 1 ? "" : "s"}
                 </a>
               </>
             ) : (
@@ -266,12 +213,47 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
 
           <div className="mt-5">
-            <BuyBox
-              product={product}
-              accountDiscountPct={wholesaleApproved ? user?.wholesaleDiscountPct ?? 0 : 0}
-              taxExempt={Boolean(user?.taxExempt)}
-              wholesaleApproved={wholesaleApproved}
-            />
+            {showPrices ? (
+              <BuyBox
+                product={product}
+                accountDiscountPct={wholesaleApproved ? user?.wholesaleDiscountPct ?? 0 : 0}
+                taxExempt={Boolean(user?.taxExempt)}
+                wholesaleApproved={wholesaleApproved}
+              />
+            ) : (
+              <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">
+                <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] text-ink/50 uppercase">
+                  <Lock size={13} /> Wholesale price
+                </p>
+                <p className="mt-2 text-[13px] leading-relaxed text-ink/70">
+                  Case pricing, volume tiers and ordering are available to approved trade accounts.
+                </p>
+                <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-ink/10 py-3 text-[11.5px]">
+                  <div>
+                    <dt className="text-ink/45">Case pack</dt>
+                    <dd className="font-semibold">{product.caseSize} units</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink/45">Minimum</dt>
+                    <dd className="font-semibold">{product.minCases} case{product.minCases === 1 ? "" : "s"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink/45">MSRP</dt>
+                    <dd className="font-semibold">{formatMoney(product.msrpUnit)} / unit</dd>
+                  </div>
+                </dl>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {user ? null : (
+                    <Link href={`/login?next=${encodeURIComponent(`/products/${product.slug}`)}`} className="btn btn-outline btn-sm">
+                      Sign in
+                    </Link>
+                  )}
+                  <Link href="/wholesale/apply" className="btn btn-primary btn-sm">
+                    {user ? "Apply for wholesale pricing" : "Apply for a trade account"}
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -349,6 +331,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </p>
             </div>
 
+            {showPrices ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5">
                 <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Unit cost</p>
@@ -363,6 +346,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <p className="text-[10.5px] text-ink/45">{product.caseSize} units · FOB Paterson</p>
               </div>
             </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -390,22 +374,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-[11px] text-ink/50">{product.reviewCount} verified trade buyers</p>
+                <p className="mt-1 text-[11px] text-ink/50">
+                  {productReviews.length} review{productReviews.length === 1 ? "" : "s"}
+                </p>
               </div>
             </div>
             <div className="mt-4 space-y-1.5">
               {[5, 4, 3, 2, 1].map((star) => {
-                const share = productReviews.length
-                  ? Math.round(
-                      (productReviews.filter((review) => review.rating === star).length /
-                        productReviews.length) *
-                        100,
-                    )
-                  : star === 5
-                    ? 74
-                    : star === 4
-                      ? 22
-                      : 2;
+                const share = Math.round(
+                  (productReviews.filter((review) => review.rating === star).length / productReviews.length) * 100,
+                );
                 return (
                   <div key={star} className="flex items-center gap-2">
                     <span className="w-3 text-[10.5px] font-bold text-ink/45">{star}</span>
@@ -424,11 +402,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
 
           <div className="space-y-3">
-            {productReviews.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-ink/20 p-8 text-center text-[12.5px] text-ink/50">
-                This SKU has not been reviewed yet. Aggregate rating reflects the brand line.
-              </p>
-            ) : (
+            {(
               productReviews.map((review) => (
                 <article key={review.id} className="rounded-xl border border-ink/10 bg-[#fffdf8] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-2">
@@ -469,7 +443,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </div>
             <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((item, index) => (
-                <ProductCard key={item.id} product={item} index={index} />
+                <ProductCard key={item.id} product={toCardProduct(item, showPrices)} index={index} />
               ))}
             </div>
           </div>

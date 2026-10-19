@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import { buildOrderSheetCsv, buildOrderSheetXlsx, type OrderSheetProduct } from "@/lib/order-sheet";
 import { ensureSeeded } from "@/lib/seed";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     await ensureSeeded();
+    if (!canSeePrices(await getSessionUser())) {
+      return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
+    }
     const url = new URL(request.url);
     const format = (url.searchParams.get("format") ?? "xlsx").toLowerCase();
     const category = url.searchParams.get("category");

@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "faz-*"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: app
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres@localhost:5432/app
+      E2E_DATABASE_URL: postgresql://postgres@localhost:5432/app
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_fake
+      BASE: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - name: Production dependencies have no known vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
+      - name: Schema file matches the Drizzle schema
+        run: |
+          npx drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts > /tmp/schema.sql
+          diff <(grep -v '^--' db/schema.sql) <(grep -v '^--' /tmp/schema.sql)
+      - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/schema.sql
+      - run: npm run build
+      - name: Start fake Stripe and the app
+        env:
+          SEED_DEMO_DATA: "true"
+          STRIPE_SECRET_KEY: sk_test_fake
+          STRIPE_WEBHOOK_SECRET: whsec_testsecret
+          STRIPE_API_BASE: http://127.0.0.1:12111
+          CRON_SECRET: testcronsecret
+        run: |
+          node tests/e2e/fake-stripe.mjs > /tmp/fake-stripe.log 2>&1 &
+          npx next start -p 3000 > /tmp/app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/api/health && break; sleep 1; done
+      - run: npm run test:e2e
+      - name: App log on failure
+        if: failure()
+        run: tail -n 200 /tmp/app.log; tail -n 50 /tmp/fake-stripe.log

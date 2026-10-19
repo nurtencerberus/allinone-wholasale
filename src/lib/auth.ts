@@ -1,17 +1,14 @@
-import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users, type User } from "@/db/schema";
-import { randomToken } from "@/lib/password";
+import { digestToken, randomToken } from "@/lib/password";
 
 export const SESSION_COOKIE = "meridian_session";
 const SESSION_DAYS = 30;
 
 /** The database holds only a digest of the cookie, so a DB read cannot be replayed as a login. */
-export function hashSessionToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
+export const hashSessionToken = digestToken;
 
 export type SessionUser = {
   id: number;
@@ -23,6 +20,8 @@ export type SessionUser = {
   wholesaleDiscountPct: number;
   taxExempt: boolean;
   taxExemptState: string | null;
+  taxExemptCertNumber: string | null;
+  taxExemptExpires: Date | null;
   emailVerified: boolean;
 };
 
@@ -37,6 +36,8 @@ export function toSessionUser(user: User): SessionUser {
     wholesaleDiscountPct: user.wholesaleDiscountPct,
     taxExempt: user.taxExempt,
     taxExemptState: user.taxExemptState,
+    taxExemptCertNumber: user.taxExemptCertNumber,
+    taxExemptExpires: user.taxExemptExpires,
     emailVerified: user.emailVerified,
   };
 }
@@ -58,10 +59,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 }
 
 export async function createSession(userId: number): Promise<void> {
+  const store = await cookies();
+  // Rotate: a session the browser already held must not survive a new sign-in.
+  const previous = store.get(SESSION_COOKIE)?.value;
+  if (previous) await db.delete(sessions).where(eq(sessions.token, hashSessionToken(previous)));
+
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   await db.insert(sessions).values({ token: hashSessionToken(token), userId, expiresAt });
-  const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -90,3 +95,15 @@ export async function requireAdmin(): Promise<SessionUser | null> {
   const user = await getSessionUser();
   return user?.role === "admin" ? user : null;
 }
+
+/**
+ * A post-login redirect target from the query string. Only same-site paths are allowed,
+ * so `/login?next=https://evil.example` cannot bounce a fresh session to a phishing page.
+ */
+export function safeNextPath(value: string | null | undefined): string | undefined {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return undefined;
+  return value;
+}
+
+
+export { canSeePrices, PRICE_LOCKED_MESSAGE } from "@/lib/access";

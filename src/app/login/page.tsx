@@ -1,5 +1,6 @@
 import { AuthForm } from "@/components/auth/AuthForm";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { safeNextPath } from "@/lib/auth";
 import { demoModeEnabled } from "@/lib/demo-mode";
 
 export const metadata = {
@@ -16,7 +17,7 @@ export default async function LoginPage({
   const { next } = await searchParams;
   return (
     <AuthShell>
-      <AuthForm mode="login" next={next} showDemo={demoModeEnabled()} />
+      <AuthForm mode="login" next={safeNextPath(next)} showDemo={demoModeEnabled()} />
     </AuthShell>
   );
 }

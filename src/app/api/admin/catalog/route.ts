@@ -135,5 +135,6 @@ function toDbValues(entry: NormalizedProduct) {
     badges: entry.badges,
     featured: entry.featured,
     active: entry.active,
+    taxClass: entry.taxClass,
   };
 }

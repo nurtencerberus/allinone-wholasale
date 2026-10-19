@@ -1,4 +1,5 @@
 import type { Product } from "@/db/schema";
+import { defaultTaxClass, isTaxClass } from "@/lib/tax";
 
 export const CATALOG_CATEGORIES = ["supplements", "pantry", "home"] as const;
 
@@ -30,6 +31,7 @@ export type NormalizedProduct = {
   badges: string[];
   featured: boolean;
   active: boolean;
+  taxClass: string;
 };
 
 export type CatalogExport = {
@@ -220,6 +222,7 @@ export function normalizeCatalogPayload(payload: unknown): {
       badges: toStringList(row.badges),
       featured: Boolean(row.featured),
       active: row.active === undefined ? true : Boolean(row.active),
+      taxClass: isTaxClass(row.taxClass) ? row.taxClass : defaultTaxClass(category),
     });
   });
 

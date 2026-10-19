@@ -6,6 +6,7 @@ sepet/stok, vergi, kargo, ürün verisi, UI/UX, performans, kod kalitesi, dağı
 **Yöntem:** Dört alanda satır satır kod incelemesi; kritik bulgular kodda ikinci kez doğrulandı. Hiçbir kod
 değiştirilmedi. Gerçek Stripe/TaxJar/EasyPost anahtarıyla çalıştırma yapılmadı.
 
+Örnek alınan toptancı sitelerinin kalıpları ve hangi faza girdikleri: `REFERANS-SITELER.md`.
 Bu belge `B2B_ROADMAP.md`'nin yerine geçer. O belgedeki kapatılmış maddeler §1'de, açık kalanlar aşağıdaki
 iş kalemlerine taşındı. Hukuk, vergi kaydı ve sigorta gibi kod dışı işler için `B2B_ROADMAP.md` §6 geçerliliğini korur.
 
@@ -245,14 +246,42 @@ Efor: şema + admin formu + doğrulama + içe aktarma + JSON-LD ≈ **5 g** (var
 - Gerçek yorum yoksa puan/yıldız/JSON-LD AggregateRating yok; 5 yasal sayfa alt bilgide.
 - CI yeşil; `npm audit --omit=dev` 0.
 
+#### Faz 0 durumu (19 Ekim 2026, `faz-0` dalı)
+
+| Sıra | Durum | Commit | Not |
+|---|---|---|---|
+| 1 | ✅ | `e08c317` | Başvuru doğrulanmış hesaba bağlı; onay e-postayı doğrulamıyor; jetonlar hash'li ve tek kullanımlık; `next` yalnızca site içi; JSON-LD kaçışlı |
+| 2 + 4 + KRG-5 | ✅ | `7ea9d67` | Engel (blocker) sistemi; $150 ve asgari koli zorunlu; 48 eyalet + DC, ZIP–eyalet, PO Box; NJ'ye özel vergi, gıda/takviye muaf, kargo oransal; sertifikalı ve yalnız NJ'de geçerli muafiyet. **VRG-5 de bu adımda yapıldı** (NJ gıdayı muaf tuttuğu için zorunluydu) |
+| 7 (UX-7) + URN-3 | ✅ | `95def3e` | Fiyat yalnızca onaylı hesaplara; HTML/RSC'de fiyat yok; fiyat içeren API'ler 403; puan yalnızca gerçek yorumdan |
+| 3 + ODE-5 | ✅ | `a32dcdc` | Provizyon → sipariş → tahsilat; checkout taslağı + webhook + cron; idempotency; 7 günde ödenmeyen ACH iptal |
+| 5 | ✅ | `39cdc47` | 47 birim + 5 e2e paketi; GitHub Actions (Postgres + `next start` + sahte Stripe) yeşil |
+| 6 | ✅ (taslak) | `2077537` | 5 politika sayfası ve gerçekle uyumlu pazarlama metinleri. **Avukat incelemesi gerekli** |
+
+**Kabul ölçütlerinden henüz doğrulanamayanlar** (gerçek hesap gerekiyor): gerçek Stripe test anahtarıyla 3DS kartı
+(`4000 0027 6000 3184`) ve gerçek webhook teslimi; EasyPost test anahtarıyla servis seçimi. Kod yolu sahte Stripe
+ile uçtan uca test edildi; gerçek anahtarla bir kez elle denenmeli.
+
+**Faz 0'dan kalan, kod dışı:** politika metinlerinin avukat incelemesi; ürün metinlerindeki doğrulanmamış iddiaların
+(`NSF`, `cGMP`, satış rakamları — örnek katalog) gerçek bilgiyle değiştirilmesi; NJ vergi sınıflarının mali müşavirle
+teyidi (özellikle Paterson UEZ indirimli oranı uygulanabilir mi).
+
+**Canlıya alma (faz-0 → main):**
+1. Neon SQL Editor'de `db/migrations/0001_faz0.sql` çalıştırın (mevcut veritabanı için; tekrar çalıştırmak güvenli).
+   Not: kayıtlı sertifika numarası olmayan muafiyetler askıya alınır — `/admin/users`'tan sertifika no girerek yeniden açın.
+2. Vercel ortam değişkenleri: `CRON_SECRET` (uzun rastgele değer), `STRIPE_WEBHOOK_SECRET`.
+3. Stripe → Developers → Webhooks: `https://<alan adı>/api/stripe/webhook`, olaylar
+   `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.canceled`.
+4. `faz-0` dalını `main`'e birleştirin (PR). Vercel Cron (`vercel.json`, günde bir) Pro planda çalışır.
+5. Onaylı bir test hesabıyla Stripe test modunda bir sipariş verin; `/admin/orders`'ta ödeme durumu "paid" olmalı.
+
 ### Faz 1 — Gerçek B2B operasyonu (Hafta 4–8, ≈24 g)
 
 | Kalemler | Efor |
 |---|---|
-| **Ürün verisi:** URN-1 (ASIN, Amazon URL, UPC/GTIN, MAP, maliyet, lojistik, uyum alanları), URN-2, URN-4, URN-6 | 7 g |
+| **Ürün verisi:** URN-1 (ASIN, Amazon URL, UPC/GTIN, MAP, maliyet, lojistik, uyum alanları), URN-2, URN-4, URN-6 — ayrıca SKU/UPC/ASIN araması ve uyum paneli (bkz. `REFERANS-SITELER.md` #7, #8) | 7 g |
 | **Stok:** STK-1, STK-2, STK-3 (lot/SKT/FEFO), STK-4 | 8,5 g |
 | **Sipariş yönetimi:** ODE-4 (durum makinesi, iptal/iade), ODE-5, ODE-7 | 5 g |
-| **Vergi doğruluğu:** VRG-5, VRG-6, VRG-7 | 5 g |
+| **Vergi doğruluğu:** VRG-6, VRG-7 (VRG-5 Faz 0'da yapıldı) | 3,5 g |
 | **Admin güvenliği:** KYT-4 (audit log, 2FA, roller) | 3 g |
 
 **Kabul:** Ürün ASIN/UPC ile kaydedilir, geçersiz GTIN reddedilir, Amazon bağlantısı ASIN'den oluşur; her stok

@@ -22,8 +22,10 @@ import {
 import type { Dimensions, PriceTier } from "@/db/schema";
 import { formatMoney } from "@/lib/money";
 import { CATEGORIES, categoryName } from "@/lib/site";
+import { defaultTaxClass } from "@/lib/tax";
 
 export type AdminProduct = {
+  taxClass: string;
   id: number;
   slug: string;
   sku: string;
@@ -58,6 +60,7 @@ type FormState = {
   name: string;
   sku: string;
   category: string;
+  taxClass: string;
   brand: string;
   origin: string;
   tagline: string;
@@ -87,6 +90,7 @@ const EMPTY: FormState = {
   name: "",
   sku: "",
   category: "supplements",
+  taxClass: "supplement",
   brand: "",
   origin: "",
   tagline: "",
@@ -123,6 +127,7 @@ const fromProduct = (product: AdminProduct): FormState => ({
   name: product.name,
   sku: product.sku,
   category: product.category,
+  taxClass: product.taxClass,
   brand: product.brand,
   origin: product.origin,
   tagline: product.tagline,
@@ -280,6 +285,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
       name: form.name,
       sku: form.sku,
       category: form.category,
+      taxClass: form.taxClass,
       brand: form.brand,
       origin: form.origin,
       tagline: form.tagline,
@@ -478,7 +484,9 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       id="pf-category"
                       className="field"
                       value={form.category}
-                      onChange={(event) => patchForm({ category: event.target.value })}
+                      onChange={(event) =>
+                        patchForm({ category: event.target.value, taxClass: defaultTaxClass(event.target.value) })
+                      }
                     >
                       {CATEGORIES.map((category) => (
                         <option key={category.key} value={category.key}>
@@ -486,6 +494,24 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="pf-tax-class">Sales-tax class *</label>
+                    <select
+                      id="pf-tax-class"
+                      className="field"
+                      value={form.taxClass}
+                      onChange={(event) => patchForm({ taxClass: event.target.value })}
+                      aria-describedby="pf-tax-class-note"
+                    >
+                      <option value="general">General merchandise (taxable)</option>
+                      <option value="food">Food / grocery (NJ exempt)</option>
+                      <option value="supplement">Dietary supplement with Supplement Facts label (NJ exempt)</option>
+                      <option value="candy">Candy or soft drink (taxable)</option>
+                    </select>
+                    <p id="pf-tax-class-note" className="mt-1 text-[10px] text-ink/45">
+                      Confirm each class with your accountant. Bars or drinks without a Supplement Facts label are not supplements.
+                    </p>
                   </div>
                   <div>
                     <label className="label" htmlFor="pf-brand">Brand</label>

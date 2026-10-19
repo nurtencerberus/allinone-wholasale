@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Plus, Star } from "lucide-react";
+import { Lock, Plus } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
-import type { Product } from "@/db/schema";
+import type { CardProduct } from "@/lib/catalog-view";
 import { formatMoney, unitPriceOf } from "@/lib/money";
 
-export function ProductCard({ product, index }: { product: Product; index?: number }) {
+export function ProductCard({ product, index }: { product: CardProduct; index?: number }) {
   const { addItem } = useCart();
   const [adding, setAdding] = useState(false);
-  const unitPrice = unitPriceOf(product.casePrice, product.caseSize);
+  const casePrice = product.casePrice;
   const msrpCase = product.msrpUnit * product.caseSize;
-  const margin = msrpCase > 0 ? Math.round(((msrpCase - product.casePrice) / msrpCase) * 100) : 0;
+  const margin =
+    casePrice !== null && msrpCase > 0 ? Math.round(((msrpCase - casePrice) / msrpCase) * 100) : null;
 
   return (
     <article
@@ -47,15 +48,7 @@ export function ProductCard({ product, index }: { product: Product; index?: numb
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-bold tracking-[0.16em] text-fern uppercase">{product.brand}</p>
-          {product.reviewCount > 0 ? (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-ink/60">
-              <Star size={11} className="fill-gold text-gold" />
-              {(product.ratingX10 / 10).toFixed(1)}
-              <span className="font-normal text-ink/35">({product.reviewCount})</span>
-            </span>
-          ) : (
-            <span className="text-[10px] font-bold tracking-[0.1em] text-clay uppercase">New</span>
-          )}
+          <span className="text-[10px] font-semibold tracking-[0.06em] text-ink/40 uppercase">{product.sku}</span>
         </div>
 
         <Link href={`/products/${product.slug}`} className="mt-1.5 block">
@@ -66,57 +59,75 @@ export function ProductCard({ product, index }: { product: Product; index?: numb
         <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-ink/55">{product.tagline}</p>
 
         <div className="mt-auto pt-4">
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <p className="text-[17px] font-bold leading-none tabular-nums">
-                {formatMoney(product.casePrice)}
-                <span className="ml-1 text-[10.5px] font-medium text-ink/45">/ case</span>
+          {casePrice === null ? (
+            <>
+              <p className="text-[10.5px] text-ink/50">
+                MSRP {formatMoney(product.msrpUnit)} / unit · min {product.minCases} case{product.minCases === 1 ? "" : "s"}
               </p>
-              <p className="mt-1 text-[10.5px] text-ink/50">
-                {formatMoney(unitPrice)} / unit · MSRP {formatMoney(product.msrpUnit)}
-              </p>
-            </div>
-            <span className="rounded-full bg-fern/10 px-2 py-1 text-[10px] font-bold text-fern">
-              {margin}% margin
-            </span>
-          </div>
+              <Link
+                href={`/login?next=${encodeURIComponent(`/products/${product.slug}`)}`}
+                className="btn btn-outline btn-sm mt-3 w-full justify-center"
+              >
+                <Lock size={13} /> Sign in for wholesale price
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-2">
+                <div>
+                  <p className="text-[17px] font-bold leading-none tabular-nums">
+                    {formatMoney(casePrice)}
+                    <span className="ml-1 text-[10.5px] font-medium text-ink/45">/ case</span>
+                  </p>
+                  <p className="mt-1 text-[10.5px] text-ink/50">
+                    {formatMoney(unitPriceOf(casePrice, product.caseSize))} / unit · MSRP {formatMoney(product.msrpUnit)}
+                  </p>
+                </div>
+                {margin !== null && margin > 0 ? (
+                  <span className="rounded-full bg-fern/10 px-2 py-1 text-[10px] font-bold text-fern">
+                    {margin}% margin
+                  </span>
+                ) : null}
+              </div>
 
-          <div className="mt-3 flex gap-2">
-            <Link
-              href={`/products/${product.slug}`}
-              className="btn btn-outline btn-sm flex-1 justify-center"
-            >
-              Details
-            </Link>
-            <button
-              type="button"
-              disabled={adding}
-              onClick={() => {
-                setAdding(true);
-                addItem(
-                  {
-                    productId: product.id,
-                    slug: product.slug,
-                    name: product.name,
-                    sku: product.sku,
-                    image: product.image,
-                    casePrice: product.casePrice,
-                    caseSize: product.caseSize,
-                    msrpUnit: product.msrpUnit,
-                    minCases: product.minCases,
-                    category: product.category,
-                    weightLbs: product.weightLbs,
-                  },
-                  1,
-                );
-                window.setTimeout(() => setAdding(false), 500);
-              }}
-              aria-label={`Add ${product.name} case to cart`}
-              className="btn btn-primary btn-sm relative px-3"
-            >
-              <Plus size={15} />
-            </button>
-          </div>
+              <div className="mt-3 flex gap-2">
+                <Link
+                  href={`/products/${product.slug}`}
+                  className="btn btn-outline btn-sm flex-1 justify-center"
+                >
+                  Details
+                </Link>
+                <button
+                  type="button"
+                  disabled={adding || product.stock < product.minCases}
+                  onClick={() => {
+                    setAdding(true);
+                    addItem(
+                      {
+                        productId: product.id,
+                        slug: product.slug,
+                        name: product.name,
+                        sku: product.sku,
+                        image: product.image,
+                        casePrice,
+                        caseSize: product.caseSize,
+                        msrpUnit: product.msrpUnit,
+                        minCases: product.minCases,
+                        category: product.category,
+                        weightLbs: product.weightLbs,
+                      },
+                      product.minCases,
+                    );
+                    window.setTimeout(() => setAdding(false), 500);
+                  }}
+                  aria-label={`Add ${product.minCases} case${product.minCases === 1 ? "" : "s"} of ${product.name} to cart`}
+                  className="btn btn-primary btn-sm relative px-3"
+                >
+                  <Plus size={15} />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </article>

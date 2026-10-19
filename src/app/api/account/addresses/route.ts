@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { addresses } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
+import { shipToProblem } from "@/lib/ship-to";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -23,9 +24,13 @@ export async function POST(request: Request) {
       }
     }
     const zip = String(body.zip).trim();
-    if (!/^\d{5}$/.test(zip)) {
-      return Response.json({ error: "ZIP must be 5 digits." }, { status: 400 });
-    }
+    const problem = shipToProblem({
+      line1: String(body.line1),
+      line2: String(body.line2 ?? ""),
+      state: String(body.state),
+      zip,
+    });
+    if (problem) return Response.json({ error: problem }, { status: 400 });
 
     if (body.isDefault) {
       await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, user.id));

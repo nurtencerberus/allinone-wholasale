@@ -25,7 +25,7 @@ function InnerForm({
     const result = await stripe.confirmPayment({
       elements,
       redirect: "if_required",
-      confirmParams: { return_url: `${window.location.origin}/checkout` },
+      confirmParams: { return_url: `${window.location.origin}/checkout/complete` },
     });
 
     if (result.error) {
@@ -33,11 +33,18 @@ function InnerForm({
       setBusy(false);
       return;
     }
-    if (result.paymentIntent?.status === "succeeded") {
+    // Authorised (captured by the server once the order is recorded) or already captured.
+    const status = result.paymentIntent?.status;
+    if (result.paymentIntent && (status === "requires_capture" || status === "succeeded")) {
       await onPaid(result.paymentIntent.id);
+      setBusy(false);
       return;
     }
-    setMessage(`Payment status: ${result.paymentIntent?.status ?? "unknown"}. Please retry.`);
+    setMessage(
+      status === "processing"
+        ? "Your bank is still confirming this payment. Do not pay again — check your account in a few minutes."
+        : `The payment was not completed (${status ?? "unknown"}). You have not been charged.`,
+    );
     setBusy(false);
   };
 

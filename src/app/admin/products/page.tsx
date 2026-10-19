@@ -29,6 +29,7 @@ export default async function AdminProductsPage() {
     sku: row.sku,
     name: row.name,
     category: row.category,
+    taxClass: row.taxClass,
     tagline: row.tagline,
     description: row.description,
     story: row.story,

@@ -23,7 +23,7 @@ import { useCart } from "@/components/cart/CartProvider";
 import { PaymentStep, type PlaceOrderInput } from "@/components/checkout/PaymentStep";
 import type { SessionUser } from "@/lib/auth";
 import type { PricedOrder } from "@/lib/checkout";
-import { US_STATES } from "@/lib/site";
+import { SERVICE_STATES } from "@/lib/ship-to";
 import { formatMoney, formatRate } from "@/lib/money";
 
 type SavedAddress = {
@@ -53,7 +53,7 @@ export function CheckoutFlow({
   user: SessionUser | null;
   savedAddresses: SavedAddress[];
 }) {
-  const { items, subtotal, clear, hydrated } = useCart();
+  const { items, subtotal, clear, hydrated, removeItem } = useCart();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -78,6 +78,12 @@ export function CheckoutFlow({
   const [intent, setIntent] = useState<{ mode: "stripe" | "demo" | "unavailable"; clientSecret: string | null; publishableKey: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One id per checkout attempt: retries of the same submit are recognised server-side.
+  const [checkoutId] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+  );
 
   const payload = items.map((item) => ({ productId: item.productId, cases: item.cases }));
 
@@ -129,8 +135,15 @@ export function CheckoutFlow({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Could not price this cart.");
-        setQuote(data.quote as PricedOrder);
-        return data.quote as PricedOrder;
+        const priced = data.quote as PricedOrder;
+        priced.removedProductIds.forEach((productId) => removeItem(productId));
+        setQuote(priced);
+        // Blockers (minimums, stock, delivery area) stop the flow here; the server enforces the same.
+        if (priced.blockers.length) {
+          setError(priced.blockers.join(" "));
+          return null;
+        }
+        return priced;
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Could not price this cart.");
         return null;
@@ -139,7 +152,7 @@ export function CheckoutFlow({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [address, couponCode, JSON.stringify(payload)],
+    [address, couponCode, JSON.stringify(payload), removeItem],
   );
 
   const gotoFreight = async () => {
@@ -170,11 +183,16 @@ export function CheckoutFlow({
           address,
           couponCode: couponCode || undefined,
           shippingOptionId: priced.shippingOptionId,
-          email: contact.email,
+          checkoutId,
+          ...contact,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not initialise payment.");
+      // The return page after a 3-D Secure redirect needs to know which cart to clear.
+      try {
+        window.sessionStorage.setItem("checkout:pending", String(data.paymentIntentId ?? ""));
+      } catch {}
       setIntent({ mode: data.mode, clientSecret: data.clientSecret, publishableKey: data.publishableKey });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not initialise payment.");
@@ -188,26 +206,17 @@ export function CheckoutFlow({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: payload,
-          address,
-          couponCode: couponCode || undefined,
-          shippingOptionId: quote?.shippingOptionId,
-          email: contact.email,
-          name: contact.name,
-          company: contact.company,
-          phone: contact.phone,
-          notes: contact.notes,
-          paymentRef: input.paymentRef,
-          paymentMethod: input.method,
-          poNumber: input.poNumber,
-        }),
+      const data = await submitOrder({
+        items: payload,
+        address,
+        couponCode: couponCode || undefined,
+        shippingOptionId: quote?.shippingOptionId,
+        checkoutId,
+        ...contact,
+        paymentIntentId: input.paymentRef,
+        paymentMethod: input.method,
+        poNumber: input.poNumber,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Order could not be placed.");
       clear();
       router.push(`/order/${data.orderNumber}?t=${data.accessToken}`);
     } catch (caught) {
@@ -258,7 +267,7 @@ export function CheckoutFlow({
             <Link href="/account" className="font-bold underline">
               Resend the confirmation link
             </Link>{" "}
-            or check out as a guest with a different email.
+            from your account page.
           </p>
         </div>
       ) : null}
@@ -433,7 +442,7 @@ export function CheckoutFlow({
                         onChange={(event) => setAddress({ ...address, state: event.target.value })}
                       >
                         <option value="">Select</option>
-                        {US_STATES.map((state) => (
+                        {SERVICE_STATES.map((state) => (
                           <option key={state.code} value={state.code}>
                             {state.code} — {state.name}
                           </option>
@@ -620,7 +629,7 @@ export function CheckoutFlow({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="flex items-center gap-1.5 text-[11px] font-bold text-fern">
-                        <ShieldCheck size={13} /> Sales tax · {quote.taxQuote.source === "exempt" ? "Exempt" : formatRate(quote.taxQuote.rateX1000)}
+                        <ShieldCheck size={13} /> Sales tax · {quote.taxQuote.source === "exempt" ? "Exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : formatRate(quote.taxQuote.rateX1000)}
                       </p>
                       <p className="mt-1 text-[10.5px] leading-relaxed text-ink/60">{quote.taxQuote.jurisdiction}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-ink/45">{quote.taxQuote.note}</p>
@@ -628,7 +637,7 @@ export function CheckoutFlow({
                     <div className="text-right">
                       <p className="text-[14px] font-bold tabular-nums">{formatMoney(quote.taxAmount)}</p>
                       <p className="text-[9px] font-semibold tracking-wide text-ink/40 uppercase">
-                        {quote.taxQuote.source === "taxjar" ? "TaxJar live" : quote.taxQuote.source === "exempt" ? "Resale exempt" : "Nexus table"}
+                        {quote.taxQuote.source === "exempt" ? "Resale exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : "State rate"}
                       </p>
                     </div>
                   </div>
@@ -776,4 +785,23 @@ export function CheckoutFlow({
       </div>
     </div>
   );
+}
+
+/**
+ * Posts the order. A card order may still be finalising (the Stripe webhook got there first),
+ * in which case the server answers 202 and we ask again shortly.
+ */
+export async function submitOrder(body: Record<string, unknown>): Promise<{ orderNumber: string; accessToken: string }> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (response.ok) return data;
+    if (!data.retry) throw new Error(data.error ?? "Order could not be placed.");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new Error("Your payment is being confirmed. Check your account's order history in a minute.");
 }

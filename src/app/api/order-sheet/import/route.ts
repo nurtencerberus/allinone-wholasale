@@ -1,5 +1,6 @@
 import { formatOrderSheetSummary, parseOrderSheet } from "@/lib/order-sheet";
 import { ensureSeeded } from "@/lib/seed";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -11,6 +12,9 @@ const MAX_BYTES = 4 * 1024 * 1024;
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    if (!canSeePrices(await getSessionUser())) {
+      return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
+    }
     const limit = await consumeRateLimit("sheet-import", clientIp(request), 30, 3600);
     if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const form = await request.formData();

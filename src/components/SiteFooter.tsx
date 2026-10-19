@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { NewsletterForm } from "@/components/NewsletterForm";
+import { POLICY_LINKS } from "@/components/LegalPage";
 import { SITE } from "@/lib/site";
 
 const COLUMNS = [
@@ -31,9 +32,9 @@ const COLUMNS = [
       { href: "/signup", label: "Create an account" },
       { href: "/account", label: "Order history" },
       { href: "/account/addresses", label: "Saved addresses" },
-      { href: "/admin", label: "Admin portal" },
     ],
   },
+  { title: "Policies", links: POLICY_LINKS },
 ];
 
 export function SiteFooter() {
@@ -56,7 +57,7 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="wrap grid gap-10 py-14 md:grid-cols-[1.3fr_repeat(3,1fr)]">
+      <div className="wrap grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.3fr_repeat(4,1fr)]">
         <div>
           <div className="flex flex-col leading-none">
             <span className="display text-[26px] text-cream">Ciputra</span>
@@ -113,9 +114,9 @@ export function SiteFooter() {
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span>Secure payments by Stripe · PCI-DSS SAQ-A</span>
             <span className="hidden h-3 w-px bg-cream/20 sm:block" />
-            <span>Resale certificates accepted</span>
+            <span>Ships to the 48 contiguous states + DC</span>
             <span className="hidden h-3 w-px bg-cream/20 sm:block" />
-            <span>UPS · FedEx · LTL</span>
+            <span>14-day returns</span>
           </div>
         </div>
       </div>

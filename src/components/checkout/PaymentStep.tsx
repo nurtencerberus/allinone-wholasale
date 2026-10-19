@@ -384,8 +384,12 @@ export function PaymentStep({
         />
         <span>
           I am authorised to purchase for this business, accept the{" "}
-          <Link href="/wholesale#terms" className="underline">
-            wholesale terms
+          <Link href="/legal/terms" target="_blank" className="underline">
+            Terms of Sale
+          </Link>{" "}
+          and{" "}
+          <Link href="/legal/returns" target="_blank" className="underline">
+            Returns Policy
           </Link>
           , and confirm the delivery address and freight service above. Freight is re-rated at pickup if
           carton dimensions differ.

@@ -36,18 +36,23 @@ export default async function AccountPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/account");
 
+  // Guest orders are matched by e-mail only once the account has proved it owns that address.
+  const ownOrders = user.emailVerified
+    ? or(eq(orders.userId, user.id), eq(orders.email, user.email))
+    : eq(orders.userId, user.id);
+
   const [orderRows, addressRows, applicationRows] = await Promise.all([
     db
       .select()
       .from(orders)
-      .where(or(eq(orders.userId, user.id), eq(orders.email, user.email)))
+      .where(ownOrders)
       .orderBy(desc(orders.createdAt))
       .limit(12),
     db.select().from(addresses).where(eq(addresses.userId, user.id)),
     db
       .select()
       .from(wholesaleApplications)
-      .where(or(eq(wholesaleApplications.email, user.email), eq(wholesaleApplications.userId, user.id)))
+      .where(eq(wholesaleApplications.userId, user.id))
       .orderBy(desc(wholesaleApplications.createdAt))
       .limit(1),
   ]);
@@ -58,7 +63,7 @@ export default async function AccountPage() {
   const [{ count: itemCount }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(orders)
-    .where(or(eq(orders.userId, user.id), eq(orders.email, user.email)));
+    .where(ownOrders);
 
   return (
     <div className="wrap py-8 lg:py-10">

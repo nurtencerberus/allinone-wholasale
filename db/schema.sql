@@ -14,6 +14,19 @@ CREATE TABLE "addresses" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE "checkout_sessions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"payment_intent_id" text NOT NULL,
+	"user_id" integer NOT NULL,
+	"payload" jsonb NOT NULL,
+	"amount" integer NOT NULL,
+	"status" text DEFAULT 'open' NOT NULL,
+	"order_id" integer,
+	"failure_reason" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "coupons" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"code" text NOT NULL,
@@ -67,6 +80,7 @@ CREATE TABLE "orders" (
 	"po_number" text,
 	"access_token" text,
 	"payment_ref" text,
+	"idempotency_key" text,
 	"notes" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -110,6 +124,7 @@ CREATE TABLE "products" (
 	"badges" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"featured" boolean DEFAULT false NOT NULL,
 	"active" boolean DEFAULT true NOT NULL,
+	"tax_class" text DEFAULT 'general' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -155,6 +170,9 @@ CREATE TABLE "users" (
 	"wholesale_discount_pct" integer DEFAULT 0 NOT NULL,
 	"tax_exempt" boolean DEFAULT false NOT NULL,
 	"tax_exempt_state" text,
+	"tax_exempt_cert_type" text,
+	"tax_exempt_cert_number" text,
+	"tax_exempt_expires" timestamp with time zone,
 	"ein" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -206,6 +224,8 @@ CREATE TABLE "wholesale_lists" (
 );
 
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
@@ -213,10 +233,13 @@ ALTER TABLE "reviews" ADD CONSTRAINT "reviews_product_id_products_id_fk" FOREIGN
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "wholesale_applications" ADD CONSTRAINT "wholesale_applications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 CREATE INDEX "addresses_user_idx" ON "addresses" USING btree ("user_id");
+CREATE UNIQUE INDEX "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
+CREATE INDEX "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
 CREATE UNIQUE INDEX "coupons_code_unique" ON "coupons" USING btree ("code");
 CREATE INDEX "order_items_order_idx" ON "order_items" USING btree ("order_id");
 CREATE UNIQUE INDEX "orders_number_unique" ON "orders" USING btree ("order_number");
 CREATE UNIQUE INDEX "orders_payment_ref_unique" ON "orders" USING btree ("payment_ref");
+CREATE UNIQUE INDEX "orders_idempotency_key_unique" ON "orders" USING btree ("idempotency_key");
 CREATE INDEX "orders_user_idx" ON "orders" USING btree ("user_id");
 CREATE UNIQUE INDEX "products_slug_unique" ON "products" USING btree ("slug");
 CREATE UNIQUE INDEX "products_sku_unique" ON "products" USING btree ("sku");

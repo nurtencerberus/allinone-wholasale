@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { addresses } from "@/db/schema";
 import { CheckoutFlow } from "@/components/checkout/CheckoutFlow";
-import { getSessionUser } from "@/lib/auth";
+import { PriceLockNotice } from "@/components/PriceLockNotice";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
 
 export const metadata = {
   title: "Secure wholesale checkout",
@@ -12,6 +13,7 @@ export const metadata = {
 
 export default async function CheckoutPage() {
   const user = await getSessionUser();
+  if (!canSeePrices(user)) return <PriceLockNotice user={user} next="/checkout" />;
   let savedAddresses: (typeof addresses.$inferSelect)[] = [];
   if (user) {
     try {

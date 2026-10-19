@@ -345,10 +345,10 @@ export function AuthForm({
 
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-ink/50">
         {mode !== "login" ? (
-          <Link href="/login" className="font-semibold underline">Already have an account?</Link>
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold underline">Already have an account?</Link>
         ) : null}
         {mode !== "signup" ? (
-          <Link href="/signup" className="font-semibold underline">Create an account</Link>
+          <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-semibold underline">Create an account</Link>
         ) : null}
         {mode === "login" ? (
           <Link href="/forgot-password" className="underline">Forgot password?</Link>

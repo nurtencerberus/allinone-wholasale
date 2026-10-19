@@ -6,7 +6,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:export": "drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts > db/schema.sql",
+    "test": "vitest run",
+    "test:e2e": "node tests/e2e/run-all.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^7.0.0",
@@ -32,7 +35,8 @@
     "eslint-config-next": "16.2.6",
     "postcss": "8.5.23",
     "tailwindcss": "4.1.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
   },
   "overrides": {
     "nanoid": "^3.3.18",

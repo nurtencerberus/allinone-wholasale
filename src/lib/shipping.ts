@@ -144,7 +144,7 @@ function matrixOptions(input: {
     mode: "parcel",
     billableLbs: Math.round(lbs * 10) / 10,
     dimWeightLbs: input.dimWeightLbs,
-    note: "Guaranteed by 10:30am. Oversize cartons may be re-rated at pickup.",
+    note: "Typically delivered in 2 business days. Oversize cartons may be re-rated at pickup.",
   });
 
   return options;
@@ -209,8 +209,13 @@ async function easyPostOptions(input: {
       return Number(a.rate) - Number(b.rate);
     });
 
-    const picked = rates.slice(0, 3).map((rate, index) => ({
-      id: `easypost-${rate.id}`,
+    const unique = rates.filter(
+      (rate, index) => rates.findIndex((other) => other.carrier === rate.carrier && other.service === rate.service) === index,
+    );
+    const picked = unique.slice(0, 3).map((rate, index) => ({
+      // EasyPost issues new rate ids on every quote; carrier + service is stable across the
+      // quote, payment and order calls, so the buyer's choice is matched, never swapped.
+      id: `easypost-${rate.carrier}-${rate.service}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-"),
       carrier: rate.carrier,
       service: rate.service,
       cost: Math.round(Number(rate.rate) * 100),

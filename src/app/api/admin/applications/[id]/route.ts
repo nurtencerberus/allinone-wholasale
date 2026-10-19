@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { users, wholesaleApplications } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { sendEmail, wholesaleDecisionTemplate } from "@/lib/email";
+import { appOrigin } from "@/lib/site";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -19,6 +20,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       action?: "approve" | "reject";
       discountPct?: number;
       taxExempt?: boolean;
+      taxExemptCertNumber?: string;
       verifyEin?: boolean;
       reason?: string;
     };
@@ -30,10 +32,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       .limit(1);
 
     if (!application) return Response.json({ error: "Application not found." }, { status: 404 });
+    if (application.status !== "pending") {
+      return Response.json({ error: `This application was already ${application.status}.` }, { status: 409 });
+    }
 
     if (body.action === "approve") {
       const discountPct = Math.min(Math.max(Math.round(body.discountPct ?? 5), 0), 40);
       const taxExempt = Boolean(body.taxExempt);
+      const certNumber = (body.taxExemptCertNumber ?? "").trim().slice(0, 60);
+      if (taxExempt && certNumber.length < 3) {
+        return Response.json({ error: "Enter the resale certificate number to approve a tax exemption." }, { status: 400 });
+      }
 
       await db
         .update(wholesaleApplications)
@@ -41,19 +50,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           status: "approved",
           discountPct,
           taxExempt,
-          verifiedEin: true,
+          verifiedEin: Boolean(body.verifyEin),
           rejectionReason: null,
           reviewedAt: new Date(),
         })
         .where(eq(wholesaleApplications.id, applicationId));
 
-      const [account] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, application.email))
-        .limit(1);
-
-      const targetId = application.userId ?? account?.id;
+      // Only the account that submitted the application is upgraded. Matching by e-mail
+      // would let anyone who registers a buyer's address inherit that buyer's approval.
+      const targetId = application.userId;
       if (targetId) {
         await db
           .update(users)
@@ -61,20 +66,21 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             accountTier: "wholesale",
             wholesaleDiscountPct: discountPct,
             taxExempt,
-            taxExemptState: taxExempt ? application.state : null,
+            // We collect tax only in New Jersey, so an exemption is recorded for NJ deliveries.
+            taxExemptState: taxExempt ? "NJ" : null,
+            taxExemptCertType: taxExempt ? "NJ ST-3" : null,
+            taxExemptCertNumber: taxExempt ? certNumber : null,
             ein: application.ein,
             company: application.companyName,
-            emailVerified: true,
           })
           .where(eq(users.id, targetId));
       }
 
-      const origin = new URL(request.url).origin;
       const template = wholesaleDecisionTemplate({
         company: application.companyName,
         approved: true,
         discountPct,
-        url: `${origin}/login`,
+        url: `${appOrigin()}/login`,
       });
       await sendEmail({ to: application.email, subject: template.subject, html: template.html });
 
@@ -96,13 +102,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         .set({ status: "rejected", rejectionReason: reason, reviewedAt: new Date() })
         .where(eq(wholesaleApplications.id, applicationId));
 
-      const origin = new URL(request.url).origin;
       const template = wholesaleDecisionTemplate({
         company: application.companyName,
         approved: false,
         discountPct: 0,
         reason,
-        url: `${origin}/wholesale/apply`,
+        url: `${appOrigin()}/wholesale/apply`,
       });
       await sendEmail({ to: application.email, subject: template.subject, html: template.html });
 

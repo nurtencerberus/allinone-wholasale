@@ -48,6 +48,7 @@ export async function GET(request: Request) {
         wholesaleDiscountPct: user.wholesaleDiscountPct,
         taxExempt: user.taxExempt,
         taxExemptState: user.taxExemptState,
+        taxExemptCertNumber: user.taxExemptCertNumber,
         ein: user.ein,
         emailVerified: user.emailVerified,
         createdAt: user.createdAt.toISOString(),

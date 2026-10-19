@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getSessionUser, type SessionUser } from "@/lib/auth";
 import { ensureSeeded } from "@/lib/seed";
-import { SITE } from "@/lib/site";
+import { jsonLdHtml, SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -101,11 +101,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={jsonLdHtml(organizationJsonLd)}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={jsonLdHtml(websiteJsonLd)}
         />
       </head>
       <body className="min-h-screen bg-cream text-ink antialiased">

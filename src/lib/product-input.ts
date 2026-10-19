@@ -1,5 +1,6 @@
 import type { Dimensions, PriceTier } from "@/db/schema";
 import { CATEGORIES } from "@/lib/site";
+import { defaultTaxClass, isTaxClass } from "@/lib/tax";
 
 export type ProductValues = {
   sku: string;
@@ -26,6 +27,7 @@ export type ProductValues = {
   badges: string[];
   featured: boolean;
   active: boolean;
+  taxClass: string;
 };
 
 type Result = { ok: true; values: ProductValues } | { ok: false; error: string };
@@ -224,6 +226,12 @@ export function validateProductInput(body: unknown): Result {
     ];
   }
 
+  const taxClassInput = text(input.taxClass, 20);
+  if (taxClassInput && !isTaxClass(taxClassInput)) {
+    return { ok: false, error: "Tax class must be general, food, supplement or candy." };
+  }
+  const taxClass = taxClassInput || defaultTaxClass(category);
+
   const brand = text(input.brand, 80) || "Ciputra Corp.";
   return {
     ok: true,
@@ -252,6 +260,7 @@ export function validateProductInput(body: unknown): Result {
       badges: list(input.badges, 4, 24),
       featured: Boolean(input.featured),
       active: input.active === undefined ? true : Boolean(input.active),
+      taxClass,
     },
   };
 }

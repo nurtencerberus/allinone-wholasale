@@ -22,8 +22,8 @@ import { ProductCard } from "@/components/ProductCard";
 import { PriceListSection, type PriceListProduct } from "@/components/PriceListSection";
 import { WholesaleListsSection, type WholesaleListCard } from "@/components/WholesaleListsSection";
 import { wholesaleLists } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
-import { canAccessTrade } from "@/lib/wholesale-lists";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { toCardProduct } from "@/lib/catalog-view";
 import { listStaticDownloads } from "@/lib/downloads";
 import { ensureSeeded } from "@/lib/seed";
 import { demoModeEnabled } from "@/lib/demo-mode";
@@ -41,7 +41,7 @@ const PROOF = [
   { value: "1,400+", label: "Independent retail accounts" },
   { value: "98.6%", label: "Case fill rate, trailing 12mo" },
   { value: "2 days", label: "Average dispatch time" },
-  { value: "48", label: "States served, LTL included" },
+  { value: "48 + DC", label: "Contiguous states served" },
 ];
 
 const WHOLESALE_STEPS = [
@@ -71,7 +71,7 @@ const VALUE_PROPS = [
   {
     icon: ShieldCheck,
     title: "Resale tax exemption built in",
-    body: "Verified EIN accounts have sales tax suppressed automatically, with exemption certificates stored against the account.",
+    body: "A New Jersey resale certificate on file is applied automatically to New Jersey deliveries — no forms at checkout.",
   },
   {
     icon: Boxes,
@@ -88,7 +88,7 @@ const VALUE_PROPS = [
 const FAQ = [
   {
     q: "Do I need a business entity to buy wholesale?",
-    a: "You can browse and order at catalog case pricing as a guest, but account pricing, resale tax exemption and net 30 terms require an approved trade application with a verifiable EIN or state resale certificate. Sole proprietors with a valid seller's permit are welcome.",
+    a: "Yes. Anyone can browse the catalog, but wholesale prices and ordering are available to approved trade accounts. Apply with your business details and EIN; most applications are decided within one business day. Sole proprietors with a valid seller's permit are welcome.",
   },
   {
     q: "How is freight calculated on heavy or bulky orders?",
@@ -100,7 +100,7 @@ const FAQ = [
   },
   {
     q: "Is sales tax charged on wholesale orders?",
-    a: "Tax is calculated dynamically from the destination ZIP using destination-based nexus rules. Approved resale accounts with a verified EIN and certificate are marked tax-exempt for their registered state and pay no sales tax at checkout.",
+    a: "We collect sales tax only in New Jersey, where we are registered: 6.625% on taxable goods and their share of freight. Food and dietary supplements are exempt in New Jersey. Buyers shipping to New Jersey with a resale certificate (ST-3) on file pay no sales tax. We do not collect sales tax on deliveries to other states.",
   },
   {
     q: "Do you offer drop-shipping or product assets?",
@@ -116,6 +116,9 @@ export default async function HomePage() {
   } catch (error) {
     console.error("[home] seed unavailable", error);
   }
+
+  const viewer = await getSessionUser();
+  const showPrices = canSeePrices(viewer);
 
   let featured: (typeof products.$inferSelect)[] = [];
   let priceList: PriceListProduct[] = [];
@@ -135,7 +138,7 @@ export default async function HomePage() {
       .from(products)
       .where(eq(products.active, true))
       .orderBy(asc(products.category), asc(products.name));
-    priceList = catalog.map((product) => ({
+    priceList = (showPrices ? catalog : []).map((product) => ({
       sku: product.sku,
       name: product.name,
       brand: product.brand,
@@ -158,9 +161,9 @@ export default async function HomePage() {
   let supplierLists: WholesaleListCard[] = [];
   let signedIn = false;
   try {
-    const viewer = await getSessionUser();
     signedIn = Boolean(viewer);
-    const tradeAccess = canAccessTrade(viewer);
+    // Every supplier list carries prices, so all of them are trade-only whatever their audience flag.
+    const tradeAccess = showPrices;
     const listRows = await db
       .select({
         id: wholesaleLists.id,
@@ -181,14 +184,14 @@ export default async function HomePage() {
       .orderBy(desc(wholesaleLists.updatedAt));
 
     supplierLists = listRows.map((row) => {
-      const locked = row.audience === "trade" && !tradeAccess;
+      const locked = !tradeAccess;
       return {
         id: row.id,
         title: row.title,
         supplier: row.supplier,
         description: row.description,
         category: row.category,
-        audience: row.audience === "trade" ? "trade" : "public",
+        audience: "trade",
         format: row.format,
         bytes: row.bytes,
         rowCount: row.rowCount,
@@ -277,7 +280,7 @@ export default async function HomePage() {
                   <MapPin size={11} /> {SITE.city}, {SITE.state}
                 </p>
               </div>
-              {sample ? (
+              {sample && showPrices ? (
               <div className="absolute inset-x-4 bottom-4 rounded-xl border border-cream/20 bg-ink/75 p-4 backdrop-blur-md">
                 <div className="flex items-end justify-between gap-3">
                   <div>
@@ -396,7 +399,7 @@ export default async function HomePage() {
           </div>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
+              <ProductCard key={product.id} product={toCardProduct(product, showPrices)} index={index} />
             ))}
           </div>
         </div>
@@ -407,7 +410,7 @@ export default async function HomePage() {
       <WholesaleListsSection lists={supplierLists} signedIn={signedIn} />
 
       {/* Product lists (XLSX / CSV) generated from the live catalog ---- */}
-      <PriceListSection products={priceList} files={downloadFiles} />
+      {showPrices ? <PriceListSection products={priceList} files={downloadFiles} /> : null}
 
       {/* Value props ----------------------------------------------- */}
       <section className="wrap py-16 lg:py-20">
@@ -505,7 +508,7 @@ export default async function HomePage() {
       </section>
 
       {/* Margin table --------------------------------------------- */}
-      {sample ? (
+      {sample && showPrices ? (
       <section className="wrap py-16 lg:py-20" id="pricing">
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
