@@ -144,7 +144,7 @@ function matrixOptions(input: {
     mode: "parcel",
     billableLbs: Math.round(lbs * 10) / 10,
     dimWeightLbs: input.dimWeightLbs,
-    note: "Guaranteed by 10:30am. Oversize cartons may be re-rated at pickup.",
+    note: "Typically delivered in 2 business days. Oversize cartons may be re-rated at pickup.",
   });
 
   return options;

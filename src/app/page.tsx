@@ -41,7 +41,7 @@ const PROOF = [
   { value: "1,400+", label: "Independent retail accounts" },
   { value: "98.6%", label: "Case fill rate, trailing 12mo" },
   { value: "2 days", label: "Average dispatch time" },
-  { value: "48", label: "States served, LTL included" },
+  { value: "48 + DC", label: "Contiguous states served" },
 ];
 
 const WHOLESALE_STEPS = [
@@ -71,7 +71,7 @@ const VALUE_PROPS = [
   {
     icon: ShieldCheck,
     title: "Resale tax exemption built in",
-    body: "Verified EIN accounts have sales tax suppressed automatically, with exemption certificates stored against the account.",
+    body: "A New Jersey resale certificate on file is applied automatically to New Jersey deliveries — no forms at checkout.",
   },
   {
     icon: Boxes,
@@ -88,7 +88,7 @@ const VALUE_PROPS = [
 const FAQ = [
   {
     q: "Do I need a business entity to buy wholesale?",
-    a: "You can browse and order at catalog case pricing as a guest, but account pricing, resale tax exemption and net 30 terms require an approved trade application with a verifiable EIN or state resale certificate. Sole proprietors with a valid seller's permit are welcome.",
+    a: "Yes. Anyone can browse the catalog, but wholesale prices and ordering are available to approved trade accounts. Apply with your business details and EIN; most applications are decided within one business day. Sole proprietors with a valid seller's permit are welcome.",
   },
   {
     q: "How is freight calculated on heavy or bulky orders?",
@@ -100,7 +100,7 @@ const FAQ = [
   },
   {
     q: "Is sales tax charged on wholesale orders?",
-    a: "Tax is calculated dynamically from the destination ZIP using destination-based nexus rules. Approved resale accounts with a verified EIN and certificate are marked tax-exempt for their registered state and pay no sales tax at checkout.",
+    a: "We collect sales tax only in New Jersey, where we are registered: 6.625% on taxable goods and their share of freight. Food and dietary supplements are exempt in New Jersey. Buyers shipping to New Jersey with a resale certificate (ST-3) on file pay no sales tax. We do not collect sales tax on deliveries to other states.",
   },
   {
     q: "Do you offer drop-shipping or product assets?",

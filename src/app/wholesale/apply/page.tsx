@@ -54,7 +54,7 @@ export default async function ApplyPage() {
                 "Resale tax exemption where your certificate is verified",
                 "Quick order by SKU for pallet replenishment",
                 "Saved dock addresses and full order history",
-                "Net 30 eligibility after two prepaid orders",
+                "Net-30 terms against a purchase order",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2 text-[11.5px] leading-relaxed text-ink/65">
                   <BadgeCheck size={13} className="mt-0.5 shrink-0 text-fern" /> {item}

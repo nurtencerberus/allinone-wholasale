@@ -55,7 +55,7 @@ const FREIGHT_EXAMPLES = [
 
 const DOCS = [
   "Federal EIN (or state seller's permit for sole proprietors)",
-  "State resale / exemption certificate for your ship-to state",
+  "New Jersey resale certificate (ST-3 / ST-3NR) — only needed if you ship to New Jersey",
   "Business address matching the certificate",
   "Buyer contact with authority to purchase",
 ];
@@ -88,7 +88,7 @@ export default function WholesalePage() {
                 { value: "1 day", label: "Typical EIN decision" },
                 { value: "0%", label: "Membership fee" },
                 { value: "30 days", label: "Net terms available" },
-                { value: "48", label: "States served" },
+                { value: "48 + DC", label: "States served" },
               ].map((item) => (
                 <div key={item.label}>
                   <p className="display text-[24px] text-cream">{item.value}</p>
@@ -202,19 +202,19 @@ export default function WholesalePage() {
                 icon: Percent,
                 title: "Volume tiers",
                 body: "Every SKU stores up to three case-price breaks in the database. Buy 2, 5 or 10 cases and the tier resolves per line automatically.",
-                points: ["Per-line, per-order resolution", "No coupon code needed", "Applies to guests too"],
+                points: ["Per-line, per-order resolution", "No coupon code needed", "Shown once your account is approved"],
               },
               {
                 icon: CreditCard,
                 title: "Payment terms",
-                body: "Card at checkout via Stripe is always available. After two prepaid orders, approved accounts can request net 30 invoicing.",
-                points: ["Stripe tokenised card", "Net 30 after two prepaid", "ACH on request over $2,500"],
+                body: "Pay by card through Stripe, or by ACH / wire transfer. Approved accounts can order on Net-30 terms against a purchase order.",
+                points: ["Card via Stripe", "ACH / wire transfer", "Net-30 with a PO number"],
               },
               {
                 icon: PackageCheck,
                 title: "Returns & damage",
-                body: "Thirty days on unopened cases. Transit damage is credited with photos — 100% cover on ceramics and glassware.",
-                points: ["30-day unopened returns", "Photo-based damage credit", "Return freight waived when ours"],
+                body: "Return within 14 days of delivery — including opened supplements and food. Report transit damage with photos.",
+                points: ["14-day returns", "Opened items accepted", "See the returns policy"],
               },
             ].map((term) => (
               <div key={term.title} className="card p-5">
@@ -323,20 +323,20 @@ export default function WholesalePage() {
           <div>
             <p className="text-[11px] font-bold tracking-[0.24em] text-gold uppercase">Sales tax nexus</p>
             <h2 className="display mt-2 text-[32px] leading-tight text-cream sm:text-[38px]">
-              Tax is a function of the destination ZIP, not a guess.
+              We collect sales tax only where we are registered.
             </h2>
             <p className="mt-4 text-[13px] leading-relaxed text-cream/65">
-              We collect destination-based sales tax where Ciputra has nexus. The checkout engine resolves
-              the jurisdiction from the ZIP and applies the combined state and local rate to goods plus
-              taxable freight. Verified resale accounts are zero-rated automatically, with the certificate
-              stored against the account record.
+              Ciputra is registered to collect sales tax in New Jersey only. On New Jersey deliveries we charge
+              6.625% on taxable goods and their share of freight; food and dietary supplements are exempt. A New
+              Jersey resale certificate on your account removes the tax. Deliveries to other states are not
+              charged sales tax by us — your business may owe use tax directly.
             </p>
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {[
-                { state: "New Jersey", rate: "6.625%", note: "Origin state · nexus" },
-                { state: "Maine", rate: "5.500%", note: "Resale exempt on file" },
-                { state: "Texas", rate: "8.200%", note: "Destination district tax" },
-                { state: "Oregon", rate: "0.000%", note: "No state sales tax" },
+                { state: "New Jersey · home goods", rate: "6.625%", note: "Goods + their share of freight" },
+                { state: "New Jersey · food & supplements", rate: "0.000%", note: "Exempt in New Jersey" },
+                { state: "New Jersey · resale certificate", rate: "0.000%", note: "ST-3 on file" },
+                { state: "Other states", rate: "Not collected", note: "We are not registered there" },
               ].map((row) => (
                 <div key={row.state} className="rounded-lg border border-cream/15 bg-cream/[0.04] px-3.5 py-2.5">
                   <p className="text-[11.5px] font-bold text-cream">{row.state}</p>
@@ -361,8 +361,9 @@ export default function WholesalePage() {
               ))}
             </ul>
             <p className="mt-5 rounded-md bg-cream/10 px-3 py-2.5 text-[10.5px] leading-relaxed text-cream/60">
-              Exemption is state-specific. If your certificate covers multiple states, send each one and we
-              will mark the account exempt for every verified jurisdiction.
+              Because we collect tax only in New Jersey, you only need a certificate if you ship to New Jersey:
+              Form ST-3 (NJ sellers) or ST-3NR (out-of-state sellers), or a multistate certificate New Jersey
+              accepts.
             </p>
             <Link href="/wholesale/apply" className="btn btn-light mt-5 w-full">
               Submit a resale certificate
@@ -396,8 +397,8 @@ export default function WholesalePage() {
             <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-ink/12 bg-parchment/40 p-4">
               <Clock size={15} className="mt-0.5 shrink-0 text-fern" />
               <p className="text-[11px] leading-relaxed text-ink/60">
-                Not a retailer yet? You can still order at catalog case pricing as a guest. Trade
-                approval is only required for contract pricing, tax exemption and net terms.
+                Wholesale prices and ordering are for approved trade accounts. Create a login, confirm your
+                email and apply — most applications are decided within one business day.
               </p>
             </div>
           </div>

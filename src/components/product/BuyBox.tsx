@@ -164,7 +164,7 @@ export function BuyBox({
             {
               icon: Check,
               text: lowStock
-                ? `Only ${product.stock} cases left in Paterson — allocation held for 60 minutes`
+                ? `Only ${product.stock} cases left in Paterson — stock is reserved when you place the order`
                 : `In stock · ${product.stock} cases ready to pick in Paterson`,
               tone: lowStock ? "text-clay" : "text-fern",
             },
