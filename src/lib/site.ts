@@ -16,6 +16,20 @@ function resolveCanonicalUrl(): string {
 
 const CANONICAL_URL = resolveCanonicalUrl();
 
+/**
+ * Origin for links in outgoing e-mail (verify, reset, order). Never derived from the
+ * request's Host header, which a client controls. Vercel preview deployments use their
+ * own platform-provided URL so links stay on the preview being tested.
+ */
+export function appOrigin(): string {
+  const previewHost = process.env.VERCEL_ENV === "preview" ? process.env.VERCEL_URL?.trim() : "";
+  if (previewHost) return `https://${previewHost}`;
+  if (process.env.NODE_ENV !== "production" && !process.env.NEXT_PUBLIC_SITE_URL?.trim()) {
+    return `http://localhost:${process.env.PORT ?? 3000}`;
+  }
+  return CANONICAL_URL;
+}
+
 export const SITE = {
   name: "Ciputra Corp",
   shortName: "Ciputra",
@@ -150,3 +164,11 @@ export const ORDER_STATUSES = [
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/**
+ * Serialises structured data for a `<script type="application/ld+json">` tag. `<` is escaped
+ * so text such as a product description containing `</script>` cannot close the tag.
+ */
+export function jsonLdHtml(data: unknown): { __html: string } {
+  return { __html: JSON.stringify(data).replace(/</g, "\\u003c") };
+}

@@ -9,7 +9,7 @@ import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
 import { getSessionUser } from "@/lib/auth";
 import { demoModeEnabled } from "@/lib/demo-mode";
-import { categoryName, SITE } from "@/lib/site";
+import { categoryName, jsonLdHtml, SITE } from "@/lib/site";
 import { formatDate, formatMoney, unitPriceOf } from "@/lib/money";
 
 /**
@@ -189,11 +189,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       ) : null}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
+        dangerouslySetInnerHTML={jsonLdHtml(publishedJsonLd)}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={jsonLdHtml(breadcrumbJsonLd)}
       />
 
       <div className="wrap py-6">

@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { randomToken } from "@/lib/password";
+import { digestToken, randomToken } from "@/lib/password";
+import { appOrigin } from "@/lib/site";
 import { resetPasswordTemplate, sendEmail } from "@/lib/email";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
@@ -19,7 +20,6 @@ export async function POST(request: Request) {
     if (!emailLimit.allowed) return tooManyRequests(emailLimit.retryAfterSeconds);
 
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    const origin = new URL(request.url).origin;
 
     if (!user) {
       // Do not disclose whether the address exists.
@@ -33,10 +33,10 @@ export async function POST(request: Request) {
     const token = randomToken(24);
     await db
       .update(users)
-      .set({ resetToken: token, resetExpires: new Date(Date.now() + 60 * 60 * 1000) })
+      .set({ resetToken: digestToken(token), resetExpires: new Date(Date.now() + 60 * 60 * 1000) })
       .where(eq(users.id, user.id));
 
-    const url = `${origin}/reset-password?token=${token}`;
+    const url = `${appOrigin()}/reset-password?token=${token}`;
     const template = resetPasswordTemplate(url);
     const delivery = await sendEmail({ to: user.email, subject: template.subject, html: template.html });
 

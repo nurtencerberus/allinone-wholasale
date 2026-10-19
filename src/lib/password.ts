@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 const KEY_LENGTH = 64;
 const SCRYPT_COST = 16384;
@@ -33,4 +33,21 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString("hex");
+}
+
+/**
+ * One-way digest for bearer tokens (sessions, password reset, e-mail verification).
+ * Only the digest is stored, so read access to the database cannot be replayed as a login.
+ */
+export function digestToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+// Same cost as a real check, so an unknown e-mail takes as long as a wrong password.
+const DUMMY_HASH = hashPassword(randomToken(16));
+
+/** Runs a full scrypt comparison even when there is no account, to avoid a timing oracle. */
+export function verifyPasswordOrDummy(password: string, stored: string | null | undefined): boolean {
+  const ok = verifyPassword(password, stored ?? DUMMY_HASH);
+  return Boolean(stored) && ok;
 }

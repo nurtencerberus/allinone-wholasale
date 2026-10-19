@@ -38,7 +38,7 @@ export function AdminApplications({ applications }: { applications: AdminApplica
     applications.find((entry) => entry.status === "pending")?.id ?? applications[0]?.id ?? null,
   );
   const [discount, setDiscount] = useState(8);
-  const [taxExempt, setTaxExempt] = useState(true);
+  const [taxExempt, setTaxExempt] = useState(false);
   const [verifyEin, setVerifyEin] = useState(true);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
@@ -112,7 +112,7 @@ export function AdminApplications({ applications }: { applications: AdminApplica
                   onClick={() => {
                     setSelectedId(app.id);
                     setDiscount(app.status === "approved" ? app.discountPct : 8);
-                    setTaxExempt(app.status === "approved" ? app.taxExempt : true);
+                    setTaxExempt(app.status === "approved" ? app.taxExempt : false);
                     setVerifyEin(true);
                     setMessage(null);
                     setError(null);

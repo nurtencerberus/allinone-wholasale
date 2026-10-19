@@ -38,8 +38,13 @@ const INITIAL = {
   notes: "",
 };
 
-export function WholesaleApplyForm() {
-  const [values, setValues] = useState(INITIAL);
+export function WholesaleApplyForm({ account }: { account: { name: string; email: string; company: string | null } }) {
+  const [values, setValues] = useState({
+    ...INITIAL,
+    contactName: account.name,
+    email: account.email,
+    companyName: account.company ?? "",
+  });
   const [categories, setCategories] = useState<string[]>([CATEGORY_OPTIONS[0]]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +100,7 @@ export function WholesaleApplyForm() {
           {[
             "A trade specialist verifies your EIN against IRS records and your state resale certificate.",
             "You receive an approval email with your contract discount and tax-exemption status.",
-            "Sign in to see account pricing applied instantly at cart and checkout.",
+            "Once approved, wholesale pricing, quick order and checkout unlock on this account.",
           ].map((step, index) => (
             <p key={step} className="flex items-start gap-2.5 text-[11.5px] leading-relaxed text-ink/65">
               <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-cream">
@@ -107,7 +112,7 @@ export function WholesaleApplyForm() {
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/shop" className="btn btn-primary btn-sm">Browse the catalog</Link>
-          <Link href="/signup" className="btn btn-outline btn-sm">Create a login for updates</Link>
+          <Link href="/account" className="btn btn-outline btn-sm">Go to your account</Link>
         </div>
       </div>
     );
@@ -209,9 +214,10 @@ export function WholesaleApplyForm() {
               className="field"
               required
               value={values.email}
-              onChange={(event) => set("email", event.target.value)}
-              placeholder="buyer@company.com"
+              readOnly
+              aria-describedby="email-note"
             />
+            <p id="email-note" className="mt-1 text-[10px] text-ink/45">The confirmed email on your account.</p>
           </div>
           <div>
             <label className="label" htmlFor="phone">Phone *</label>

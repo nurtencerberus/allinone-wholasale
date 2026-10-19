@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession, toSessionUser } from "@/lib/auth";
-import { hashPassword, randomToken } from "@/lib/password";
+import { digestToken, hashPassword, randomToken } from "@/lib/password";
+import { appOrigin } from "@/lib/site";
 import { sendEmail, verifyEmailTemplate } from "@/lib/email";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
@@ -30,8 +31,8 @@ export async function POST(request: Request) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)) {
       return Response.json({ error: "Enter a valid email address." }, { status: 400 });
     }
-    if (password.length < 8) {
-      return Response.json({ error: "Password must be at least 8 characters." }, { status: 400 });
+    if (password.length < 8 || password.length > 256) {
+      return Response.json({ error: "Password must be 8–256 characters." }, { status: 400 });
     }
 
     const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
         company,
         phone: (body.phone ?? "").trim() || null,
         passwordHash: hashPassword(password),
-        verificationToken,
+        verificationToken: digestToken(verificationToken),
         verificationExpires,
         emailVerified: false,
         accountTier: "retail",
@@ -64,8 +65,7 @@ export async function POST(request: Request) {
 
     await createSession(created.id);
 
-    const origin = new URL(request.url).origin;
-    const verifyUrl = `${origin}/verify-email?token=${verificationToken}`;
+    const verifyUrl = `${appOrigin()}/verify-email?token=${verificationToken}`;
     const template = verifyEmailTemplate(name, verifyUrl);
     const delivery = await sendEmail({ to: email, subject: template.subject, html: template.html });
 

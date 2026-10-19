@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession, toSessionUser } from "@/lib/auth";
-import { verifyPassword } from "@/lib/password";
+import { verifyPasswordOrDummy } from "@/lib/password";
 import { ensureSeeded } from "@/lib/seed";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -17,13 +17,18 @@ export async function POST(request: Request) {
       return Response.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    const ipLimit = await consumeRateLimit("login-ip", clientIp(request), 30, 900);
+    const ip = clientIp(request);
+    const ipLimit = await consumeRateLimit("login-ip", ip, 30, 900);
     if (!ipLimit.allowed) return tooManyRequests(ipLimit.retryAfterSeconds);
-    const accountLimit = await consumeRateLimit("login-account", email, 10, 900);
+    // Tight per account+IP, loose per account: one attacker cannot lock the real owner out
+    // from their own network, but a distributed guess against one account is still capped.
+    const pairLimit = await consumeRateLimit("login-account-ip", `${email}|${ip}`, 10, 900);
+    if (!pairLimit.allowed) return tooManyRequests(pairLimit.retryAfterSeconds);
+    const accountLimit = await consumeRateLimit("login-account", email, 50, 900);
     if (!accountLimit.allowed) return tooManyRequests(accountLimit.retryAfterSeconds);
 
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    if (!verifyPasswordOrDummy(password, user?.passwordHash) || !user) {
       return Response.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
