@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { NEXUS_STATES } from "@/lib/tax";
 import { escapeHtml, sendEmail } from "@/lib/email";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -19,6 +20,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       discountPct?: number;
       taxExempt?: boolean;
       taxExemptState?: string;
+      taxExemptCertType?: string;
+      taxExemptCertNumber?: string;
+      taxExemptExpires?: string | null;
       role?: string;
       accountTier?: string;
       verifyEmail?: boolean;
@@ -38,10 +42,34 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     if (body.taxExempt !== undefined) {
-      patch.taxExempt = Boolean(body.taxExempt);
-      patch.taxExemptState = body.taxExempt
-        ? (body.taxExemptState ?? existing.taxExemptState ?? "US")
-        : null;
+      if (body.taxExempt) {
+        // An exemption is only as good as the certificate behind it, and only for its state.
+        const state = (body.taxExemptState ?? existing.taxExemptState ?? "NJ").trim().toUpperCase();
+        if (!NEXUS_STATES.includes(state)) {
+          return Response.json(
+            { error: `Exemptions apply only in states where we collect tax (${NEXUS_STATES.join(", ")}).` },
+            { status: 400 },
+          );
+        }
+        const certNumber = (body.taxExemptCertNumber ?? existing.taxExemptCertNumber ?? "").trim();
+        if (certNumber.length < 3) {
+          return Response.json({ error: "Enter the resale certificate number to grant an exemption." }, { status: 400 });
+        }
+        let expires: Date | null = existing.taxExemptExpires;
+        if (body.taxExemptExpires !== undefined) {
+          expires = body.taxExemptExpires ? new Date(body.taxExemptExpires) : null;
+          if (expires && Number.isNaN(expires.getTime())) {
+            return Response.json({ error: "Certificate expiry must be a valid date." }, { status: 400 });
+          }
+        }
+        patch.taxExempt = true;
+        patch.taxExemptState = state;
+        patch.taxExemptCertNumber = certNumber.slice(0, 60);
+        patch.taxExemptCertType = (body.taxExemptCertType ?? existing.taxExemptCertType ?? "NJ ST-3").trim().slice(0, 30);
+        patch.taxExemptExpires = expires;
+      } else {
+        patch.taxExempt = false;
+      }
     }
 
     if (body.role !== undefined) {
@@ -59,6 +87,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         return Response.json({ error: "Tier must be retail or wholesale." }, { status: 400 });
       }
       patch.accountTier = body.accountTier;
+      // Pricing, terms and exemption are trade privileges; a downgrade removes them.
+      if (body.accountTier === "retail") {
+        patch.taxExempt = false;
+        patch.wholesaleDiscountPct = 0;
+      }
     }
 
     if (body.verifyEmail === true) {
@@ -93,6 +126,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         wholesaleDiscountPct: updated.wholesaleDiscountPct,
         taxExempt: updated.taxExempt,
         taxExemptState: updated.taxExemptState,
+        taxExemptCertNumber: updated.taxExemptCertNumber,
         emailVerified: updated.emailVerified,
       },
       message: `${updated.email} updated.`,

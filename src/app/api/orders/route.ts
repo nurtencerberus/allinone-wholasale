@@ -97,6 +97,10 @@ export async function POST(request: Request) {
       shippingOptionId: body.shippingOptionId,
     });
     if ("error" in priced) return Response.json({ error: priced.error }, { status: 400 });
+    if (priced.blockers.length) return Response.json({ error: priced.blockers.join(" ") }, { status: 400 });
+    if (priced.removedProductIds.length) {
+      return Response.json({ error: "Some items are no longer available. Review your cart and try again." }, { status: 409 });
+    }
     if (!priced.shippingOptionId) {
       return Response.json({ error: "The selected freight service is unavailable." }, { status: 400 });
     }

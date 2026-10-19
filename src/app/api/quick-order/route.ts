@@ -1,11 +1,18 @@
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
+import { resolveCasePrice } from "@/lib/checkout";
 import { ensureSeeded } from "@/lib/seed";
+import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
     await ensureSeeded();
+    const user = await getSessionUser();
+    if (!canSeePrices(user)) return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
+    const limit = await consumeRateLimit("quick-order", clientIp(request), 120, 3600);
+    if (!limit.allowed) return tooManyRequests(limit.retryAfterSeconds);
     const body = (await request.json()) as { rows?: { sku?: string; cases?: number | string }[]; raw?: string };
     const parsed: { sku: string; cases: number }[] = [];
 
@@ -30,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     const skus = Array.from(new Set(parsed.map((row) => row.sku)));
-    const rows = await db.select().from(products).where(inArray(products.sku, skus));
+    const rows = await db.select().from(products).where(and(inArray(products.sku, skus), eq(products.active, true)));
     const bySku = new Map(rows.map((row) => [row.sku.toUpperCase(), row]));
 
     const lines = parsed.map((row) => {
@@ -55,7 +62,7 @@ export async function POST(request: Request) {
           stock: product.stock,
           priceTiers: product.priceTiers,
         },
-        lineTotal: product.casePrice * row.cases,
+        lineTotal: resolveCasePrice(product, row.cases) * row.cases,
       };
     });
 

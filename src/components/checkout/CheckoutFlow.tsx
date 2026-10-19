@@ -23,7 +23,7 @@ import { useCart } from "@/components/cart/CartProvider";
 import { PaymentStep, type PlaceOrderInput } from "@/components/checkout/PaymentStep";
 import type { SessionUser } from "@/lib/auth";
 import type { PricedOrder } from "@/lib/checkout";
-import { US_STATES } from "@/lib/site";
+import { SERVICE_STATES } from "@/lib/ship-to";
 import { formatMoney, formatRate } from "@/lib/money";
 
 type SavedAddress = {
@@ -53,7 +53,7 @@ export function CheckoutFlow({
   user: SessionUser | null;
   savedAddresses: SavedAddress[];
 }) {
-  const { items, subtotal, clear, hydrated } = useCart();
+  const { items, subtotal, clear, hydrated, removeItem } = useCart();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -129,8 +129,15 @@ export function CheckoutFlow({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Could not price this cart.");
-        setQuote(data.quote as PricedOrder);
-        return data.quote as PricedOrder;
+        const priced = data.quote as PricedOrder;
+        priced.removedProductIds.forEach((productId) => removeItem(productId));
+        setQuote(priced);
+        // Blockers (minimums, stock, delivery area) stop the flow here; the server enforces the same.
+        if (priced.blockers.length) {
+          setError(priced.blockers.join(" "));
+          return null;
+        }
+        return priced;
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "Could not price this cart.");
         return null;
@@ -139,7 +146,7 @@ export function CheckoutFlow({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [address, couponCode, JSON.stringify(payload)],
+    [address, couponCode, JSON.stringify(payload), removeItem],
   );
 
   const gotoFreight = async () => {
@@ -433,7 +440,7 @@ export function CheckoutFlow({
                         onChange={(event) => setAddress({ ...address, state: event.target.value })}
                       >
                         <option value="">Select</option>
-                        {US_STATES.map((state) => (
+                        {SERVICE_STATES.map((state) => (
                           <option key={state.code} value={state.code}>
                             {state.code} — {state.name}
                           </option>
@@ -620,7 +627,7 @@ export function CheckoutFlow({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="flex items-center gap-1.5 text-[11px] font-bold text-fern">
-                        <ShieldCheck size={13} /> Sales tax · {quote.taxQuote.source === "exempt" ? "Exempt" : formatRate(quote.taxQuote.rateX1000)}
+                        <ShieldCheck size={13} /> Sales tax · {quote.taxQuote.source === "exempt" ? "Exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : formatRate(quote.taxQuote.rateX1000)}
                       </p>
                       <p className="mt-1 text-[10.5px] leading-relaxed text-ink/60">{quote.taxQuote.jurisdiction}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-ink/45">{quote.taxQuote.note}</p>
@@ -628,7 +635,7 @@ export function CheckoutFlow({
                     <div className="text-right">
                       <p className="text-[14px] font-bold tabular-nums">{formatMoney(quote.taxAmount)}</p>
                       <p className="text-[9px] font-semibold tracking-wide text-ink/40 uppercase">
-                        {quote.taxQuote.source === "taxjar" ? "TaxJar live" : quote.taxQuote.source === "exempt" ? "Resale exempt" : "Nexus table"}
+                        {quote.taxQuote.source === "exempt" ? "Resale exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : "State rate"}
                       </p>
                     </div>
                   </div>

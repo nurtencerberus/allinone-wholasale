@@ -40,6 +40,11 @@ export const users = pgTable(
     wholesaleDiscountPct: integer("wholesale_discount_pct").notNull().default(0),
     taxExempt: boolean("tax_exempt").notNull().default(false),
     taxExemptState: text("tax_exempt_state"),
+    // Resale certificate on file. Exemption applies only to deliveries in taxExemptState,
+    // with a certificate number, and before the expiry date when one is set.
+    taxExemptCertType: text("tax_exempt_cert_type"), // e.g. NJ ST-3, NJ ST-3NR, MTC, SST
+    taxExemptCertNumber: text("tax_exempt_cert_number"),
+    taxExemptExpires: timestamp("tax_exempt_expires", { withTimezone: true }),
     ein: text("ein"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -116,6 +121,8 @@ export const products = pgTable(
     badges: jsonb("badges").$type<string[]>().notNull().default([]),
     featured: boolean("featured").notNull().default(false),
     active: boolean("active").notNull().default(true),
+    // Sales-tax class: general (taxable) | food | supplement | candy. See src/lib/tax.ts.
+    taxClass: text("tax_class").notNull().default("general"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

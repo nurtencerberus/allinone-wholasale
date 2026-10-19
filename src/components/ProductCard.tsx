@@ -107,7 +107,7 @@ export function ProductCard({ product, index }: { product: Product; index?: numb
                     category: product.category,
                     weightLbs: product.weightLbs,
                   },
-                  1,
+                  product.minCases,
                 );
                 window.setTimeout(() => setAdding(false), 500);
               }}

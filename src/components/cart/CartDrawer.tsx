@@ -109,7 +109,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                           onClick={() => setCases(line.productId, line.cases - 1)}
                           aria-label="Decrease cases"
                           className="px-2 py-1.5 text-ink/60 hover:text-ink disabled:opacity-30"
-                          disabled={line.cases <= 1}
+                          disabled={line.cases <= Math.max(1, line.minCases)}
                         >
                           <Minus size={12} />
                         </button>

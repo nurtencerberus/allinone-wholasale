@@ -20,6 +20,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       action?: "approve" | "reject";
       discountPct?: number;
       taxExempt?: boolean;
+      taxExemptCertNumber?: string;
       verifyEin?: boolean;
       reason?: string;
     };
@@ -38,6 +39,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (body.action === "approve") {
       const discountPct = Math.min(Math.max(Math.round(body.discountPct ?? 5), 0), 40);
       const taxExempt = Boolean(body.taxExempt);
+      const certNumber = (body.taxExemptCertNumber ?? "").trim().slice(0, 60);
+      if (taxExempt && certNumber.length < 3) {
+        return Response.json({ error: "Enter the resale certificate number to approve a tax exemption." }, { status: 400 });
+      }
 
       await db
         .update(wholesaleApplications)
@@ -61,7 +66,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             accountTier: "wholesale",
             wholesaleDiscountPct: discountPct,
             taxExempt,
-            taxExemptState: taxExempt ? application.state : null,
+            // We collect tax only in New Jersey, so an exemption is recorded for NJ deliveries.
+            taxExemptState: taxExempt ? "NJ" : null,
+            taxExemptCertType: taxExempt ? "NJ ST-3" : null,
+            taxExemptCertNumber: taxExempt ? certNumber : null,
             ein: application.ein,
             company: application.companyName,
           })

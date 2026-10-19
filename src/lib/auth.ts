@@ -20,6 +20,8 @@ export type SessionUser = {
   wholesaleDiscountPct: number;
   taxExempt: boolean;
   taxExemptState: string | null;
+  taxExemptCertNumber: string | null;
+  taxExemptExpires: Date | null;
   emailVerified: boolean;
 };
 
@@ -34,6 +36,8 @@ export function toSessionUser(user: User): SessionUser {
     wholesaleDiscountPct: user.wholesaleDiscountPct,
     taxExempt: user.taxExempt,
     taxExemptState: user.taxExemptState,
+    taxExemptCertNumber: user.taxExemptCertNumber,
+    taxExemptExpires: user.taxExemptExpires,
     emailVerified: user.emailVerified,
   };
 }
@@ -100,3 +104,14 @@ export function safeNextPath(value: string | null | undefined): string | undefin
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return undefined;
   return value;
 }
+
+/**
+ * Wholesale prices, the cart, quick order and checkout are open only to approved trade
+ * accounts (and staff). Enforce this on the server — never only by hiding UI.
+ */
+export function canSeePrices(user: SessionUser | null | undefined): user is SessionUser {
+  return Boolean(user && (user.role === "admin" || user.accountTier === "wholesale"));
+}
+
+export const PRICE_LOCKED_MESSAGE =
+  "Wholesale pricing and ordering are available to approved trade accounts. Sign in or apply for a trade account.";

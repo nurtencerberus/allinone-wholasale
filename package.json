@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:export": "drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts > db/schema.sql"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^7.0.0",

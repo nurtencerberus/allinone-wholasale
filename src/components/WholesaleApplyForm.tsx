@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, BadgeCheck, Check, Loader2 } from "lucide-react";
-import { US_STATES } from "@/lib/site";
+import { SERVICE_STATES } from "@/lib/ship-to";
 
 const BUSINESS_TYPES = [
   "Independent grocery",
@@ -281,7 +281,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
               onChange={(event) => set("state", event.target.value)}
             >
               <option value="">Select state</option>
-              {US_STATES.map((state) => (
+              {SERVICE_STATES.map((state) => (
                 <option key={state.code} value={state.code}>
                   {state.code} — {state.name}
                 </option>

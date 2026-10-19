@@ -4,6 +4,7 @@ import { coupons, products, type Dimensions } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth";
 import { quoteShipping, summariseFreight, type ShippingOption } from "@/lib/shipping";
 import { quoteTax, type TaxQuote } from "@/lib/tax";
+import { shipToProblem } from "@/lib/ship-to";
 import { SITE } from "@/lib/site";
 
 export type CheckoutAddress = {
@@ -24,8 +25,11 @@ export type PricedLine = {
   sku: string;
   image: string;
   category: string;
+  taxClass: string;
   cases: number;
   caseSize: number;
+  minCases: number;
+  stock: number;
   listCasePrice: number;
   casePrice: number;
   unitPrice: number;
@@ -66,7 +70,14 @@ export type PricedOrder = {
   cases: number;
   isWholesale: boolean;
   accountTier: string;
+  /** Informational notes (e.g. an item was removed). */
   messages: string[];
+  /** Reasons the order cannot be placed as-is; payment and order endpoints refuse while any exist. */
+  blockers: string[];
+  /** Cart lines dropped because the product is inactive or deleted; the client removes them. */
+  removedProductIds: number[];
+  /** Each line's total after the order-level coupon, aligned with `lines`. */
+  lineNet: number[];
 };
 
 export function resolveCasePrice(
@@ -80,6 +91,9 @@ export function resolveCasePrice(
   return best;
 }
 
+/** Hard per-line ceiling; larger volumes go through the trade desk. */
+export const MAX_CASES_PER_LINE = 999;
+
 export async function priceCart(input: {
   items: CartItemInput[];
   user?: SessionUser | null;
@@ -87,9 +101,18 @@ export async function priceCart(input: {
   address?: CheckoutAddress | null;
   shippingOptionId?: string | null;
 }): Promise<PricedOrder | { error: string }> {
-  const cleaned = input.items
-    .filter((item) => Number.isFinite(item.productId) && item.cases > 0)
-    .map((item) => ({ productId: Number(item.productId), cases: Math.min(999, Math.ceil(item.cases)) }));
+  const blockers: string[] = [];
+  const warnings: string[] = [];
+
+  // Merge duplicate lines; never silently change a quantity the buyer asked for.
+  const requested = new Map<number, number>();
+  for (const item of input.items ?? []) {
+    const productId = Number(item.productId);
+    const cases = Number(item.cases);
+    if (!Number.isInteger(productId) || !Number.isFinite(cases) || cases <= 0) continue;
+    requested.set(productId, (requested.get(productId) ?? 0) + Math.ceil(cases));
+  }
+  const cleaned = [...requested].map(([productId, cases]) => ({ productId, cases }));
 
   if (!cleaned.length) return { error: "Your cart is empty." };
 
@@ -98,19 +121,32 @@ export async function priceCart(input: {
     .from(products)
     .where(inArray(products.id, cleaned.map((item) => item.productId)));
 
-  if (!rows.length) return { error: "No orderable products in this cart." };
-
   const byId = new Map(rows.map((row) => [row.id, row]));
   const user = input.user ?? null;
   const wholesaleActive = user?.accountTier === "wholesale";
   const discountPct = wholesaleActive ? Math.min(Math.max(user?.wholesaleDiscountPct ?? 0, 0), 40) : 0;
 
   const lines: PricedLine[] = [];
+  const removedProductIds: number[] = [];
   for (const item of cleaned) {
     const product = byId.get(item.productId);
-    if (!product || !product.active) continue;
+    if (!product || !product.active) {
+      removedProductIds.push(item.productId);
+      warnings.push(`${product?.name ?? "An item"} is no longer available and was removed from this order.`);
+      continue;
+    }
+    if (item.cases > MAX_CASES_PER_LINE) {
+      blockers.push(`${product.name}: orders above ${MAX_CASES_PER_LINE} cases go through the trade desk.`);
+    }
+    if (item.cases < product.minCases) {
+      blockers.push(`${product.name}: minimum order is ${product.minCases} cases.`);
+    }
     if (item.cases > product.stock) {
-      return { error: `${product.name}: only ${product.stock} case(s) in stock.` };
+      blockers.push(
+        product.stock > 0
+          ? `${product.name}: only ${product.stock} case(s) in stock.`
+          : `${product.name} is out of stock.`,
+      );
     }
     const listCasePrice = resolveCasePrice(product, item.cases);
     const casePrice = discountPct
@@ -123,8 +159,11 @@ export async function priceCart(input: {
       sku: product.sku,
       image: product.image,
       category: product.category,
+      taxClass: product.taxClass,
       cases: item.cases,
       caseSize: product.caseSize,
+      minCases: product.minCases,
+      stock: product.stock,
       listCasePrice,
       casePrice,
       unitPrice: Math.round(casePrice / Math.max(product.caseSize, 1)),
@@ -137,7 +176,7 @@ export async function priceCart(input: {
     });
   }
 
-  if (!lines.length) return { error: "No orderable products in this cart." };
+  if (!lines.length) return { error: "None of the items in this cart are available any more." };
 
   const subtotal = lines.reduce((sum, line) => sum + line.catalogLineTotal, 0);
   const afterTier = lines.reduce((sum, line) => sum + line.listCasePrice * line.cases, 0);
@@ -173,27 +212,44 @@ export async function priceCart(input: {
     }
   }
 
-  // Freight -----------------------------------------------------------
   const goodsBase = afterTier - accountDiscount - couponDiscount;
+  if (goodsBase < SITE.minOrderValue) {
+    blockers.push(
+      `The wholesale minimum order is ${formatUsd(SITE.minOrderValue)}. Add ${formatUsd(SITE.minOrderValue - goodsBase)} to check out.`,
+    );
+  }
+
+  // Delivery address --------------------------------------------------
+  const address = input.address?.zip || input.address?.state ? input.address : null;
+  const addressProblem = address ? shipToProblem(address) : null;
+  if (addressProblem) blockers.push(addressProblem);
+  const deliverable = address && !addressProblem ? address : null;
+
+  // Freight -----------------------------------------------------------
   const freightLines = lines.map((line) => ({
     weightLbs: line.weightLbs,
     dimensions: line.dimensions,
     cases: line.cases,
   }));
   const summary = summariseFreight(freightLines);
-  const address = input.address;
   const shipping = await quoteShipping({
-    state: address?.state ?? "",
-    zip: address?.zip ?? "",
-    city: address?.city ?? "",
+    state: deliverable?.state ?? "",
+    zip: deliverable?.zip ?? "",
+    city: deliverable?.city ?? "",
     subtotal: goodsBase,
-    lines: address ? freightLines : [],
+    lines: deliverable ? freightLines : [],
   });
 
-  let shippingOption =
-    shipping.options.find((option) => option.id === input.shippingOptionId) ??
-    shipping.options[0] ??
-    null;
+  // The buyer's choice is honoured or refused, never swapped for a different service.
+  let shippingOption: ShippingOption | null = null;
+  if (input.shippingOptionId) {
+    shippingOption = shipping.options.find((option) => option.id === input.shippingOptionId) ?? null;
+    if (!shippingOption && shipping.options.length) {
+      blockers.push("The selected freight service is no longer available. Choose a freight option again.");
+    }
+  } else {
+    shippingOption = shipping.options[0] ?? null;
+  }
 
   if (freeFreight && shippingOption && shippingOption.mode === "parcel") {
     shippingOption = { ...shippingOption, cost: 0, note: `${couponCode} freight waiver applied.` };
@@ -204,34 +260,33 @@ export async function priceCart(input: {
     shipping.options.find((option) => option.id === shippingOption?.id)?.cost ?? shippingCost;
 
   // Tax ---------------------------------------------------------------
-  const taxableBase = Math.max(0, goodsBase + shippingCost);
-  const taxQuote = address
-    ? await quoteTax({
-        state: address.state,
-        zip: address.zip,
-        city: address.city,
-        amount: taxableBase,
-        taxExempt: Boolean(user?.taxExempt),
+  // Order-level coupon is spread across lines by value so each line's taxable amount is net.
+  const lineNet = allocateDiscount(
+    lines.map((line) => line.lineTotal),
+    couponDiscount,
+  );
+  const taxQuote: TaxQuote = deliverable
+    ? quoteTax({
+        state: deliverable.state,
+        lines: lines.map((line, index) => ({ amount: lineNet[index], taxClass: line.taxClass })),
+        shipping: shippingCost,
+        exemption: user,
       })
     : {
         rateX1000: 0,
         amount: 0,
+        taxableAmount: 0,
         jurisdiction: "Awaiting delivery address",
-        source: "nexus_table" as const,
+        source: "no_nexus",
         taxable: false,
-        note: "Sales tax is calculated from the destination ZIP code at checkout.",
+        note: "Sales tax is calculated from the delivery address at checkout.",
       };
 
   const total = Math.max(0, goodsBase + shippingCost + taxQuote.amount);
 
-  const messages: string[] = [];
-  if (goodsBase < SITE.minOrderValue) {
-    messages.push(
-      `A ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(SITE.minOrderValue / 100)} wholesale minimum applies to freight-paid orders. Add ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((SITE.minOrderValue - goodsBase) / 100)} to qualify.`,
-    );
-  }
-  if (!address) {
-    messages.push("Enter a ZIP code to lock the destination sales-tax rate and dimensional freight.");
+  const messages: string[] = [...warnings];
+  if (!deliverable && !addressProblem) {
+    messages.push("Enter a delivery address to price freight and sales tax.");
   }
 
   return {
@@ -264,5 +319,23 @@ export async function priceCart(input: {
     isWholesale: wholesaleActive,
     accountTier: user?.accountTier ?? "retail",
     messages,
+    blockers,
+    removedProductIds,
+    lineNet,
   };
+}
+
+/** Splits an order-level discount across lines in proportion to value; rounding lands on the largest line. */
+export function allocateDiscount(lineTotals: number[], discount: number): number[] {
+  const gross = lineTotals.reduce((sum, value) => sum + value, 0);
+  if (!discount || gross <= 0) return [...lineTotals];
+  const shares = lineTotals.map((value) => Math.floor((discount * value) / gross));
+  const remainder = discount - shares.reduce((sum, value) => sum + value, 0);
+  const largest = lineTotals.indexOf(Math.max(...lineTotals));
+  shares[largest] += remainder;
+  return lineTotals.map((value, index) => value - shares[index]);
+}
+
+function formatUsd(cents: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }

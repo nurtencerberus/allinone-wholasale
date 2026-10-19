@@ -39,6 +39,7 @@ export function AdminApplications({ applications }: { applications: AdminApplica
   );
   const [discount, setDiscount] = useState(8);
   const [taxExempt, setTaxExempt] = useState(false);
+  const [certNumber, setCertNumber] = useState("");
   const [verifyEin, setVerifyEin] = useState(true);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
@@ -61,6 +62,7 @@ export function AdminApplications({ applications }: { applications: AdminApplica
           action,
           discountPct: discount,
           taxExempt,
+          taxExemptCertNumber: certNumber,
           verifyEin,
           reason,
         }),
@@ -225,9 +227,24 @@ export function AdminApplications({ applications }: { applications: AdminApplica
                         onChange={(event) => setTaxExempt(event.target.checked)}
                         className="accent-[#14241c]"
                       />
-                      Apply resale tax exemption
+                      Apply NJ resale tax exemption
                     </label>
                   </div>
+                  {taxExempt ? (
+                    <div>
+                      <label className="label" htmlFor="cert-number">NJ resale certificate number (ST-3 / ST-3NR) *</label>
+                      <input
+                        id="cert-number"
+                        className="field"
+                        value={certNumber}
+                        onChange={(event) => setCertNumber(event.target.value)}
+                        placeholder="As shown on the signed certificate"
+                      />
+                      <p className="mt-1 text-[10px] text-ink/45">
+                        Exemption applies only to deliveries in New Jersey. Keep the signed certificate on file.
+                      </p>
+                    </div>
+                  ) : null}
 
                   <button onClick={() => act("approve")} disabled={busy !== null || !verifyEin} className="btn btn-primary w-full">
                     {busy === "approve" ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}

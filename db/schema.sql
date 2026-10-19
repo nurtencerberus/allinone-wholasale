@@ -110,6 +110,7 @@ CREATE TABLE "products" (
 	"badges" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"featured" boolean DEFAULT false NOT NULL,
 	"active" boolean DEFAULT true NOT NULL,
+	"tax_class" text DEFAULT 'general' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -155,6 +156,9 @@ CREATE TABLE "users" (
 	"wholesale_discount_pct" integer DEFAULT 0 NOT NULL,
 	"tax_exempt" boolean DEFAULT false NOT NULL,
 	"tax_exempt_state" text,
+	"tax_exempt_cert_type" text,
+	"tax_exempt_cert_number" text,
+	"tax_exempt_expires" timestamp with time zone,
 	"ein" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );

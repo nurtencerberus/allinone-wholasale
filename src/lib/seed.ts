@@ -16,6 +16,7 @@ import { buildOrderSheetCsv, buildOrderSheetXlsx, type OrderSheetProduct } from 
 import { parseListFile } from "@/lib/wholesale-lists";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { hashPassword } from "@/lib/password";
+import { defaultTaxClass } from "@/lib/tax";
 
 const globalForSeed = globalThis as typeof globalThis & {
   __meridianSeedPromise?: Promise<void>;
@@ -133,6 +134,7 @@ async function seed(): Promise<void> {
         specs: product.specs,
         badges: product.badges,
         active: true,
+        taxClass: defaultTaxClass(product.category),
       })),
     )
     .onConflictDoNothing()
@@ -200,7 +202,9 @@ async function seed(): Promise<void> {
         accountTier: "wholesale",
         wholesaleDiscountPct: 8,
         taxExempt: true,
-        taxExemptState: "ME",
+        taxExemptState: "NJ",
+        taxExemptCertType: "NJ ST-3",
+        taxExemptCertNumber: "DEMO-ST3-0001",
         ein: "88-1234567",
       },
       {

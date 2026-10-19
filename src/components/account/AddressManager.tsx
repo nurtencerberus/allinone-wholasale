@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, MapPin, Plus, Trash2 } from "lucide-react";
-import { US_STATES } from "@/lib/site";
+import { SERVICE_STATES } from "@/lib/ship-to";
 
 type AddressRow = {
   id: number;
@@ -192,7 +192,7 @@ export function AddressManager({ initial }: { initial: AddressRow[] }) {
                 onChange={(event) => setValues({ ...values, state: event.target.value })}
               >
                 <option value="">—</option>
-                {US_STATES.map((state) => (
+                {SERVICE_STATES.map((state) => (
                   <option key={state.code} value={state.code}>{state.code}</option>
                 ))}
               </select>

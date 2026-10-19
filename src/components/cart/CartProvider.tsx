@@ -95,7 +95,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     (item: Omit<CartItem, "cases"> & { cases?: number }, cases?: number) => {
-      const quantity = Math.max(1, Math.ceil(cases ?? item.cases ?? item.minCases ?? 1));
+      const floor = Math.max(1, item.minCases ?? 1);
+      const quantity = Math.max(floor, Math.ceil(cases ?? item.cases ?? floor));
       setItems((current) => {
         const existing = current.find((line) => line.productId === item.productId);
         if (existing) {
@@ -114,7 +115,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const setCases = useCallback((productId: number, cases: number) => {
     setItems((current) =>
       current.map((line) =>
-        line.productId === productId ? { ...line, cases: Math.max(1, Math.ceil(cases)) } : line,
+        line.productId === productId
+          ? { ...line, cases: Math.max(Math.max(1, line.minCases ?? 1), Math.ceil(cases)) }
+          : line,
       ),
     );
   }, []);

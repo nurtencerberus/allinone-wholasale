@@ -25,6 +25,7 @@ export type AdminAccount = {
   wholesaleDiscountPct: number;
   taxExempt: boolean;
   taxExemptState: string | null;
+  taxExemptCertNumber: string | null;
   ein: string | null;
   emailVerified: boolean;
   createdAt: string;
@@ -88,6 +89,12 @@ export function AdminUsers({
 
   const save = async (account: AdminAccount, extra: Record<string, unknown> = {}) => {
     const draft = drafts[account.id];
+    let certificate: Record<string, string> = {};
+    if (draft.exempt && !account.taxExemptCertNumber) {
+      const number = window.prompt(`Resale certificate number for ${account.company ?? account.email} (NJ ST-3 / ST-3NR):`);
+      if (!number?.trim()) return;
+      certificate = { taxExemptCertNumber: number.trim(), taxExemptState: "NJ" };
+    }
     setBusyId(account.id);
     setError(null);
     setSavedId(null);
@@ -98,7 +105,7 @@ export function AdminUsers({
         body: JSON.stringify({
           discountPct: draft.discount,
           taxExempt: draft.exempt,
-          taxExemptState: account.taxExemptState ?? "US",
+          ...certificate,
           role: draft.role,
           accountTier: draft.tier,
           ...extra,
@@ -252,7 +259,7 @@ export function AdminUsers({
                       />
                       {draft.exempt ? (
                         <span className="flex items-center gap-1 text-fern">
-                          <ShieldCheck size={11} /> {account.taxExemptState ?? "US"}
+                          <ShieldCheck size={11} /> {account.taxExemptState ?? "NJ"}
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">

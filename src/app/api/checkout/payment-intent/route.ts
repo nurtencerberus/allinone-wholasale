@@ -28,6 +28,10 @@ export async function POST(request: Request) {
     });
 
     if ("error" in priced) return Response.json({ error: priced.error }, { status: 400 });
+    if (priced.blockers.length) return Response.json({ error: priced.blockers.join(" ") }, { status: 400 });
+    if (priced.removedProductIds.length) {
+      return Response.json({ error: "Some items are no longer available. Review your cart and try again." }, { status: 409 });
+    }
     if (!body.address?.zip || !body.address?.state) {
       return Response.json({ error: "A delivery address is required before payment." }, { status: 400 });
     }
