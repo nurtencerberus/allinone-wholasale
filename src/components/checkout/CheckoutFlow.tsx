@@ -265,7 +265,7 @@ export function CheckoutFlow({
             <Link href="/account" className="font-bold underline">
               Resend the confirmation link
             </Link>{" "}
-            or check out as a guest with a different email.
+            from your account page.
           </p>
         </div>
       ) : null}

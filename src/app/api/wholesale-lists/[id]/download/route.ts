@@ -1,9 +1,8 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { wholesaleLists } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import {
-  canAccessTrade,
   listSlug,
   renderListFile,
   type ListFormat,
@@ -25,12 +24,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     if (!row || (!row.published && !isAdmin)) {
       return Response.json({ error: "List not found." }, { status: 404 });
     }
-    if (row.audience === "trade" && !canAccessTrade(user)) {
-      return Response.json(
-        { error: "This list is available to approved trade accounts. Sign in or apply for wholesale." },
-        { status: 403 },
-      );
-    }
+    // Supplier lists carry prices, so every list is trade-only regardless of its audience flag.
+    if (!canSeePrices(user)) return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
 
     const requested = new URL(request.url).searchParams.get("format") ?? "original";
     const target = requested === "xlsx" || requested === "csv" ? requested : "original";

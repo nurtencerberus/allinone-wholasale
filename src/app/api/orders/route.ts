@@ -7,7 +7,7 @@ import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { db } from "@/db";
 import { orderItems, orders, products } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import { priceCart, type CartItemInput, type CheckoutAddress } from "@/lib/checkout";
 import { ensureSeeded } from "@/lib/seed";
 import { orderConfirmationTemplate, sendEmail } from "@/lib/email";
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     };
 
     const user = await getSessionUser();
+    if (!canSeePrices(user)) return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
     const email = (body.email ?? user?.email ?? "").trim().toLowerCase();
     const name = (body.name ?? user?.name ?? "").trim();
     const address = body.address;

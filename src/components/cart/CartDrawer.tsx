@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import type { SessionUser } from "@/lib/auth";
+import { canSeePrices } from "@/lib/access";
 import { formatMoney } from "@/lib/money";
 import { SITE } from "@/lib/site";
 
@@ -40,6 +41,24 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
           </button>
         </div>
 
+        {!canSeePrices(user) ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+            <ShoppingBag size={28} className="text-ink/30" />
+            <p className="text-[14px] font-semibold">Ordering is for approved trade accounts</p>
+            <p className="text-[12px] leading-relaxed text-ink/55">
+              {user
+                ? "Your cart unlocks once your wholesale application is approved."
+                : "Sign in to your trade account to see wholesale prices and build an order."}
+            </p>
+            <div className="mt-2 flex gap-2">
+              {user ? null : (
+                <Link href="/login" onClick={closeCart} className="btn btn-outline btn-sm">Sign in</Link>
+              )}
+              <Link href="/wholesale/apply" onClick={closeCart} className="btn btn-primary btn-sm">Apply</Link>
+            </div>
+          </div>
+        ) : (
+        <>
         {wholesale ? (
           <div className="border-b border-ink/10 bg-moss px-5 py-2.5 text-[11px] font-semibold tracking-wide text-cream">
             Trade account · {user?.wholesaleDiscountPct}% contract pricing applies at checkout
@@ -179,6 +198,8 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
             </div>
           </div>
         ) : null}
+        </>
+        )}
       </aside>
     </div>
   );

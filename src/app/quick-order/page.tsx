@@ -4,7 +4,8 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { QuickOrderPanel } from "@/components/QuickOrderPanel";
-import { getSessionUser } from "@/lib/auth";
+import { PriceLockNotice } from "@/components/PriceLockNotice";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
 
 export const metadata = {
   title: "Quick order · bulk case ordering",
@@ -14,8 +15,9 @@ export const metadata = {
 };
 
 export default async function QuickOrderPage() {
-  const [user, catalog] = await Promise.all([
-    getSessionUser(),
+  const user = await getSessionUser();
+  if (!canSeePrices(user)) return <PriceLockNotice user={user} next="/quick-order" />;
+  const [catalog] = await Promise.all([
     db
       .select()
       .from(products)

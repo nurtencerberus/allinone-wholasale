@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getSessionUser } from "@/lib/auth";
+import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import { priceCart, type CartItemInput, type CheckoutAddress } from "@/lib/checkout";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ensureSeeded } from "@/lib/seed";
@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     };
 
     const user = await getSessionUser();
+    if (!canSeePrices(user)) return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
     const priced = await priceCart({
       items: body.items ?? [],
       user,
