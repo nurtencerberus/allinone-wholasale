@@ -229,6 +229,28 @@ export async function setLotStatus(
   return row;
 }
 
+/**
+ * Records the best-by date of a lot that has none (opening balances from the Faz 1 migration).
+ * A date that is already on file is never changed — receive a new lot instead.
+ */
+export async function setLotExpiry(tx: Tx, input: { lotId: number; expiresOn: string } & Actor): Promise<ProductLot> {
+  const [lot] = await tx
+    .update(productLots)
+    .set({ expiresOn: input.expiresOn })
+    .where(and(eq(productLots.id, input.lotId), isNull(productLots.expiresOn)))
+    .returning();
+  if (!lot) throw new InventoryError("This lot already has a best-by date; it cannot be changed.");
+  await logMovement(tx, {
+    productId: lot.productId,
+    lotId: lot.id,
+    delta: 0,
+    reason: "adjust",
+    note: `Best-by recorded: ${input.expiresOn}`,
+    actorId: input.actorId,
+  });
+  return lot;
+}
+
 export type Allocation = { lotId: number; lotNumber: string; expiresOn: string | null; cases: number };
 
 /**

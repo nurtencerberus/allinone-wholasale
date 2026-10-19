@@ -1,5 +1,5 @@
 import { createHmac, randomUUID } from "node:crypto";
-import { BASE, Client, check, done, q } from "./lib.mjs";
+import { BASE, Client, check, done, q, setStock } from "./lib.mjs";
 
 const FAKE = "http://127.0.0.1:12111";
 const ctl = async (path, body) =>
@@ -21,7 +21,7 @@ const buyer = new Client();
 check("buyer login", (await buyer.post("/api/auth/login", { email: "buyer@harborhouse.com", password: "Trade123!" })).status === 200);
 
 const [prod] = await q("select id, case_price, stock, min_cases from products where active and category='supplements' order by id limit 1");
-await q("update products set stock=500 where id=$1", [prod.id]);
+await setStock(prod.id, 500);
 const cases = Math.max(prod.min_cases, Math.ceil(30000 / prod.case_price));
 const address = { line1: "238 Lindbergh Pl", city: "Paterson", state: "NJ", zip: "07503" };
 const contact = { email: "buyer@harborhouse.com", name: "Dana Whitfield", company: "Harbor House", phone: "2075550184" };
@@ -102,9 +102,9 @@ check("price change → no order, stock untouched", !(await orderFor(pi)) && (aw
 ({ pi } = await startPayment());
 await setStatus(pi, "requires_capture");
 const keep = await stock();
-await q("update products set stock=0 where id=$1", [prod.id]);
+await setStock(prod.id, 0);
 r = await buyer.post("/api/orders", { paymentMethod: "card", paymentIntentId: pi });
-await q("update products set stock=$2 where id=$1", [prod.id, keep]);
+await setStock(prod.id, keep);
 check("sold out → 409, cancelled, no order", r.status === 409 && (await callsFor(pi)).some((c) => c.path.endsWith("/cancel")) && !(await orderFor(pi)), r.text.slice(0, 120));
 
 // 6. Capture fails → order cancelled and restocked ------------------------------

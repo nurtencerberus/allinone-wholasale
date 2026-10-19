@@ -194,7 +194,27 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
                         </td>
                         <td className={`px-2 py-2.5 ${lot.expiringSoon ? "font-semibold text-clay" : ""}`}>
                           {lot.expiringSoon ? <AlertTriangle size={11} className="mr-1 inline" /> : null}
-                          {formatIsoDate(lot.expiresOn)}
+                          {lot.expiresOn ? (
+                            formatIsoDate(lot.expiresOn)
+                          ) : product.taxClass !== "general" ? (
+                            canEdit ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="font-semibold text-clay underline"
+                                onClick={() => {
+                                  const value = window.prompt(`Best-by date for lot ${lot.lotNumber} (YYYY-MM-DD):`);
+                                  if (value) void run({ action: "expiry", lotId: lot.id, expiresOn: value.trim() });
+                                }}
+                              >
+                                Best-by missing — enter
+                              </button>
+                            ) : (
+                              <span className="font-semibold text-clay">Best-by missing</span>
+                            )
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-2 py-2.5 text-right tabular-nums">{lot.qtyOnHand}</td>
                         <td className="px-2 py-2.5 text-right tabular-nums">{lot.qtyQuarantine || "—"}</td>

@@ -4,7 +4,7 @@ export async function GET() {
   return Response.json({
     mode: secretConfigured && publishableKey ? "stripe" : "demo",
     publishableKey,
-    taxProvider: process.env.TAXJAR_API_KEY ? "taxjar" : "nexus_table",
+    taxProvider: "nj_statutory",
     shippingProvider: process.env.EASYPOST_API_KEY ? "easypost" : "dimensional_matrix",
   });
 }

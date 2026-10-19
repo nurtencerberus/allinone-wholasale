@@ -45,6 +45,7 @@ export async function GET(request: Request) {
   const cancelled: string[] = [];
   for (const order of overdue) {
     if (await cancelOrderAndRestock(order.id, `ACH payment not received within ${UNPAID_ACH_DAYS} days`)) {
+      await db.update(orders).set({ paymentStatus: "void" }).where(eq(orders.id, order.id));
       cancelled.push(order.orderNumber);
     }
   }

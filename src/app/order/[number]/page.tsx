@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   ArrowRight,
   BadgeCheck,
@@ -15,11 +15,13 @@ import {
   XCircle,
 } from "lucide-react";
 import { db } from "@/db";
-import { orderItems, orders, products } from "@/db/schema";
+import { orderEvents, orderItemLots, orderItems, orders, products, returnRequests } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { canViewOrder } from "@/lib/order-access";
 import { CopyButton, OrderActions, type ReorderItem } from "@/components/order/OrderActions";
-import { formatDate, formatDateTime, formatMoney, formatRate } from "@/lib/money";
+import { formatDate, formatDateTime, formatIsoDate, formatMoney, formatRate } from "@/lib/money";
+import { paymentLabel, returnableLines, returnEligibility } from "@/lib/order-admin";
+import { ReturnRequestForm } from "@/components/order/ReturnRequestForm";
 import { SITE, stateName } from "@/lib/site";
 
 export const metadata = {
@@ -39,6 +41,19 @@ const PAYMENT: Record<string, { badge: string; headline: string; tone: "ok" | "w
   paid_demo: { badge: "Order confirmed · demo payment", headline: "Demo payment authorised", tone: "ok" },
   net30_invoice: { badge: "Order confirmed · invoiced on Net-30", headline: "Invoice on Net-30 terms", tone: "wait" },
   awaiting_payment: { badge: "Order reserved · awaiting ACH / wire", headline: "Awaiting payment", tone: "wait" },
+  refunded: { badge: "Order refunded", headline: "Refunded", tone: "ok" },
+  partially_refunded: { badge: "Order confirmed · partially refunded", headline: "Partially refunded", tone: "ok" },
+  refund_due: { badge: "Refund being sent by bank transfer", headline: "Bank refund in progress", tone: "wait" },
+  refund_pending: { badge: "Refund in progress", headline: "Refund in progress", tone: "wait" },
+  void: { badge: "Order cancelled · nothing charged", headline: "Nothing charged", tone: "ok" },
+};
+
+const RETURN_STATUS: Record<string, string> = {
+  requested: "Requested — awaiting review",
+  approved: "Approved — ship the cartons with the RMA number",
+  rejected: "Not approved",
+  received: "Received — refund being processed",
+  refunded: "Refunded",
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -62,7 +77,30 @@ export default async function OrderPage({
   const viewer = await getSessionUser();
   if (!(await canViewOrder(order, viewer, t))) notFound();
 
-  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+  const [items, lotRows, history, returns] = await Promise.all([
+    db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+    db
+      .select({ lot: orderItemLots })
+      .from(orderItemLots)
+      .innerJoin(orderItems, eq(orderItems.id, orderItemLots.orderItemId))
+      .where(eq(orderItems.orderId, order.id))
+      .orderBy(asc(orderItemLots.id)),
+    db
+      .select()
+      .from(orderEvents)
+      .where(and(eq(orderEvents.orderId, order.id), eq(orderEvents.visibleToCustomer, true)))
+      .orderBy(desc(orderEvents.createdAt), desc(orderEvents.id)),
+    db.select().from(returnRequests).where(eq(returnRequests.orderId, order.id)).orderBy(desc(returnRequests.createdAt)),
+  ]);
+  const lotsByItem = new Map<number, { lotNumber: string; expiresOn: string | null; cases: number }[]>();
+  for (const { lot } of lotRows) {
+    lotsByItem.set(lot.orderItemId, [...(lotsByItem.get(lot.orderItemId) ?? []), lot]);
+  }
+  const owner =
+    viewer !== null &&
+    (order.userId === viewer.id || (viewer.emailVerified && viewer.email.toLowerCase() === order.email.toLowerCase()));
+  const eligibility = returnEligibility(order);
+  const returnable = owner && eligibility.eligible ? (await returnableLines(order.id)).filter((line) => line.returnable > 0) : [];
   const totalUnits = items.reduce((sum, item) => sum + item.cases * item.unitsPerCase, 0);
 
   const productIds = items.flatMap((item) => (item.productId ? [item.productId] : []));
@@ -95,7 +133,7 @@ export default async function OrderPage({
     });
   }
 
-  const payment = PAYMENT[order.paymentStatus] ?? PAYMENT.paid;
+  const payment = PAYMENT[order.paymentStatus] ?? { badge: paymentLabel(order.paymentStatus), headline: paymentLabel(order.paymentStatus), tone: "wait" as const };
   const cancelled = order.status === "cancelled";
   const stepIndex = Math.max(0, STEPS.findIndex((step) => step.key === order.status));
   const dueDate = new Date(order.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -294,6 +332,17 @@ export default async function OrderPage({
                         {item.sku} · {item.cases} case{item.cases === 1 ? "" : "s"} × {item.unitsPerCase} units ·{" "}
                         {formatMoney(item.unitPrice)} / unit
                       </p>
+                      {lotsByItem.get(item.id)?.length ? (
+                        <p className="mt-0.5 font-mono text-[10px] text-ink/50">
+                          {lotsByItem
+                            .get(item.id)!
+                            .map((lot) => `Lot ${lot.lotNumber}${lot.expiresOn ? ` · best by ${formatIsoDate(lot.expiresOn)}` : ""} (${lot.cases})`)
+                            .join(" · ")}
+                        </p>
+                      ) : null}
+                      {item.returnedCases > 0 ? (
+                        <p className="mt-0.5 text-[10px] font-semibold text-clay">{item.returnedCases} case(s) returned</p>
+                      ) : null}
                     </div>
                     <p className="text-[14px] font-bold tabular-nums">{formatMoney(item.lineTotal)}</p>
                   </li>
@@ -301,6 +350,59 @@ export default async function OrderPage({
               })}
             </ul>
           </section>
+
+          {returns.length || returnable.length || (owner && eligibility.deadline) ? (
+            <section className="card p-5 print:hidden" id="returns">
+              <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Returns</p>
+              {returns.length ? (
+                <ul className="mt-3 space-y-2 text-[12px]">
+                  {returns.map((entry) => (
+                    <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/8 pb-2 last:border-0">
+                      <span>
+                        <span className="font-mono font-bold">{entry.rmaNumber}</span> · {RETURN_STATUS[entry.status] ?? entry.status}
+                        {entry.adminNote ? <span className="block text-[11px] text-ink/55">{entry.adminNote}</span> : null}
+                      </span>
+                      {entry.status === "refunded" ? (
+                        <span className="font-semibold tabular-nums text-fern">
+                          {formatMoney(entry.refundGoods + entry.refundTax + entry.refundShipping)}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <div className="mt-3">
+                {returnable.length && eligibility.deadline ? (
+                  <ReturnRequestForm
+                    orderNumber={order.orderNumber}
+                    deadline={formatDate(eligibility.deadline)}
+                    lines={returnable.map((line) => ({ id: line.id, name: line.name, sku: line.sku, returnable: line.returnable }))}
+                  />
+                ) : owner && eligibility.reason ? (
+                  <p className="text-[11.5px] text-ink/55">{eligibility.reason} Contact the trade desk for help.</p>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          {history.length ? (
+            <section className="card p-5 print:hidden">
+              <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Order history</p>
+              <ol className="mt-3 space-y-2 border-l border-ink/12 pl-4 text-[12px]">
+                {history.map((event) => (
+                  <li key={event.id}>
+                    <p className="font-semibold capitalize">
+                      {event.type === "status" || event.type === "created" ? event.toValue : event.type === "return" ? `Return ${event.toValue ?? ""}` : event.type === "refund" ? "Refund" : event.type === "payment" ? paymentLabel(event.toValue ?? "") : event.type}
+                    </p>
+                    <p className="text-[10.5px] text-ink/50">
+                      {formatDateTime(event.createdAt)}
+                      {event.message ? ` · ${event.message}` : ""}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
           <section className="no-print rounded-xl bg-ink p-5 text-cream">
             <p className="text-[10px] font-bold tracking-[0.16em] text-gold uppercase">What happens next</p>
@@ -372,10 +474,16 @@ export default async function OrderPage({
               </div>
               <div className="flex items-baseline justify-between border-t border-ink/10 pt-3">
                 <dt className="text-[13px] font-bold">
-                  {order.paymentStatus === "paid" || order.paymentStatus === "paid_demo" ? "Total paid" : "Total due"}
+                  {["paid", "paid_demo", "refunded", "partially_refunded", "refund_due"].includes(order.paymentStatus) ? "Total paid" : "Total due"}
                 </dt>
                 <dd className="display text-[26px] leading-none">{formatMoney(order.total)}</dd>
               </div>
+              {order.refundedAmount > 0 ? (
+                <div className="flex justify-between text-clay">
+                  <dt>Refunded / credited</dt>
+                  <dd className="font-semibold tabular-nums">−{formatMoney(order.refundedAmount)}</dd>
+                </div>
+              ) : null}
             </dl>
             {savings > 0 ? (
               <p className="mt-3 flex items-center gap-1.5 rounded-md bg-fern/10 px-2.5 py-2 text-[10.5px] font-semibold text-fern">

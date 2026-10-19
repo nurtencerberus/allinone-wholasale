@@ -10,6 +10,7 @@ import {
   LOT_STATUSES,
   parseExpiry,
   receiveLot,
+  setLotExpiry,
   setLotStatus,
   type LotStatus,
 } from "@/lib/inventory";
@@ -18,7 +19,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Body = {
-  action?: "receive" | "adjust" | "status";
+  action?: "receive" | "adjust" | "status" | "expiry";
   productId?: number;
   lotId?: number;
   lotNumber?: string;
@@ -117,6 +118,17 @@ export async function POST(request: Request) {
         return row;
       });
       return Response.json({ ok: true, lot, message: `Lot ${lot.lotNumber} is now ${lot.status}.` });
+    }
+
+    if (body.action === "expiry") {
+      const expiresOn = parseExpiry(body.expiresOn);
+      if (!expiresOn) return Response.json({ error: "Enter the best-by date." }, { status: 400 });
+      const lot = await db.transaction(async (tx) => {
+        const row = await setLotExpiry(tx, { lotId: Number(body.lotId), expiresOn, actorId: admin.id });
+        await recordAudit(tx, { actor, action: "inventory.expiry", entityType: "inventory", entityId: row.id, after: { lot: row.lotNumber, expiresOn }, request });
+        return row;
+      });
+      return Response.json({ ok: true, lot, message: `Lot ${lot.lotNumber} best-by set to ${expiresOn}.` });
     }
 
     return Response.json({ error: "Unknown action." }, { status: 400 });

@@ -50,3 +50,37 @@ export class Client {
 }
 
 export const uniq = () => Math.random().toString(36).slice(2, 8);
+
+/**
+ * Stock lives in lots (src/lib/inventory.ts). Tests set it by emptying the product's lots and
+ * putting everything into one long-dated test lot, keeping products.stock in step.
+ */
+export async function setStock(productId, cases) {
+  await q("update product_lots set qty_on_hand = 0 where product_id = $1", [productId]);
+  await q(
+    `insert into product_lots (product_id, lot_number, expires_on, qty_received, qty_on_hand)
+     values ($1, 'E2E-LOT', current_date + 400, $2, $2)
+     on conflict (product_id, lot_number) do update set qty_on_hand = $2, status = 'available'`,
+    [productId, cases],
+  );
+  await q("update products set stock = $2 where id = $1", [productId, cases]);
+}
+
+/** RFC 6238 code for a base32 secret, as an authenticator app would show it. */
+export async function totp(secret, offsetSteps = 0) {
+  const { createHmac } = await import("node:crypto");
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, value = 0;
+  const bytes = [];
+  for (const char of secret.replace(/=+$/, "")) {
+    value = (value << 5) | alphabet.indexOf(char);
+    bits += 5;
+    if (bits >= 8) { bytes.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offsetSteps));
+  const hmac = createHmac("sha1", Buffer.from(bytes)).update(counter).digest();
+  const o = hmac[hmac.length - 1] & 15;
+  const code = ((hmac[o] & 127) << 24) | (hmac[o + 1] << 16) | (hmac[o + 2] << 8) | hmac[o + 3];
+  return String(code % 1_000_000).padStart(6, "0");
+}

@@ -65,7 +65,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         .from(orders)
         .where(sql`status in ('processing','picking','shipped')`),
     ]),
-    db.select({ stock: products.stock, slug: products.slug, name: products.name }).from(products),
+    db.select({ stock: products.stock, slug: products.slug, name: products.name, reorderPoint: products.reorderPoint }).from(products),
     db.select({ tier: users.accountTier, verified: users.emailVerified }).from(users),
   ]);
 
@@ -73,13 +73,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const [{ count: pendingCount } = { count: 0 }] = stats[1];
   const [{ sum: revenue } = { sum: 0 }] = stats[2];
   const [{ count: openOrders } = { count: 0 }] = stats[3];
-  const lowStock = inventory.filter((item) => item.stock <= 10);
+  const lowStock = inventory.filter((item) => item.stock <= item.reorderPoint);
   const wholesaleCount = accountRows.filter((account) => account.tier === "wholesale").length;
   const unverifiedCount = accountRows.filter((account) => !account.verified).length;
 
   const integrations = [
     { label: "Stripe Elements", ok: Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY), note: "PCI-DSS tokenised payments" },
-    { label: "TaxJar sales tax", ok: Boolean(process.env.TAXJAR_API_KEY), note: "Falls back to nexus table" },
+    { label: "Sales tax", ok: true, note: "NJ 6.625% statutory rules in code (no tax API needed for one state)" },
     { label: "EasyPost freight", ok: Boolean(process.env.EASYPOST_API_KEY), note: "Falls back to dimensional matrix" },
     { label: "Resend email", ok: Boolean(process.env.RESEND_API_KEY), note: "Dev links logged to console" },
   ];
@@ -152,11 +152,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </p>
             </div>
           </Link>
-          <Link href="/quick-order" className="card flex items-center gap-3 p-4 hover:border-ink/25">
+          <Link href="/admin/inventory" className="card flex items-center gap-3 p-4 hover:border-ink/25">
             <Boxes size={17} className="text-fern" />
             <div>
               <p className="text-[12px] font-bold">{lowStock.length} SKUs below reorder point</p>
-              <p className="text-[10.5px] text-ink/50">Allocation at 10 cases or fewer</p>
+              <p className="text-[10.5px] text-ink/50">At or below each product&apos;s reorder point</p>
             </div>
           </Link>
         </div>
@@ -224,7 +224,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
               <Boxes size={13} /> Inventory watch
             </p>
-            <p className="mt-1 text-[10.5px] text-ink/45">Allocation at 10 cases or fewer.</p>
+            <p className="mt-1 text-[10.5px] text-ink/45">At or below the reorder point · <Link href="/admin/inventory" className="underline">Inventory</Link></p>
             <ul className="mt-3 space-y-2">
               {lowStock.length === 0 ? (
                 <li className="text-[11px] text-ink/50">All SKUs above the reorder point.</li>

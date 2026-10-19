@@ -56,7 +56,8 @@ export const FDA_DISCLAIMER =
 /** English name for an ISO 3166-1 alpha-2 code, or null if the code is not a region. */
 export function regionName(code: string | null | undefined): string | null {
   const clean = String(code ?? "").trim().toUpperCase();
-  if (!/^[A-Z]{2}$/.test(clean)) return null;
+  // ISO 3166 user-assigned codes (AA, QM–QZ, XA–XZ, ZZ) are not countries.
+  if (!/^[A-Z]{2}$/.test(clean) || /^(AA|Q[M-Z]|X[A-Z]|ZZ)$/.test(clean)) return null;
   try {
     const name = new Intl.DisplayNames(["en"], { type: "region", fallback: "none" }).of(clean);
     return name && name !== clean ? name : null;
