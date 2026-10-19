@@ -27,15 +27,21 @@ UPDATE "users" SET "reset_token" = NULL, "reset_expires" = NULL, "verification_t
 CREATE TABLE IF NOT EXISTS "checkout_sessions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"payment_intent_id" text NOT NULL,
-	"user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+	"user_id" integer NOT NULL,
 	"payload" jsonb NOT NULL,
 	"amount" integer NOT NULL,
 	"status" text DEFAULT 'open' NOT NULL,
-	"order_id" integer REFERENCES "orders"("id") ON DELETE set null,
+	"order_id" integer,
 	"failure_reason" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+DO $$ BEGIN
+  ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE set null ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
 CREATE INDEX IF NOT EXISTS "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
 

@@ -22,16 +22,26 @@ npm run lint                             # eslint . (flat config, eslint-config-
 npm run typecheck                        # tsc --noEmit
 ```
 
-Şema değişikliği uygulama (üç bayrak da gerekli — `drizzle.config.json` sabit localhost URL'si içerir):
+Şema değişikliği — `src/db/schema.ts` değiştiğinde üçünü birden yapın:
 
 ```bash
-npx drizzle-kit push --dialect=postgresql --schema=./src/db/schema.ts --url="$DATABASE_URL"
+npm run db:export        # db/schema.sql'i yeniden üretir (boş veritabanı kurulumu; CI senkron olduğunu kontrol eder)
+# + db/migrations/NNNN_*.sql: mevcut (Neon) veritabanı için artımlı, tekrar çalıştırılabilir SQL (IF NOT EXISTS,
+#   FK adları Drizzle'ınkiyle aynı: <tablo>_<sütun>_<hedef>_<sütun>_fk)
 ```
 
-`src/db/schema.ts` değiştiğinde **`db/schema.sql`'i de güncelleyin**: Neon'da yeni kurulumlar bu dosyayla yapılır ve
-Drizzle şemasıyla sütun/indeks/FK düzeyinde birebir aynı olması beklenir.
+Testler:
 
-**Test paketi yok.** Doğrulama = `typecheck` + `lint` + `build` + gerçek PostgreSQL'e karşı elle uçtan uca deneme.
+```bash
+npm test                                   # Vitest birim testleri (tests/unit): vergi, adres, fiyat, erişim
+npx vitest run tests/unit/tax.test.ts      # tek dosya;  -t "<ad>" ile tek test
+npm run test:e2e                           # tests/e2e: çalışan sunucuya (BASE) ve test veritabanına (E2E_DATABASE_URL) karşı
+```
+
+E2E paketleri demo seed'e (`SEED_DEMO_DATA=true`) ve sahte Stripe'a (`node tests/e2e/fake-stripe.mjs`, port 12111,
+uygulamada `STRIPE_API_BASE=http://127.0.0.1:12111`, `STRIPE_SECRET_KEY=sk_test_fake`,
+`STRIPE_WEBHOOK_SECRET=whsec_testsecret`, `CRON_SECRET=testcronsecret`) ihtiyaç duyar; uzak/Neon veritabanına karşı
+çalışmayı reddeder. Tam kurulum `.github/workflows/ci.yml`'de (Postgres servisi + `next start`).
 `GET /api/health` hızlı bir canlılık kontrolüdür.
 
 Demo girişleri (yalnızca demo modunda): `admin@meridiansupply.co / Admin123!`, `buyer@harborhouse.com / Trade123!`,
