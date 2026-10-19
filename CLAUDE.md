@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Meridian Supply Co.** — ABD pazarına yönelik B2B toptan satış mağazası (takviyeler, kiler ürünleri, ev eşyası).
 Next.js 16 App Router + React 19, PostgreSQL + Drizzle ORM, Tailwind CSS 4, Stripe. Hedef dağıtım: Vercel + Neon
-(`ciputracorp.com`). Durum: demo / MVP — canlıya çıkmadan önce kalan işler `B2B_ROADMAP.md` ve
-`INCELEME-VE-DEGISIKLIKLER.md` §4'te. Kullanıcıya dönük dokümanlar (DEPLOYMENT, MIGRATION, İNCELEME) Türkçe;
+(`ciputracorp.com`). Durum: demo / MVP — canlıya çıkmadan önce kalan işler ve faz planı `IS-PLANI.md`'de
+(madde kodları: ODE, KYT, SEP, STK, VRG, KRG, URN, UX, PRF, DEV). Kullanıcıya dönük dokümanlar (DEPLOYMENT, MIGRATION, İNCELEME) Türkçe;
 kod, yorumlar ve arayüz metinleri İngilizce (ABD pazarı).
 
 ## Komutlar

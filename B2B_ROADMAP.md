@@ -1,5 +1,8 @@
 # Meridian Supply Co. — B2B İnceleme ve İş Planı
 
+> **Güncel değil.** Yerine [`IS-PLANI.md`](./IS-PLANI.md) (19 Ekim 2026) geçerlidir. Bu belgenin §6'sı
+> (kod dışı paralel işler) hâlâ geçerli.
+
 **Kapsam:** Mevcut kod tabanının ve çalışan önizlemenin, ABD pazarına toptan satış yapan bir B2B e-ticaret operasyonu gözüyle incelenmesi.
 **Yöntem:** Kodda hedefli aramalar + canlı önizlemede uçtan uca denemeler + `npm audit`. Hiçbir kod değiştirilmedi.
 
