@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 import { ORDER_STATUSES } from "@/lib/site";
 import { escapeHtml, sendEmail } from "@/lib/email";
 
@@ -22,8 +22,8 @@ function trackingUrlFor(carrier: string, trackingNumber: string): string | null 
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("orders");
+    if (!admin) return staffDenied();
 
     const { id } = await context.params;
     const orderId = Number(id);

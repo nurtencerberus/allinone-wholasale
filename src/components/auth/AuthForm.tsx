@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Loader2, Mail } from "lucide-react";
+import { ArrowRight, Check, KeyRound, Loader2, Mail } from "lucide-react";
+import { isStaffRole } from "@/lib/staff";
 
 type Mode = "login" | "signup" | "forgot" | "reset" | "verify";
 
@@ -57,7 +58,39 @@ export function AuthForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
+  const [codeStep, setCodeStep] = useState(false);
+  const [code, setCode] = useState("");
   const copy = COPY[mode];
+
+  const afterSignIn = (data: { user?: { role?: string } }) => {
+    router.push(next || (isStaffRole(data.user?.role) ? "/admin" : "/account"));
+    router.refresh();
+  };
+
+  const submitCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/auth/two-factor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.restart) {
+          setCodeStep(false);
+          setCode("");
+        }
+        throw new Error(data.error ?? "Sign in failed.");
+      }
+      afterSignIn(data);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sign in failed.");
+      setBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (mode !== "verify" || !token) return;
@@ -92,8 +125,11 @@ export function AuthForm({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Sign in failed.");
-        router.push(next || (data.user?.role === "admin" ? "/admin" : "/account"));
-        router.refresh();
+        if (data.twoFactorRequired) {
+          setCodeStep(true);
+          return;
+        }
+        afterSignIn(data);
         return;
       }
 
@@ -175,8 +211,12 @@ export function AuthForm({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Sign in failed.");
-      router.push(next || (data.user?.role === "admin" ? "/admin" : "/account"));
-      router.refresh();
+      if (data.twoFactorRequired) {
+        setCodeStep(true);
+        setBusy(false);
+        return;
+      }
+      afterSignIn(data);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Sign in failed.");
       setBusy(false);
@@ -221,7 +261,31 @@ export function AuthForm({
         </p>
       ) : null}
 
-      {mode !== "verify" ? (
+      {codeStep ? (
+        <form onSubmit={submitCode} className="mt-5 space-y-3">
+          <div>
+            <label className="label" htmlFor="code">Authentication code</label>
+            <input
+              id="code"
+              className="field tracking-[0.2em]"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              maxLength={20}
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="123456"
+            />
+            <p className="mt-1.5 text-[11px] text-ink/50">
+              Enter the 6-digit code from your authenticator app, or one of your recovery codes.
+            </p>
+          </div>
+          <button type="submit" disabled={busy} className="btn btn-primary w-full">
+            {busy ? <Loader2 size={15} className="animate-spin" /> : <KeyRound size={15} />} Verify and sign in
+          </button>
+        </form>
+      ) : mode !== "verify" ? (
         <form onSubmit={submit} className="mt-5 space-y-3">
           {mode === "signup" ? (
             <>

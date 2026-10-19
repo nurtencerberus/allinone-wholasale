@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { asc } from "drizzle-orm";
 import { ArrowLeft, Boxes, Database, Package } from "lucide-react";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { requireStaffPage } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CatalogTransfer } from "@/components/admin/CatalogTransfer";
 import { categoryName } from "@/lib/site";
@@ -16,9 +15,7 @@ export const metadata = {
 };
 
 export default async function AdminCatalogPage() {
-  const session = await getSessionUser();
-  if (!session) redirect("/login?next=/admin/catalog");
-  if (session.role !== "admin") redirect("/admin");
+  const session = await requireStaffPage("products", "/admin/catalog");
 
   const rows = await db.select().from(products).orderBy(asc(products.category), asc(products.name));
   const stock = rows.reduce((sum, product) => sum + product.stock, 0);

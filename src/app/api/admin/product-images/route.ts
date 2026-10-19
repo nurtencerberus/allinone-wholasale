@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { productImages } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 import { sniffImage } from "@/lib/product-input";
 
 export const runtime = "nodejs";
@@ -12,8 +12,8 @@ const MAX_BYTES = 4 * 1024 * 1024;
 /** Upload one product photo; returns the URL to store on the product. */
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
 
     const form = await request.formData();
     const file = form.get("file");

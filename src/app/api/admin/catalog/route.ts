@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 import {
   catalogSummary,
   normalizeCatalogPayload,
@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
 /** Full catalog dump — hand this to another storefront or edit it and import it back. */
 export async function GET() {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
     await ensureSeeded();
 
     const rows = await db.select().from(products);
@@ -41,8 +41,8 @@ export async function GET() {
 /** Upsert products by SKU — used to merge another project's product data. */
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
     await ensureSeeded();
 
     let payload: unknown;

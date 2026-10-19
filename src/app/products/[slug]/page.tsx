@@ -8,6 +8,7 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/staff";
 import { toCardProduct } from "@/lib/catalog-view";
 import { categoryName, jsonLdHtml, SITE } from "@/lib/site";
 import { formatDate, formatMoney, unitPriceOf } from "@/lib/money";
@@ -58,7 +59,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   // Archived products are hidden from the public store; admins can still preview them.
   const archivedPreview = !product.active;
-  if (archivedPreview && user?.role !== "admin") notFound();
+  if (archivedPreview && !hasPermission(user, "view")) notFound();
   // Ratings come only from review rows that exist; no stored or imported score is ever shown.
   const hasReviews = productReviews.length > 0;
   const showPrices = canSeePrices(user);

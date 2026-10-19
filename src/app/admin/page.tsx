@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { db } from "@/db";
 import { orders, products, users, wholesaleApplications } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { checkStaff } from "@/lib/auth";
+import { ROLE_LABELS } from "@/lib/staff";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminApplications } from "@/components/admin/AdminApplications";
 import { AdminOrders } from "@/components/admin/AdminOrders";
@@ -26,11 +27,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login?next=/admin");
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
+  const check = await checkStaff("view");
+  if (!check.ok && check.reason === "signed_out") redirect("/login?next=/admin");
+  if (!check.ok && check.reason === "two_factor") redirect("/account/security?required=1&next=/admin");
+  const { denied } = await searchParams;
 
-  if (user.role !== "admin") {
+  if (!check.ok) {
     return (
       <div className="wrap flex min-h-[55vh] flex-col items-center justify-center py-16 text-center">
         <span className="rounded-full bg-clay/10 p-3.5 text-clay">
@@ -38,8 +41,8 @@ export default async function AdminPage() {
         </span>
         <h1 className="display mt-4 text-[30px]">Admin access required</h1>
         <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/60">
-          You are signed in as {user.email}. This portal is restricted to Ciputra trade operations staff.
-          Use the seeded admin account to review applications, buyers and shipments.
+          This portal is restricted to Ciputra trade operations staff. Ask an owner to grant your account a
+          staff role.
         </p>
         <div className="mt-5 flex gap-2">
           <Link href="/account" className="btn btn-primary btn-sm">Go to my account</Link>
@@ -49,6 +52,7 @@ export default async function AdminPage() {
     );
   }
 
+  const user = check.user;
   const [applicationRows, orderRows, stats, inventory, accountRows] = await Promise.all([
     db.select().from(wholesaleApplications).orderBy(desc(wholesaleApplications.createdAt)),
     db.select().from(orders).orderBy(desc(orders.createdAt)).limit(40),
@@ -88,7 +92,7 @@ export default async function AdminPage() {
             <p className="text-[10.5px] font-bold tracking-[0.24em] text-gold uppercase">Operations portal</p>
             <h1 className="display mt-2 text-[32px] leading-tight text-cream sm:text-[38px]">Admin console</h1>
             <p className="mt-1.5 text-[12px] text-cream/55">
-              Signed in as {user.name} · {user.email}
+              Signed in as {user.name} · {user.email} · {ROLE_LABELS[user.role] ?? user.role}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -107,6 +111,11 @@ export default async function AdminPage() {
       </section>
 
       <div className="wrap py-8">
+        {denied ? (
+          <p className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
+            Your role ({ROLE_LABELS[user.role] ?? user.role}) does not include the “{denied}” permission.
+          </p>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Pending applications", value: `${pendingCount}`, icon: BadgeCheck, tone: pendingCount ? "text-clay" : "" },

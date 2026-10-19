@@ -1,7 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 import { validateProductInput } from "@/lib/product-input";
 
 export const runtime = "nodejs";
@@ -18,8 +18,8 @@ function parseId(raw: string): number | null {
  */
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
 
     const id = parseId((await context.params).id);
     if (!id) return Response.json({ error: "Invalid product id." }, { status: 400 });
@@ -75,8 +75,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 /** Permanently removes a product. Past orders keep their line items (name, SKU, price). */
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
 
     const id = parseId((await context.params).id);
     if (!id) return Response.json({ error: "Invalid product id." }, { status: 400 });

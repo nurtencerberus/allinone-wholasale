@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { asc, desc } from "drizzle-orm";
 import { ArrowLeft, Boxes, Eye, EyeOff, Package } from "lucide-react";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { requireStaffPage } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminProducts, type AdminProduct } from "@/components/admin/AdminProducts";
 
@@ -14,9 +13,7 @@ export const metadata = {
 };
 
 export default async function AdminProductsPage() {
-  const session = await getSessionUser();
-  if (!session) redirect("/login?next=/admin/products");
-  if (session.role !== "admin") redirect("/admin");
+  const session = await requireStaffPage("view", "/admin/products");
 
   const rows = await db
     .select()

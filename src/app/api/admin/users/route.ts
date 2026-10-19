@@ -1,15 +1,15 @@
 import { desc } from "drizzle-orm";
 import { db } from "@/db";
 import { orders, users, wholesaleApplications } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("view");
+    if (!admin) return staffDenied();
 
     const url = new URL(request.url);
     const query = (url.searchParams.get("q") ?? "").trim().toLowerCase();
@@ -51,6 +51,7 @@ export async function GET(request: Request) {
         taxExemptCertNumber: user.taxExemptCertNumber,
         ein: user.ein,
         emailVerified: user.emailVerified,
+        twoFactorEnabled: Boolean(user.totpEnabledAt && user.totpSecret),
         createdAt: user.createdAt.toISOString(),
         orderCount: entry.orderCount,
         totalSpend: entry.totalSpend,

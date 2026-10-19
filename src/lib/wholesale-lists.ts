@@ -1,6 +1,7 @@
 import type { SessionUser } from "@/lib/auth";
 import { parseCsvMatrix } from "@/lib/order-sheet";
 import { isLegacyXls, matrixToCsv, matrixToXlsx, readXlsxMatrix } from "@/lib/spreadsheet";
+import { isStaffRole } from "@/lib/staff";
 
 const LEGACY_XLS_MESSAGE = "Legacy .xls files are not supported. Save the list as .xlsx or .csv and upload again.";
 
@@ -29,7 +30,7 @@ const MIME: Record<ListFormat, string> = {
 
 /** Trade-only lists are visible to approved wholesale accounts and admins. */
 export function canAccessTrade(user: SessionUser | null): boolean {
-  return Boolean(user && (user.accountTier === "wholesale" || user.role === "admin"));
+  return Boolean(user && (user.accountTier === "wholesale" || isStaffRole(user.role)));
 }
 
 function clip(value: unknown): string {

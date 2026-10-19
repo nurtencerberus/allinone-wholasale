@@ -1,7 +1,7 @@
 import { eq, like } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
 import { slugifyName, validateProductInput } from "@/lib/product-input";
 
 export const runtime = "nodejs";
@@ -25,8 +25,8 @@ async function uniqueSlug(name: string): Promise<string> {
 /** Create a new product. Money fields are integer cents. */
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("products");
+    if (!admin) return staffDenied();
 
     let body: unknown;
     try {

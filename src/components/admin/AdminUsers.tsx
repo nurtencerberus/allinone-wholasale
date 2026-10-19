@@ -13,6 +13,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { formatDate, formatMoney } from "@/lib/money";
+import { ROLE_LABELS, ROLES } from "@/lib/staff";
 
 export type AdminAccount = {
   id: number;
@@ -28,6 +29,7 @@ export type AdminAccount = {
   taxExemptCertNumber: string | null;
   ein: string | null;
   emailVerified: boolean;
+  twoFactorEnabled: boolean;
   createdAt: string;
   orderCount: number;
   totalSpend: number;
@@ -53,9 +55,13 @@ const TIER_STYLE: Record<string, string> = {
 export function AdminUsers({
   initialAccounts,
   totals,
+  canManageAccounts,
+  canManageStaff,
 }: {
   initialAccounts: AdminAccount[];
   totals: AdminAccountTotals;
+  canManageAccounts: boolean;
+  canManageStaff: boolean;
 }) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [query, setQuery] = useState("");
@@ -89,11 +95,23 @@ export function AdminUsers({
 
   const save = async (account: AdminAccount, extra: Record<string, unknown> = {}) => {
     const draft = drafts[account.id];
-    let certificate: Record<string, string> = {};
-    if (draft.exempt && !account.taxExemptCertNumber) {
+    // Send only what changed: each field group needs its own permission on the server.
+    const changes: Record<string, unknown> = { ...extra };
+    if (draft.discount !== account.wholesaleDiscountPct) changes.discountPct = draft.discount;
+    if (draft.exempt !== account.taxExempt) changes.taxExempt = draft.exempt;
+    if (draft.tier !== account.accountTier) changes.accountTier = draft.tier;
+    if (draft.role !== account.role) changes.role = draft.role;
+    if (Object.keys(changes).length === 0) return;
+    if (changes.taxExempt === true && !account.taxExemptCertNumber) {
       const number = window.prompt(`Resale certificate number for ${account.company ?? account.email} (NJ ST-3 / ST-3NR):`);
       if (!number?.trim()) return;
-      certificate = { taxExemptCertNumber: number.trim(), taxExemptState: "NJ" };
+      changes.taxExemptCertNumber = number.trim();
+      changes.taxExemptState = "NJ";
+    }
+    if (changes.role !== undefined || changes.resetTwoFactor) {
+      const password = window.prompt("Staff access change — enter your own password to confirm:");
+      if (!password) return;
+      changes.currentPassword = password;
     }
     setBusyId(account.id);
     setError(null);
@@ -102,14 +120,7 @@ export function AdminUsers({
       const response = await fetch(`/api/admin/users/${account.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          discountPct: draft.discount,
-          taxExempt: draft.exempt,
-          ...certificate,
-          role: draft.role,
-          accountTier: draft.tier,
-          ...extra,
-        }),
+        body: JSON.stringify(changes),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not update the account.");
@@ -275,12 +286,27 @@ export function AdminUsers({
                       onChange={(event) =>
                         setDrafts({ ...drafts, [account.id]: { ...draft, role: event.target.value } })
                       }
-                      disabled={account.isSelf}
-                      className="rounded border border-ink/20 bg-white px-1.5 py-1 text-[10px] capitalize disabled:opacity-50"
+                      disabled={account.isSelf || !canManageStaff}
+                      className="rounded border border-ink/20 bg-white px-1.5 py-1 text-[10px] disabled:opacity-50"
                     >
-                      <option value="customer">customer</option>
-                      <option value="admin">admin</option>
+                      {ROLES.map((role) => (
+                        <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+                      ))}
                     </select>
+                    {account.role !== "customer" ? (
+                      <p className={`mt-1 text-[9px] font-semibold ${account.twoFactorEnabled ? "text-fern" : "text-clay"}`}>
+                        2FA {account.twoFactorEnabled ? "on" : "not set up"}
+                        {account.twoFactorEnabled && canManageStaff && !account.isSelf ? (
+                          <button
+                            type="button"
+                            onClick={() => save(account, { resetTwoFactor: true })}
+                            className="ml-1.5 text-ink/50 underline hover:text-ink"
+                          >
+                            reset
+                          </button>
+                        ) : null}
+                      </p>
+                    ) : null}
                     <button
                       onClick={() => save(account, { verifyEmail: true })}
                       disabled={!account.emailVerified || busyId === account.id}
@@ -308,7 +334,7 @@ export function AdminUsers({
                   <td className="px-4 py-3">
                     <button
                       onClick={() => save(account)}
-                      disabled={busyId === account.id}
+                      disabled={busyId === account.id || (!canManageAccounts && !canManageStaff)}
                       className="btn btn-primary btn-sm whitespace-nowrap"
                     >
                       {busyId === account.id ? (

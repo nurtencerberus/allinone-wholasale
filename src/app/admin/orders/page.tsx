@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { ArrowLeft, Package, Truck } from "lucide-react";
 import { db } from "@/db";
 import { orders, orderItems } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { requireStaffPage } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminOrders, type AdminOrder } from "@/components/admin/AdminOrders";
 import { ORDER_STATUSES } from "@/lib/site";
@@ -20,9 +19,7 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const session = await getSessionUser();
-  if (!session) redirect("/login?next=/admin/orders");
-  if (session.role !== "admin") redirect("/admin");
+  const session = await requireStaffPage("view", "/admin/orders");
 
   const { status } = await searchParams;
   const filter = status && (ORDER_STATUSES as readonly string[]).includes(status) ? status : undefined;
