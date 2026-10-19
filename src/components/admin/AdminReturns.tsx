@@ -45,7 +45,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
   const [note, setNote] = useState("");
   const [shipping, setShipping] = useState(false);
   const [decisions, setDecisions] = useState<Record<number, { condition: string; disposition: string }>>(
-    Object.fromEntries(entry.items.map((item) => [item.id, { condition: "sealed", disposition: "restock" }])),
+    Object.fromEntries(entry.items.map((item) => [item.id, { condition: "sealed", disposition: item.perishable ? "quarantine" : "restock" }])),
   );
 
   const act = async (body: Record<string, unknown>) => {
@@ -100,7 +100,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
                         const condition = event.target.value;
                         setDecisions({
                           ...decisions,
-                          [item.id]: { condition, disposition: condition === "sealed" ? "restock" : condition === "opened" ? "quarantine" : "destroy" },
+                          [item.id]: { condition, disposition: condition === "sealed" && !item.perishable ? "restock" : condition === "damaged" ? "destroy" : "quarantine" },
                         });
                       }}
                     >
@@ -114,7 +114,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
                       value={decisions[item.id].disposition}
                       onChange={(event) => setDecisions({ ...decisions, [item.id]: { ...decisions[item.id], disposition: event.target.value } })}
                     >
-                      <option value="restock" disabled={decisions[item.id].condition !== "sealed"}>Back on sale</option>
+                      <option value="restock" disabled={decisions[item.id].condition !== "sealed" || item.perishable}>Back on sale</option>
                       <option value="quarantine">Quarantine</option>
                       <option value="destroy">Destroy</option>
                     </select>

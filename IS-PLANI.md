@@ -288,6 +288,31 @@ teyidi (özellikle Paterson UEZ indirimli oranı uygulanabilir mi).
 değişikliğinin defter kaydı vardır; sipariş en yakın SKT'li lottan düşer ve lot sipariş kalemine yazılır; iptal
 stoğu ve parayı iade eder; gıda NJ'de vergisiz hesaplanır; her admin işlemi audit log'da görünür.
 
+#### Faz 1 durumu (19 Ekim 2026, `faz-1` dalı)
+
+| Kalem | Durum | Commit | Not |
+|---|---|---|---|
+| KYT-4 | ✅ | `c4d1334` | Roller: Sahip / Operasyon / Satış / Muhasebe / Salt okunur (`src/lib/staff.ts`); personel için TOTP 2FA zorunlu (canlıda), 10 kurtarma kodu, kod tekrar kullanılamaz, 5 hatalı denemede parola yeniden istenir; rol değişikliği sahibin parolasını ister, hedefin oturumlarını kapatır ve e-posta atar; doğrulanmamış hesap personel olamaz; salt-ekleme `audit_log` + `/admin/audit` |
+| URN-1, URN-2, URN-4, URN-6 | ✅ | `e0a41ab` | GTIN (GS1 kontrol hanesi, benzersiz), koli GTIN, ASIN (Amazon bağlantısı türetilir, yalnızca onaylı alıcıya), MPN, üretici, tedarikçi, maliyet (yalnız personel), MAP, palet/navlun sınıfı, hazmat/UN, HTS, ISO menşe, raf ömrü, içerik, FALCPA alerjen, Facts paneli, DSHEA uyarısı, Prop 65 (CA'ya giden siparişte ödeme öncesi de), belgeli sertifika, SEO; içe aktarma form doğrulamasıyla ve hep-ya-hiç; iyimser kilit; UPC/ASIN/MPN araması ve hızlı siparişte barkod eşleşmesi |
+| STK-1, STK-2, STK-3 | ✅ | `e0a41ab` | `product_lots` + `inventory_movements`; stok yalnızca lot üzerinden ve fark olarak değişir; FEFO tahsis sipariş kalemine yazılır (`order_item_lots`); SKT'ye 60 gün kalan lot satıştan otomatik çekilir; bekletme / serbest bırakma / geri çağırma; lot no ile geri çağırma sorgusu |
+| STK-4 | 🟡 kısmi | `e0a41ab` | Ürün başı yeniden sipariş noktası + günlük düşük stok e-postası; yanıltıcı rezervasyon metni yok. **Ön sipariş (backorder) yapılmadı** — kısmi tahsis ve sonradan gelen lotla tamamlama gerektiriyor; Faz 2'ye taşındı |
+| ODE-4, ODE-7 | ✅ | `275403a` | İzinli durum geçişleri, ödeme kapanmadan sevk yok, takip/PRO no zorunlu; `order_events` geçmişi; ayrı admin notu; iptalde stok lotlara döner ve kart Stripe'tan iade edilir (başarısızsa yeniden deneme); 14 gün RMA, açılmış/hasarlı ve tüm gıda/takviye iadeleri satışa dönmez (karantina/imha); iade tutarı satır net fiyatı + vergisiyle orantılı; satır bazında indirim, matrah ve vergi saklanır |
+| ODE-5 | ✅ | Faz 0 + `275403a` | Misafir ödemesi yok (karar 7); 7 günde ödenmeyen ACH iptal + `void` |
+| VRG-6 | ✅ (kapsam dışı) | `275403a` | Tek eyalet (NJ) için TaxJar gereksiz; çağrı ve anahtar kaldırıldı. Yeni eyalette kayıt olunursa yeniden değerlendirilir |
+| VRG-7 | ✅ | `275403a` | Siparişte vergi kaynağı, matrah, kargo vergisi, sertifika no; `/admin/reports/tax` aylık NJ rakamları + diğer eyaletler için ekonomik nexus izleme, CSV |
+| Testler / CI | ✅ | `275403a` | 67 birim testi; 6. e2e paketi `faz1` (93 kontrol); CI `main` şeması + migration = `db/schema.sql` kontrolü |
+
+**Faz 1'de yapılmayanlar (bilerek):** kategori tablosu ve varyantlar (URN-1 "Katalog" satırı, +3 g), ayrı tedarikçi
+tablosu (şimdilik ürün üzerinde metin), ön sipariş (STK-4), TOTP gizli anahtarının şifrelenmesi (veritabanı okuma
+yetkisi tek başına giriş sağlamaz çünkü parola da gerekir; ayrı bir anahtar yönetimiyle Faz 3'te).
+
+**Canlıya alma (faz-1 → main):**
+1. PR'ı açın; CI yeşil olmalı (migration kontrolü dahil).
+2. Neon SQL Editor'de `db/migrations/0002_faz1.sql` çalıştırın ve **hemen ardından** PR'ı birleştirin.
+3. İlk girişte admin hesabınızda 2FA kurun (DEPLOYMENT.md §3.3) ve kurtarma kodlarını saklayın.
+4. `/admin/inventory`'de gıda/takviye `…-OPENING` lotlarına best-by tarihlerini girin ("Best-by missing").
+5. İsteğe bağlı Vercel değişkeni: `OPS_EMAIL` (düşük stok ve iade talebi bildirimleri; boşsa mağaza e-postası).
+
 ### Faz 2 — Kargo, sepet deneyimi, performans (Hafta 9–13, ≈23 g)
 
 | Kalemler | Efor |

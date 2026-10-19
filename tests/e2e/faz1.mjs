@@ -259,6 +259,8 @@ check("return approved", r.status === 200);
 const [ri] = await q("select id from return_items where return_id=$1", [rma.id]);
 r = await admin.req("PATCH", `/api/admin/returns/${rma.id}`, { action: "receive", items: [{ returnItemId: ri.id, condition: "opened", disposition: "restock" }] });
 check("opened goods cannot go back on sale", r.status === 400, r.text);
+r = await admin.req("PATCH", `/api/admin/returns/${rma.id}`, { action: "receive", items: [{ returnItemId: ri.id, condition: "sealed", disposition: "restock" }] });
+check("returned supplements are never resold, even sealed", r.status === 400 && /never resold/.test(r.json.error), r.text);
 const stockBeforeReturn = await stockOf(prod.id);
 r = await admin.req("PATCH", `/api/admin/returns/${rma.id}`, { action: "receive", items: [{ returnItemId: ri.id, condition: "opened", disposition: "quarantine" }] });
 lots = await lotsOf(prod.id);

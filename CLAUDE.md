@@ -27,13 +27,14 @@ npm run typecheck                        # tsc --noEmit
 ```bash
 npm run db:export        # db/schema.sql'i yeniden üretir (boş veritabanı kurulumu; CI senkron olduğunu kontrol eder)
 # + db/migrations/NNNN_*.sql: mevcut (Neon) veritabanı için artımlı, tekrar çalıştırılabilir SQL (IF NOT EXISTS,
-#   FK adları Drizzle'ınkiyle aynı: <tablo>_<sütun>_<hedef>_<sütun>_fk)
+#   FK adları Drizzle'ınkiyle aynı: <tablo>_<sütun>_<hedef>_<sütun>_fk). CI, main şeması + migration'lar ile
+#   db/schema.sql'i tests/schema-signature.sql ile karşılaştırır.
 ```
 
 Testler:
 
 ```bash
-npm test                                   # Vitest birim testleri (tests/unit): vergi, adres, fiyat, erişim
+npm test                                   # Vitest birim testleri (tests/unit): vergi, adres, fiyat, erişim, TOTP, ürün verisi
 npx vitest run tests/unit/tax.test.ts      # tek dosya;  -t "<ad>" ile tek test
 npm run test:e2e                           # tests/e2e: çalışan sunucuya (BASE) ve test veritabanına (E2E_DATABASE_URL) karşı
 ```
@@ -41,7 +42,9 @@ npm run test:e2e                           # tests/e2e: çalışan sunucuya (BAS
 E2E paketleri demo seed'e (`SEED_DEMO_DATA=true`) ve sahte Stripe'a (`node tests/e2e/fake-stripe.mjs`, port 12111,
 uygulamada `STRIPE_API_BASE=http://127.0.0.1:12111`, `STRIPE_SECRET_KEY=sk_test_fake`,
 `STRIPE_WEBHOOK_SECRET=whsec_testsecret`, `CRON_SECRET=testcronsecret`) ihtiyaç duyar; uzak/Neon veritabanına karşı
-çalışmayı reddeder. Tam kurulum `.github/workflows/ci.yml`'de (Postgres servisi + `next start`).
+çalışmayı reddeder. Tam kurulum `.github/workflows/ci.yml`'de (Postgres servisi + `next start`). Paketler:
+auth, account, cart, pricelock, payments, faz1 (roller/2FA, ürün verisi, lot/FEFO, sipariş yaşam döngüsü, iade, vergi
+kaydı). Testler stoğu `setStock()` ile lot üzerinden ayarlar — `products.stock`'u tek başına yazmayın.
 `GET /api/health` hızlı bir canlılık kontrolüdür.
 
 Demo girişleri (yalnızca demo modunda): `admin@meridiansupply.co / Admin123!`, `buyer@harborhouse.com / Trade123!`,
@@ -73,6 +76,8 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
 - **Vergi:** yalnızca NJ (`NEXUS` in `src/lib/tax.ts`); `products.tax_class` (general/food/supplement/candy) — NJ'de
   food ve supplement muaf, kargo vergili mala oranla vergilenir; muafiyet NJ sertifika no + süre ister.
 - **Asgari sipariş $150** ve ürün başı `minCases` zorunlu. Toptan başvuru doğrulanmış hesaba bağlıdır.
+- **İade:** teslimden itibaren 14 gün (`RETURN_WINDOW_DAYS`); açılmış/hasarlı mal ve **tüm** gıda/takviye iadeleri
+  satışa dönmez (karantina veya imha) — `/legal/returns` ile aynı kural `receiveReturn()`'de zorunlu.
 
 ### Dış entegrasyonlar — hepsi isteğe bağlı, anahtar yoksa yerleşik yedek
 | Entegrasyon | Dosya | Yedek |
@@ -95,9 +100,26 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
   kuralı değişikliği yalnızca buraya yapılmalı.
 - Sabitler (asgari sipariş, ücretsiz kargo eşiği, çıkış ZIP'i/eyaleti, iletişim bilgisi) `src/lib/site.ts` → `SITE`.
 
-### Sipariş oluşturma
-- `createOrderRecord()` (`src/lib/orders.ts`): stok düşümü + sipariş + kalemler **tek transaction**'da, koşullu
-  `stock >= cases`; rastgele `MSC-xxxxxxx` (çakışmada yeniden dener). `cancelOrderAndRestock()` iptal + stok iadesi.
+### Stok: lotlar ve defter (`src/lib/inventory.ts`)
+- Her koli bir lotta (`product_lots`: lot no, `expires_on`, `qty_on_hand`, `qty_quarantine`, durum
+  available/hold/expired/recalled). `products.stock` = durumu "available" lotların `qty_on_hand` toplamı; yalnızca
+  **fark** olarak ve lot değişikliğiyle aynı transaction'da değişir. Her lot değişikliği `inventory_movements`'a yazılır.
+- Stok değiştirmenin tek yolu bu modüldeki fonksiyonlar: `receiveLot`, `adjustLot`, `setLotStatus`, `setLotExpiry`,
+  `allocateFefo`, `returnToLot`. Ürün formu/içe aktarma stoğa dokunmaz (yeni üründe açılış lotu hariç).
+- Sipariş FEFO ile en erken SKT'li lottan alır ve `order_item_lots`'a yazar; SKT'ye `EXPIRY_PULL_DAYS` (60) gün kalan
+  lot satılmaz ve cron'da "expired" yapılır. Gıda/takviye lotunda best-by zorunlu. Cron `stockDrift()` ile
+  `products.stock` ↔ lot uyumunu raporlar.
+
+### Sipariş oluşturma ve yaşam döngüsü
+- `createOrderRecord()` (`src/lib/orders.ts`): sipariş + kalemler + FEFO lot tahsisi **tek transaction**'da (ürün
+  satırları id sırasıyla kilitlenir); satıra kupon payı, vergi sınıfı, matrah ve vergi (`allocateTax`) yazılır;
+  `order_events`'e "created". Rastgele `MSC-xxxxxxx` (çakışmada yeniden dener). `cancelOrderAndRestock()` iptal +
+  kolilerin geldikleri lotlara iadesi (para işlemi yapmaz).
+- `src/lib/order-admin.ts`: `ORDER_TRANSITIONS` (processing → picking → shipped → delivered; iptal yalnızca
+  processing/picking), sevk için ödeme kapanmış (`SHIPPABLE_PAYMENT`) ve takip/PRO no şart; `cancelOrder()` kartı
+  Stripe'tan iade eder (idempotent), açık faturayı `void` yapar, banka ödemesini `refund_due` işaretler; RMA:
+  `requestReturn` → `decideReturn` → `receiveReturn` → `refundReturn` (satır net fiyatı + vergisi, yuvarlama kaymasız).
+  Admin işlemleri `/api/admin/orders/[id]` ve `/api/admin/returns/[id]`'de tek `action` alanıyla.
 - **Kart** (`src/lib/card-checkout.ts`): `payment-intent` PaymentIntent'i `capture_method: "manual"` ile açar ve tüm
   checkout'u (`checkout_sessions.payload`) kaydeder. `finalizeCardCheckout(pi)` siparişi bu taslaktan yeniden fiyatlayarak
   oluşturur, sonra capture eder; herhangi bir hata provizyonu iptal eder (müşteriden para çekilmez). Tarayıcı
@@ -113,7 +135,13 @@ Sipariş sayfası erişimi `canViewOrder()` (`src/lib/order-access.ts`): admin, 
 ### Kimlik doğrulama
 `src/lib/auth.ts`: scrypt parola (`src/lib/password.ts`), `meridian_session` httpOnly çerezi; veritabanında yalnızca
 token'ın SHA-256 özeti saklanır. Middleware/proxy **yok** — her sayfa/route kendi kontrolünü yapar:
-`getSessionUser()` veya `requireAdmin()` (null ise 401/redirect). Yeni admin route'u eklerken bu kontrolü unutmayın.
+`getSessionUser()`; personel için API'de `requireStaff(permission)` (null → `staffDenied()`), sayfada
+`requireStaffPage(permission, path)`. Roller ve izinler `src/lib/staff.ts`'te (admin = sahip, ops, sales, accounting,
+viewer; izinler view/products/inventory/orders/payments/accounts/lists/reports/staff). Yeni admin route'u eklerken
+doğru izni seçin ve değişikliği `recordAudit()` (`src/lib/audit.ts`) ile kaydedin — işlem transaction'daysa `tx` ile.
+- **2FA:** personel canlı modda TOTP olmadan admin'e giremez (`staffTwoFactorRequired()`, `STAFF_2FA`). Giriş parolayı
+  doğrulayınca `login_challenges` + `meridian_2fa` çerezi oluşturur, oturum `/api/auth/two-factor`'da kod/kurtarma
+  koduyla açılır (`src/lib/two-factor.ts`, `src/lib/totp.ts`). Kod adımı tekrar kullanılamaz (`totp_last_step`).
 Sıfırlama/doğrulama jetonları da yalnızca `digestToken()` özeti olarak saklanır ve tek `UPDATE … RETURNING` ile tüketilir.
 E-posta linkleri `appOrigin()`'den (`src/lib/site.ts`) üretilir, istek Host'undan değil. `?next=` → `safeNextPath()`.
 E-posta doğrulanmamış kullanıcı sipariş veremez. Canlıda ilk admin SQL ile atanır (DEPLOYMENT.md §3.3).
@@ -127,13 +155,18 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
 - Yalnızca **`exceljs`** kullanılır (`src/lib/spreadsheet.ts`); `xlsx` paketi güvenlik nedeniyle kaldırıldı, tekrar
   eklemeyin. Eski `.xls` (BIFF) okunamaz — 422 ile "`.xlsx` veya `.csv` kaydedin" mesajı verilir.
 - CSV dışa aktarımında `= + - @` ile başlayan hücreler formül enjeksiyonuna karşı öneklenir.
-- Hızlı sipariş formu: `src/lib/order-sheet.ts` (`ORDER_COLUMNS` hem üretim hem ayrıştırma için ortak şema).
+- Hızlı sipariş formu: `src/lib/order-sheet.ts` (`ORDER_COLUMNS` hem üretim hem ayrıştırma için ortak şema);
+  `/api/quick-order` SKU'nun yanında UPC/ITF-14 barkodunu da eşleştirir.
 - Tedarikçi fiyat listeleri: `src/lib/wholesale-lists.ts`; dosyalar veritabanında saklanır. Fiyat içerdikleri için
   `audience` değerinden bağımsız **hepsi** `canSeePrices` ister. `public/downloads/` Vercel'de çalışmaz.
 - Ürün fotoğrafları `product_images` tablosunda `bytea` olarak saklanır, `/api/product-images/[id]` ile 1 yıl
   immutable önbellekle sunulur; `sniffImage()` ile içerik türü doğrulanır.
-- Katalog JSON içe/dışa aktarımı: `src/lib/catalog-import.ts` (SKU ile upsert, alternatif alan adları ve
-  `"currency": "usd"` desteği). Ürün form doğrulaması: `src/lib/product-input.ts`.
+- Katalog JSON içe/dışa aktarımı: `src/lib/catalog-import.ts` alan adlarını eşler; `/api/admin/catalog` her satırı
+  `validateProductInput()` ile doğrular, hep-ya-hiç tek transaction'da yazar, mevcut ürünün slug ve stoğuna dokunmaz.
+  Ürün doğrulaması `src/lib/product-input.ts`; GTIN/ASIN/alerjen/menşe yardımcıları `src/lib/product-data.ts`.
+- Ürün düzenleme iyimser kilitlidir: form `updatedAt`'i geri gönderir, arada kaydedilmişse 409.
+- Maliyet (`cost_price`) ve tedarikçi alanları yalnızca personele: `BuyBox` gibi istemci bileşenlerine dar tip
+  (`BuyBoxProduct`, `CardProduct`) geçin.
 - Vercel istek gövdesi sınırı 4,5 MB → tüm yüklemeler **4 MB** ile sınırlı.
 
 ### Sunucu / istemci yapısı
@@ -147,4 +180,7 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
   `escapeHtml()` ile, JSON-LD `jsonLdHtml()` ile kaçırılmalı.
 - Politika sayfaları `src/app/legal/*` (`LegalPage`): kod kuralları (vergi, teslimat, ödeme, iade) değişirse metni de
   güncelleyin.
+- Vergi kaydı: sipariş `tax_source`, `taxable_amount`, `shipping_taxable/tax`, `exemption_cert`; aylık rapor
+  `src/lib/tax-report.ts` → `/admin/reports/tax` (+ CSV `/api/admin/reports/tax`). Prop 65 uyarısı CA teslimatında
+  `priceCart().messages` ile ödeme öncesi gösterilir.
 - `@/*` → `src/*` yol takma adı.

@@ -467,8 +467,9 @@ export async function decideReturn(returnId: number, actor: Actor, approve: bool
 }
 
 /**
- * Cartons arrived: record each line's condition and where it goes. Sealed cartons may go back
- * on sale; opened or damaged cartons never do (quarantine, or destroy with a write-off).
+ * Cartons arrived: record each line's condition and where it goes. Only sealed general
+ * merchandise may go back on sale; food and supplements, and anything opened or damaged, are
+ * quarantined or destroyed with a write-off (see /legal/returns).
  */
 export async function receiveReturn(
   returnId: number,
@@ -483,7 +484,7 @@ export async function receiveReturn(
     .innerJoin(orderItems, eq(orderItems.id, returnItems.orderItemId))
     .where(eq(returnItems.returnId, returnId));
   const decisionById = new Map(decisions.map((entry) => [entry.returnItemId, entry]));
-  for (const { item } of items) {
+  for (const { item, line } of items) {
     const decision = decisionById.get(item.id);
     if (!decision) throw new OrderActionError("Record the condition of every returned line.");
     if (!(RETURN_CONDITIONS as readonly string[]).includes(decision.condition) || !(RETURN_DISPOSITIONS as readonly string[]).includes(decision.disposition)) {
@@ -491,6 +492,10 @@ export async function receiveReturn(
     }
     if (decision.disposition === "restock" && decision.condition !== "sealed") {
       throw new OrderActionError("Only sealed cartons can go back on sale. Quarantine or destroy opened and damaged goods.");
+    }
+    // Returns policy: returned food and supplements are never resold, sealed or not.
+    if (decision.disposition === "restock" && line.taxClass !== "general") {
+      throw new OrderActionError(`${line.name}: returned food and supplements are never resold — quarantine or destroy.`);
     }
   }
 
