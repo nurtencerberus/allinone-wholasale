@@ -6,10 +6,8 @@ import { Check, Download, FileJson, Loader2, TriangleAlert, Upload } from "lucid
 type ImportResult = {
   created: string[];
   updated: string[];
-  failed: { sku: string; reason: string }[];
   errors: string[];
   warnings: string[];
-  summary: { products: number; categories: string[]; avgCasePrice: number };
 };
 
 const SAMPLE = `{
@@ -20,12 +18,19 @@ const SAMPLE = `{
       "name": "Collagen Peptides 16 oz",
       "category": "supplements",
       "brand": "Meridian Labs",
+      "description": "Grass-fed bovine collagen peptides, unflavoured.",
+      "gtin": "012345678905",
+      "asin": "B0ABC12345",
+      "countryOfOrigin": "US",
       "caseSize": 12,
       "casePrice": 14400,
       "msrpUnit": 2499,
+      "costPrice": 9600,
       "weightLbs": 15,
       "dimensions": { "l": 15, "w": 11, "h": 9 },
       "stock": 40,
+      "lot": "COL-2611",
+      "bestBy": "2028-06-30",
       "features": ["Grass-fed", "Unflavoured"]
     }
   ]
@@ -37,11 +42,13 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [problems, setProblems] = useState<string[]>([]);
 
   const submit = async (payload: string) => {
     setBusy(true);
     setError(null);
     setResult(null);
+    setProblems([]);
     try {
       const response = await fetch("/api/admin/catalog", {
         method: "POST",
@@ -49,7 +56,10 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
         body: payload,
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Import failed.");
+      if (!response.ok) {
+        setProblems([...(data.errors ?? []), ...(data.warnings ?? [])]);
+        throw new Error(data.errors?.length > 1 ? `Nothing was imported — fix the ${data.errors.length} problems below.` : (data.error ?? "Import failed."));
+      }
       setResult(data as ImportResult);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Import failed.");
@@ -109,7 +119,8 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
           <h2 className="display text-[22px] leading-tight">Import products from another project</h2>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink/60">
             Paste JSON or load a file. Rows are matched on <strong>SKU</strong>: existing products are
-            updated, new ones are created. Accepts <code className="rounded bg-parchment px-1">name</code>,{" "}
+            updated (their link and stock stay as they are), new ones are created with optional opening stock as
+            their first lot. Every row is checked like the product form — if any row fails, nothing is imported. Accepts <code className="rounded bg-parchment px-1">name</code>,{" "}
             <code className="rounded bg-parchment px-1">price</code>,{" "}
             <code className="rounded bg-parchment px-1">qty</code> style field names too — set{" "}
             <code className="rounded bg-parchment px-1">&quot;currency&quot;: &quot;usd&quot;</code> if prices
@@ -154,12 +165,18 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
               <TriangleAlert size={13} className="mt-0.5 shrink-0" /> {error}
             </p>
           ) : null}
+          {problems.length ? (
+            <ul className="mt-2 max-h-[240px] space-y-1 overflow-y-auto text-[10.5px] text-clay">
+              {problems.map((problem) => (
+                <li key={problem}>{problem}</li>
+              ))}
+            </ul>
+          ) : null}
 
           {result ? (
             <div className="mt-3 rounded-lg border border-fern/25 bg-fern/5 px-3.5 py-3">
               <p className="flex items-center gap-1.5 text-[11px] font-semibold text-fern">
-                <Check size={13} /> {result.summary.products} rows processed ·{" "}
-                {result.created.length} created · {result.updated.length} updated
+                <Check size={13} /> {result.created.length} created · {result.updated.length} updated
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[10.5px] text-ink/60">
                 {result.created.length ? (
@@ -173,11 +190,6 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
                   </p>
                 ) : null}
               </div>
-              {result.failed.map((failure) => (
-                <p key={failure.sku} className="mt-1 text-[10.5px] text-clay">
-                  {failure.sku} — {failure.reason}
-                </p>
-              ))}
               {[...result.errors, ...result.warnings].map((message) => (
                 <p key={message} className="mt-1 flex items-start gap-1.5 text-[10.5px] text-[#7a5a1f]">
                   <TriangleAlert size={11} className="mt-0.5 shrink-0" /> {message}

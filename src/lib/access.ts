@@ -1,4 +1,5 @@
 // Client-safe access rules (no database or cookie imports), shared by server and browser code.
+import { isStaffRole } from "@/lib/staff";
 
 type PriceViewer = { role: string; accountTier: string };
 
@@ -7,7 +8,7 @@ type PriceViewer = { role: string; accountTier: string };
  * accounts (and staff). Enforce this on the server — never only by hiding UI.
  */
 export function canSeePrices<T extends PriceViewer>(user: T | null | undefined): user is T {
-  return Boolean(user && (user.role === "admin" || user.accountTier === "wholesale"));
+  return Boolean(user && (isStaffRole(user.role) || user.accountTier === "wholesale"));
 }
 
 export const PRICE_LOCKED_MESSAGE =

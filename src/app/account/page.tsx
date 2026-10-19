@@ -16,6 +16,7 @@ import {
 import { db } from "@/db";
 import { addresses, orders, wholesaleApplications } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
+import { isStaffRole } from "@/lib/staff";
 import { AccountActions } from "@/components/account/AccountActions";
 import { formatDate, formatMoney, formatRate } from "@/lib/money";
 
@@ -279,9 +280,10 @@ export default async function AccountPage() {
                 { href: "/quick-order", label: "Quick order by SKU" },
                 { href: "/api/order-sheet/download?format=xlsx", label: "Download XLS order sheet" },
                 { href: "/account/addresses", label: "Saved addresses" },
+                { href: "/account/security", label: user.twoFactorEnabled ? "Sign-in security · 2FA on" : "Sign-in security" },
                 { href: "/shop?sort=rating", label: "Reorder best sellers" },
                 { href: "/wholesale#freight", label: "Freight & dim weight guide" },
-                { href: user.role === "admin" ? "/admin" : "/wholesale", label: user.role === "admin" ? "Admin portal" : "Trade program" },
+                { href: isStaffRole(user.role) ? "/admin" : "/wholesale", label: isStaffRole(user.role) ? "Admin portal" : "Trade program" },
               ].map((link) => (
                 <Link
                   key={link.href}

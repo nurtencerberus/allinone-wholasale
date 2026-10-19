@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { ArrowLeft, ShieldCheck, UserCog, Users } from "lucide-react";
 import { db } from "@/db";
 import { orders, users, wholesaleApplications } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { requireStaffPage } from "@/lib/auth";
+import { hasPermission } from "@/lib/staff";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminUsers, type AdminAccount, type AdminAccountTotals } from "@/components/admin/AdminUsers";
 import { formatMoney } from "@/lib/money";
@@ -15,9 +15,7 @@ export const metadata = {
 };
 
 export default async function AdminUsersPage() {
-  const session = await getSessionUser();
-  if (!session) redirect("/login?next=/admin/users");
-  if (session.role !== "admin") redirect("/admin");
+  const session = await requireStaffPage("view", "/admin/users");
 
   const [userRows, orderRows, applicationRows] = await Promise.all([
     db.select().from(users).orderBy(desc(users.createdAt)),
@@ -54,6 +52,7 @@ export default async function AdminUsersPage() {
       taxExemptCertNumber: user.taxExemptCertNumber,
       ein: user.ein,
       emailVerified: user.emailVerified,
+      twoFactorEnabled: Boolean(user.totpEnabledAt && user.totpSecret),
       createdAt: user.createdAt.toISOString(),
       orderCount: entry.orderCount,
       totalSpend: entry.totalSpend,
@@ -124,7 +123,12 @@ export default async function AdminUsersPage() {
         </div>
 
         <div className="mt-6">
-          <AdminUsers initialAccounts={accounts} totals={totals} />
+          <AdminUsers
+            initialAccounts={accounts}
+            totals={totals}
+            canManageAccounts={hasPermission(session, "accounts")}
+            canManageStaff={hasPermission(session, "staff")}
+          />
         </div>
 
         <div className="mt-6 card p-4">

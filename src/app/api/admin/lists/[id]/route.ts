@@ -1,15 +1,16 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { wholesaleLists } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { LIST_CATEGORIES } from "@/lib/wholesale-lists";
 
 export const runtime = "nodejs";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("lists");
+    if (!admin) return staffDenied();
 
     const { id } = await context.params;
     const listId = Number(id);
@@ -57,6 +58,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       .returning({ id: wholesaleLists.id, published: wholesaleLists.published, audience: wholesaleLists.audience });
 
     if (!updated) return Response.json({ error: "List not found." }, { status: 404 });
+    const { updatedAt: _ignored, ...changed } = patch;
+    void _ignored;
+    await recordAudit(db, { actor: admin, action: "list.update", entityType: "list", entityId: listId, after: changed, request });
     return Response.json({ ok: true, list: updated });
   } catch (error) {
     console.error("[admin-lists-patch]", error);
@@ -64,16 +68,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("lists");
+    if (!admin) return staffDenied();
 
     const { id } = await context.params;
     const listId = Number(id);
     if (!Number.isFinite(listId)) return Response.json({ error: "Invalid list id." }, { status: 400 });
 
-    await db.delete(wholesaleLists).where(eq(wholesaleLists.id, listId));
+    const [removed] = await db
+      .delete(wholesaleLists)
+      .where(eq(wholesaleLists.id, listId))
+      .returning({ title: wholesaleLists.title, supplier: wholesaleLists.supplier });
+    if (removed) {
+      await recordAudit(db, { actor: admin, action: "list.delete", entityType: "list", entityId: listId, before: removed, request });
+    }
     return Response.json({ ok: true });
   } catch (error) {
     console.error("[admin-lists-delete]", error);

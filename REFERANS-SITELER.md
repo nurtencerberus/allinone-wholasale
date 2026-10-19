@@ -19,17 +19,17 @@ düşünülüyor [H]; Natural Partners artık Fullscript'e yönleniyor [A]; KeHE
 | 1 | Fiyat **sunucuda** gizli, fiyat yerine "Giriş yap / Başvur" | Faire [D], Shopify B2B [D] | UX-7 | ✅ Faz 0'da yapıldı |
 | 2 | Kısa başvuru formu, 1 iş günü karar, durum sayfası | Faire [A], Fullscript [A] | KYT-1, KYT-11 | ✅ Hesaba bağlı başvuru + durum ekranı · ⏳ belge yükleme Faz 3 |
 | 3 | Koli fiyatı, birim fiyat, MSRP ve **marj** tek blokta | Webstaurant [D], Faire [A], DollarDays [A] | ürün kartı / BuyBox | ✅ Var (onaylı hesaplara) |
-| 4 | Adet seçici koli katı ve asgari koliyle; sunucuda yeniden doğrulama | Shopify adet kuralları [D] | SEP-1 | ✅ Faz 0 · ⏳ koli katı (`order_multiple`) Faz 1 |
+| 4 | Adet seçici koli katı ve asgari koliyle; sunucuda yeniden doğrulama | Shopify adet kuralları [D] | SEP-1 | ✅ Faz 0 · ⏳ koli katı (`order_multiple`) Faz 2 |
 | 5 | $150 asgari tutar **ilerleme çubuğu**, altında ödeme kapalı | Costco, Fullscript eşikleri [A] | SEP-2, SEP-3 | ✅ Sunucu kuralı · ⏳ sepet çekmecesinde canlı çubuk Faz 2 |
 | 6 | Sepette ZIP ile kargo tahmini; 48 eyalet dışı açık mesajla red | Webstaurant [D] | KRG-5 | ✅ Kural · ⏳ sepette tahmin Faz 2 |
-| 7 | SKU, UPC ve ASIN ile arama; tam eşleşme doğrudan ürüne | Uline [D], BigCommerce [D] | URN-1, UX-6 | ⏳ Faz 1 (UPC/ASIN alanlarıyla) |
-| 8 | Supplement/Nutrition Facts, alerjen, FDA (DSHEA) uyarısı, Prop 65 ürün sayfasında | Webstaurant [D], OEHHA [A] | URN-1 | ⏳ Faz 1 |
-| 9 | "Best by ≥ AA/YYYY" ürün sayfasında; lot no sevk irsaliyesi ve faturada | (bizim tasarım — örneği bulunamadı) | STK-3 | ⏳ Faz 1 |
+| 7 | SKU, UPC ve ASIN ile arama; tam eşleşme doğrudan ürüne | Uline [D], BigCommerce [D] | URN-1, UX-6 | ✅ Faz 1: SKU/UPC/ASIN/MPN araması, tam eşleşme ürüne gider |
+| 8 | Supplement/Nutrition Facts, alerjen, FDA (DSHEA) uyarısı, Prop 65 ürün sayfasında | Webstaurant [D], OEHHA [A] | URN-1 | ✅ Faz 1: uyum paneli, alerjen, DSHEA, Prop 65 (CA kasasında da) |
+| 9 | "Best by ≥ AA/YYYY" ürün sayfasında; lot no sevk irsaliyesi ve faturada | (bizim tasarım — örneği bulunamadı) | STK-3 | ✅ Faz 1: "Ships with best-by ≥ AA/YYYY", lot no irsaliyede ve sipariş sayfasında |
 | 10 | Kart, ACH ve yalnızca onaylı hesaplara Net-30 + PO alanı | Shopify [D], BigCommerce [D], Amazon [A] | ODE-6 | ✅ PO zorunlu · ⏳ kredi limiti Faz 3 |
 | 11 | Eyalet bazlı vergi muafiyet sertifikası, başvuruda toplanır | Webstaurant [D], Amazon ATEP [A] | VRG-4 | ✅ Sertifika no + NJ + süre · ⏳ dosya yükleme Faz 3 |
 | 12 | Geçmiş siparişten "tekrar sipariş" ve "yeniden al" ızgarası | Webstaurant [D], Shopify [D], BigCommerce [D] | SEP-7 | ⏳ Faz 2 (öne alınabilir) |
-| 13 | Hızlı sipariş: SKU yapıştırma + CSV yükleme, sonuç tablosu | Uline [D], BigCommerce [D] | mevcut | ✅ Var · ⏳ UPC ile eşleştirme Faz 1 |
-| 14 | Self-servis iade (RMA), PDF fatura ve hesap ekstresi | Webstaurant [D], BigCommerce [D] | ODE-4, ODE-6 | ⏳ Faz 1 / Faz 3 |
+| 13 | Hızlı sipariş: SKU yapıştırma + CSV yükleme, sonuç tablosu | Uline [D], BigCommerce [D] | mevcut | ✅ Var · ✅ UPC/ITF-14 ile eşleştirme |
+| 14 | Self-servis iade (RMA), PDF fatura ve hesap ekstresi | Webstaurant [D], BigCommerce [D] | ODE-4, ODE-6 | ✅ Self-servis RMA (Faz 1) · ⏳ PDF fatura ve ekstre Faz 3 |
 | 15 | LTL için rampa / liftgate / önceden arama seçenekleri; kayıtlı listeler; temsilci adına sipariş; barkod okuma | Webstaurant [D], BigCommerce [D], KeHE [A] | KRG-3, SEP-7 | ⏳ Faz 2–3 |
 
 ## 2. Alana göre ayrıntılar

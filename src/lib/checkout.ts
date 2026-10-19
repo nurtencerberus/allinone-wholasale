@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { coupons, products, type Dimensions } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth";
 import { quoteShipping, summariseFreight, type ShippingOption } from "@/lib/shipping";
-import { quoteTax, type TaxQuote } from "@/lib/tax";
+import { allocateTax, quoteTax, type TaxAllocation, type TaxQuote } from "@/lib/tax";
 import { shipToProblem } from "@/lib/ship-to";
 import { SITE } from "@/lib/site";
 
@@ -78,6 +78,8 @@ export type PricedOrder = {
   removedProductIds: number[];
   /** Each line's total after the order-level coupon, aligned with `lines`. */
   lineNet: number[];
+  /** Taxable base and tax per line and for freight; adds up to `taxAmount`. */
+  taxAllocation: TaxAllocation;
 };
 
 export function resolveCasePrice(
@@ -224,6 +226,12 @@ export async function priceCart(input: {
   const addressProblem = address ? shipToProblem(address) : null;
   if (addressProblem) blockers.push(addressProblem);
   const deliverable = address && !addressProblem ? address : null;
+  // California Proposition 65: the warning must be seen before the purchase is completed.
+  const prop65 = deliverable?.state.toUpperCase() === "CA"
+    ? lines
+        .map((line) => ({ name: line.name, warning: byId.get(line.productId)?.prop65Warning }))
+        .filter((entry): entry is { name: string; warning: string } => Boolean(entry.warning))
+    : [];
 
   // Freight -----------------------------------------------------------
   const freightLines = lines.map((line) => ({
@@ -283,8 +291,16 @@ export async function priceCart(input: {
       };
 
   const total = Math.max(0, goodsBase + shippingCost + taxQuote.amount);
+  const taxAllocation = allocateTax(
+    taxQuote,
+    deliverable?.state ?? "",
+    lines.map((line, index) => ({ amount: lineNet[index], taxClass: line.taxClass })),
+  );
 
   const messages: string[] = [...warnings];
+  for (const entry of prop65) {
+    messages.push(`⚠ WARNING (California Prop 65) — ${entry.name}: ${entry.warning.replace(/^\s*warning:?\s*/i, "")} www.P65Warnings.ca.gov`);
+  }
   if (!deliverable && !addressProblem) {
     messages.push("Enter a delivery address to price freight and sales tax.");
   }
@@ -322,6 +338,7 @@ export async function priceCart(input: {
     blockers,
     removedProductIds,
     lineNet,
+    taxAllocation,
   };
 }
 

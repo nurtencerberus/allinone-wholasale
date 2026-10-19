@@ -13,12 +13,15 @@ Built with **Next.js 16 (App Router)**, **PostgreSQL + Drizzle ORM** and **Tailw
 - **Quick order:** every SKU in one table, plus XLS / CSV order-sheet download and upload.
 - **B2B:** wholesale applications, EIN review, per-account discount and resale tax exemption,
   Net-30 PO and ACH/wire payment options.
-- **Freight & tax:** dimensional-weight freight (parcel and LTL) and destination sales tax —
-  built-in estimates, with optional EasyPost and TaxJar.
+- **Freight & tax:** dimensional-weight freight (parcel and LTL) with optional EasyPost; New Jersey sales tax
+  (food and supplements exempt) recorded per order line, with a monthly filing report.
+- **Warehouse:** stock by lot and best-by date, first-expired-first-out picking, stock ledger, holds and recalls.
+- **Orders:** status workflow, cancellation with refund, 14-day returns (RMA) with quarantine for food and supplements.
 - **Payments:** Stripe Elements when keys are set; otherwise a test-card simulation.
-- **Accounts:** scrypt passwords, httpOnly sessions, e-mail verification, password reset.
-- **Admin (`/admin`):** applications, orders and tracking, users, products (with photo upload),
-  catalog import/export, supplier price lists (.xlsx / .csv).
+- **Accounts:** scrypt passwords, httpOnly sessions, e-mail verification, password reset, TOTP two-factor sign-in.
+- **Admin (`/admin`):** staff roles (owner, operations, sales, accounting, read-only) with two-factor sign-in and an
+  audit log; applications, orders, returns, inventory, users, products (with photo upload and compliance data),
+  catalog import/export, supplier price lists (.xlsx / .csv), sales-tax report.
 - **SEO:** dynamic `sitemap.xml`, `robots.txt`, structured data.
 
 ## Run it locally
@@ -50,7 +53,7 @@ off until Stripe keys are set — see [`DEPLOYMENT.md`](./DEPLOYMENT.md).
 ## Environment variables
 
 See [`.env.example`](./.env.example). Only `DATABASE_URL` is required. Every integration
-(Stripe, TaxJar, EasyPost, Resend) falls back to a built-in simulation when its key is blank.
+(Stripe, EasyPost, Resend) falls back to a built-in simulation when its key is blank.
 `NEXT_PUBLIC_*` values are baked in at **build** time.
 
 ## Useful commands

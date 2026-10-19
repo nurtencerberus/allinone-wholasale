@@ -1,31 +1,51 @@
 import { randomInt } from "node:crypto";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { orderItems, orders, products } from "@/db/schema";
+import { pgConstraint } from "@/db/errors";
+import { orderEvents, orderItemLots, orderItems, orders } from "@/db/schema";
 import type { PricedOrder } from "@/lib/checkout";
 import { orderConfirmationTemplate, sendEmail } from "@/lib/email";
+import { allocateFefo, returnToLot, StockShortError, type Tx } from "@/lib/inventory";
 import { formatMoney } from "@/lib/money";
 import { randomToken } from "@/lib/password";
 import { appOrigin, SITE } from "@/lib/site";
 
+export { StockShortError };
+
 const MAX_NUMBER_ATTEMPTS = 3;
 
-/** Thrown inside the order transaction when a line can no longer be reserved. */
-export class StockShortError extends Error {
-  constructor(public readonly productName: string) {
-    super(`${productName} no longer has enough stock.`);
-  }
+type EventExecutor = Pick<typeof db, "insert">;
+
+/** Appends one entry to an order's history. */
+export async function recordOrderEvent(
+  executor: EventExecutor | Tx,
+  event: {
+    orderId: number;
+    type: "status" | "payment" | "refund" | "return" | "note" | "tracking" | "created";
+    from?: string | null;
+    to?: string | null;
+    message?: string | null;
+    actor?: { id: number; email: string } | "system" | "customer";
+    visibleToCustomer?: boolean;
+  },
+): Promise<void> {
+  const actor = event.actor ?? "system";
+  await executor.insert(orderEvents).values({
+    orderId: event.orderId,
+    type: event.type,
+    fromValue: event.from ?? null,
+    toValue: event.to ?? null,
+    message: event.message ?? null,
+    actorId: typeof actor === "object" ? actor.id : null,
+    actorLabel: typeof actor === "object" ? actor.email : actor,
+    visibleToCustomer: Boolean(event.visibleToCustomer),
+  });
 }
 
 export class DuplicatePaymentError extends Error {
   constructor() {
     super("This payment has already been used for an order.");
   }
-}
-
-function pgConstraint(error: unknown): string | undefined {
-  const candidate = error as { constraint?: string; cause?: { constraint?: string } };
-  return candidate.constraint ?? candidate.cause?.constraint;
 }
 
 /** Unguessable-enough, non-sequential order number. Collisions are retried. */
@@ -46,9 +66,9 @@ export type OrderAddress = { line1: string; line2?: string; city: string; state:
 export type CreatedOrder = { id: number; orderNumber: string; accessToken: string };
 
 /**
- * Reserves stock and writes the order and its lines in one transaction: either all of it
- * happens or none of it. Stock is decremented only where enough remains, so concurrent
- * orders can never drive it negative.
+ * Writes the order, its lines and their lot allocations in one transaction: either all of it
+ * happens or none of it. Stock is taken first-expired-first-out from sellable lots
+ * (src/lib/inventory.ts), so concurrent orders can never drive it negative.
  */
 export async function createOrderRecord(input: {
   priced: PricedOrder;
@@ -60,6 +80,8 @@ export async function createOrderRecord(input: {
   paymentRef: string | null;
   poNumber: string | null;
   idempotencyKey: string | null;
+  /** Resale certificate the exemption relied on, for the tax record. */
+  exemptionCert?: string | null;
 }): Promise<CreatedOrder> {
   const { priced } = input;
   const accessToken = randomToken(16);
@@ -76,15 +98,6 @@ export async function createOrderRecord(input: {
     const orderNumber = newOrderNumber();
     try {
       const created = await db.transaction(async (tx) => {
-        for (const line of priced.lines) {
-          const reserved = await tx
-            .update(products)
-            .set({ stock: sql`${products.stock} - ${line.cases}` })
-            .where(and(eq(products.id, line.productId), gte(products.stock, line.cases)))
-            .returning({ id: products.id });
-          if (reserved.length === 0) throw new StockShortError(line.name);
-        }
-
         const [row] = await tx
           .insert(orders)
           .values({
@@ -106,6 +119,11 @@ export async function createOrderRecord(input: {
             taxRate: priced.taxQuote.rateX1000,
             taxAmount: priced.taxAmount,
             taxExempt: priced.taxQuote.source === "exempt",
+            taxSource: priced.taxQuote.source,
+            taxableAmount: priced.taxQuote.taxableAmount,
+            shippingTaxable: priced.taxAllocation.shippingTaxable,
+            shippingTax: priced.taxAllocation.shippingTax,
+            exemptionCert: input.exemptionCert ?? null,
             total: priced.total,
             isWholesale: priced.isWholesale,
             paymentStatus: input.paymentStatus,
@@ -119,19 +137,49 @@ export async function createOrderRecord(input: {
           .returning({ id: orders.id, orderNumber: orders.orderNumber });
         if (!row) throw new Error("Order insert returned no row.");
 
-        await tx.insert(orderItems).values(
-          priced.lines.map((line) => ({
-            orderId: row.id,
+        const items = await tx
+          .insert(orderItems)
+          .values(
+            priced.lines.map((line, index) => ({
+              orderId: row.id,
+              productId: line.productId,
+              name: line.name,
+              sku: line.sku,
+              image: line.image,
+              cases: line.cases,
+              unitsPerCase: line.caseSize,
+              unitPrice: line.unitPrice,
+              lineTotal: line.lineTotal,
+              discount: line.lineTotal - priced.lineNet[index],
+              taxClass: line.taxClass,
+              taxableAmount: priced.taxAllocation.lines[index]?.taxable ?? 0,
+              taxAmount: priced.taxAllocation.lines[index]?.tax ?? 0,
+            })),
+          )
+          .returning({ id: orderItems.id });
+
+        // Lock products in id order so two orders for the same items cannot deadlock.
+        const byProduct = [...priced.lines.entries()].sort((a, b) => a[1].productId - b[1].productId);
+        for (const [index, line] of byProduct) {
+          const allocations = await allocateFefo(tx, {
             productId: line.productId,
-            name: line.name,
-            sku: line.sku,
-            image: line.image,
+            productName: line.name,
             cases: line.cases,
-            unitsPerCase: line.caseSize,
-            unitPrice: line.unitPrice,
-            lineTotal: line.lineTotal,
-          })),
-        );
+            orderId: row.id,
+          });
+          await tx.insert(orderItemLots).values(
+            allocations.map((allocation) => ({ orderItemId: items[index].id, ...allocation })),
+          );
+        }
+
+        await recordOrderEvent(tx, {
+          orderId: row.id,
+          type: "created",
+          to: "processing",
+          message: `Order placed · ${input.paymentMethod.toUpperCase()} · ${input.paymentStatus}`,
+          actor: "customer",
+          visibleToCustomer: true,
+        });
         return row;
       });
       return { ...created, accessToken };
@@ -145,29 +193,77 @@ export async function createOrderRecord(input: {
   throw new Error("Could not allocate an order number.");
 }
 
-/** Cancels an order and returns its cases to stock, once. Returns false if it was already cancelled. */
-export async function cancelOrderAndRestock(orderId: number, reason: string): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    const [cancelled] = await tx
+/** Lot that receives stock for order lines placed before lots existed. */
+export function legacyLotNumber(sku: string): string {
+  return `${sku}-LEGACY`.slice(0, 40);
+}
+
+/**
+ * Cancels an order that has not shipped and returns its cases to the lots they came from,
+ * once. Returns false if it was already cancelled or shipped. Money is handled by the caller
+ * (src/lib/order-admin.ts refunds card payments).
+ */
+export async function cancelOrderAndRestock(
+  orderId: number,
+  reason: string,
+  actor: { id: number; email: string } | "system" = "system",
+  tx?: Tx,
+): Promise<boolean> {
+  const run = async (trx: Tx) => {
+    const [cancelled] = await trx
       .update(orders)
-      .set({
-        status: "cancelled",
-        updatedAt: new Date(),
-        notes: sql`concat_ws(E'\n', ${orders.notes}, ${`[system] ${reason}`}::text)`,
-      })
+      .set({ status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() })
       .where(and(eq(orders.id, orderId), inArray(orders.status, ["processing", "picking"])))
-      .returning({ id: orders.id });
+      .returning({ id: orders.id, status: orders.status });
     if (!cancelled) return false;
-    const lines = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-    for (const line of lines) {
-      if (line.productId === null) continue;
-      await tx
-        .update(products)
-        .set({ stock: sql`${products.stock} + ${line.cases}` })
-        .where(eq(products.id, line.productId));
+    const lines = await trx
+      .select({ item: orderItems, lot: orderItemLots })
+      .from(orderItems)
+      .leftJoin(orderItemLots, eq(orderItemLots.orderItemId, orderItems.id))
+      .where(eq(orderItems.orderId, orderId));
+    for (const { item, lot } of lines) {
+      if (item.productId === null) continue;
+      if (!lot) {
+        // Placed before stock moved into lots (Faz 1): the cases go back into a catch-all lot.
+        await returnToLot(trx, {
+          productId: item.productId,
+          lotId: null,
+          lotNumber: legacyLotNumber(item.sku),
+          expiresOn: null,
+          cases: item.cases,
+          bucket: "on_hand",
+          reason: "cancel",
+          refType: "order",
+          refId: orderId,
+          actorId: typeof actor === "object" ? actor.id : null,
+        });
+        continue;
+      }
+      await returnToLot(trx, {
+        productId: item.productId,
+        lotId: lot.lotId,
+        lotNumber: lot.lotNumber,
+        expiresOn: lot.expiresOn,
+        cases: lot.cases - lot.returnedCases,
+        bucket: "on_hand",
+        reason: "cancel",
+        refType: "order",
+        refId: orderId,
+        actorId: typeof actor === "object" ? actor.id : null,
+      });
+      await trx.update(orderItemLots).set({ returnedCases: lot.cases }).where(eq(orderItemLots.id, lot.id));
     }
+    await recordOrderEvent(trx, {
+      orderId,
+      type: "status",
+      to: "cancelled",
+      message: reason,
+      actor,
+      visibleToCustomer: true,
+    });
     return true;
-  });
+  };
+  return tx ? run(tx) : db.transaction(run);
 }
 
 export async function sendOrderConfirmation(order: CreatedOrder, contact: OrderContact, total: number) {

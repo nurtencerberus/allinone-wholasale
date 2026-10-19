@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import { db } from "@/db";
 import { orders, products, users, wholesaleApplications } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { checkStaff } from "@/lib/auth";
+import { ROLE_LABELS } from "@/lib/staff";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminApplications } from "@/components/admin/AdminApplications";
 import { AdminOrders } from "@/components/admin/AdminOrders";
@@ -26,11 +27,13 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login?next=/admin");
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
+  const check = await checkStaff("view");
+  if (!check.ok && check.reason === "signed_out") redirect("/login?next=/admin");
+  if (!check.ok && check.reason === "two_factor") redirect("/account/security?required=1&next=/admin");
+  const { denied } = await searchParams;
 
-  if (user.role !== "admin") {
+  if (!check.ok) {
     return (
       <div className="wrap flex min-h-[55vh] flex-col items-center justify-center py-16 text-center">
         <span className="rounded-full bg-clay/10 p-3.5 text-clay">
@@ -38,8 +41,8 @@ export default async function AdminPage() {
         </span>
         <h1 className="display mt-4 text-[30px]">Admin access required</h1>
         <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/60">
-          You are signed in as {user.email}. This portal is restricted to Ciputra trade operations staff.
-          Use the seeded admin account to review applications, buyers and shipments.
+          This portal is restricted to Ciputra trade operations staff. Ask an owner to grant your account a
+          staff role.
         </p>
         <div className="mt-5 flex gap-2">
           <Link href="/account" className="btn btn-primary btn-sm">Go to my account</Link>
@@ -49,6 +52,7 @@ export default async function AdminPage() {
     );
   }
 
+  const user = check.user;
   const [applicationRows, orderRows, stats, inventory, accountRows] = await Promise.all([
     db.select().from(wholesaleApplications).orderBy(desc(wholesaleApplications.createdAt)),
     db.select().from(orders).orderBy(desc(orders.createdAt)).limit(40),
@@ -61,7 +65,7 @@ export default async function AdminPage() {
         .from(orders)
         .where(sql`status in ('processing','picking','shipped')`),
     ]),
-    db.select({ stock: products.stock, slug: products.slug, name: products.name }).from(products),
+    db.select({ stock: products.stock, slug: products.slug, name: products.name, reorderPoint: products.reorderPoint }).from(products),
     db.select({ tier: users.accountTier, verified: users.emailVerified }).from(users),
   ]);
 
@@ -69,13 +73,13 @@ export default async function AdminPage() {
   const [{ count: pendingCount } = { count: 0 }] = stats[1];
   const [{ sum: revenue } = { sum: 0 }] = stats[2];
   const [{ count: openOrders } = { count: 0 }] = stats[3];
-  const lowStock = inventory.filter((item) => item.stock <= 10);
+  const lowStock = inventory.filter((item) => item.stock <= item.reorderPoint);
   const wholesaleCount = accountRows.filter((account) => account.tier === "wholesale").length;
   const unverifiedCount = accountRows.filter((account) => !account.verified).length;
 
   const integrations = [
     { label: "Stripe Elements", ok: Boolean(process.env.STRIPE_SECRET_KEY && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY), note: "PCI-DSS tokenised payments" },
-    { label: "TaxJar sales tax", ok: Boolean(process.env.TAXJAR_API_KEY), note: "Falls back to nexus table" },
+    { label: "Sales tax", ok: true, note: "NJ 6.625% statutory rules in code (no tax API needed for one state)" },
     { label: "EasyPost freight", ok: Boolean(process.env.EASYPOST_API_KEY), note: "Falls back to dimensional matrix" },
     { label: "Resend email", ok: Boolean(process.env.RESEND_API_KEY), note: "Dev links logged to console" },
   ];
@@ -88,7 +92,7 @@ export default async function AdminPage() {
             <p className="text-[10.5px] font-bold tracking-[0.24em] text-gold uppercase">Operations portal</p>
             <h1 className="display mt-2 text-[32px] leading-tight text-cream sm:text-[38px]">Admin console</h1>
             <p className="mt-1.5 text-[12px] text-cream/55">
-              Signed in as {user.name} · {user.email}
+              Signed in as {user.name} · {user.email} · {ROLE_LABELS[user.role] ?? user.role}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -107,6 +111,11 @@ export default async function AdminPage() {
       </section>
 
       <div className="wrap py-8">
+        {denied ? (
+          <p className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
+            Your role ({ROLE_LABELS[user.role] ?? user.role}) does not include the “{denied}” permission.
+          </p>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Pending applications", value: `${pendingCount}`, icon: BadgeCheck, tone: pendingCount ? "text-clay" : "" },
@@ -143,11 +152,11 @@ export default async function AdminPage() {
               </p>
             </div>
           </Link>
-          <Link href="/quick-order" className="card flex items-center gap-3 p-4 hover:border-ink/25">
+          <Link href="/admin/inventory" className="card flex items-center gap-3 p-4 hover:border-ink/25">
             <Boxes size={17} className="text-fern" />
             <div>
               <p className="text-[12px] font-bold">{lowStock.length} SKUs below reorder point</p>
-              <p className="text-[10.5px] text-ink/50">Allocation at 10 cases or fewer</p>
+              <p className="text-[10.5px] text-ink/50">At or below each product&apos;s reorder point</p>
             </div>
           </Link>
         </div>
@@ -215,7 +224,7 @@ export default async function AdminPage() {
             <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
               <Boxes size={13} /> Inventory watch
             </p>
-            <p className="mt-1 text-[10.5px] text-ink/45">Allocation at 10 cases or fewer.</p>
+            <p className="mt-1 text-[10.5px] text-ink/45">At or below the reorder point · <Link href="/admin/inventory" className="underline">Inventory</Link></p>
             <ul className="mt-3 space-y-2">
               {lowStock.length === 0 ? (
                 <li className="text-[11px] text-ink/50">All SKUs above the reorder point.</li>

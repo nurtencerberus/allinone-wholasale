@@ -2,6 +2,8 @@
 import http from "node:http";
 
 const intents = new Map();
+const refunds = new Map();
+let failNextRefund = false;
 const calls = [];
 const idem = new Map();
 let failNextCapture = false;
@@ -23,7 +25,8 @@ const server = http.createServer((req, res) => {
     };
     const url = new URL(req.url, "http://x");
     // Test control endpoints
-    if (url.pathname === "/_control/state") return send(200, { intents: [...intents.values()], calls });
+    if (url.pathname === "/_control/state") return send(200, { intents: [...intents.values()], refunds: [...refunds.values()], calls });
+    if (url.pathname === "/_control/failNextRefund") { failNextRefund = true; return send(200, {}); }
     if (url.pathname === "/_control/set") {
       const { id, status } = JSON.parse(body);
       intents.get(id).status = status;
@@ -31,9 +34,25 @@ const server = http.createServer((req, res) => {
       return send(200, intents.get(id));
     }
     if (url.pathname === "/_control/failNextCapture") { failNextCapture = true; return send(200, {}); }
-    if (url.pathname === "/_control/reset") { intents.clear(); calls.length = 0; idem.clear(); return send(200, {}); }
+    if (url.pathname === "/_control/reset") { intents.clear(); refunds.clear(); calls.length = 0; idem.clear(); return send(200, {}); }
 
     const key = req.headers["idempotency-key"];
+    if (url.pathname === "/v1/refunds" && req.method === "POST") {
+      calls.push({ method: req.method, path: url.pathname, idempotencyKey: key });
+      if (key && idem.has(key)) return send(200, refunds.get(idem.get(key)));
+      // 4xx: the SDK retries 5xx on its own, which would hide the failure.
+      if (failNextRefund) { failNextRefund = false; return send(400, { error: { type: "invalid_request_error", message: "Refund failed (test)." } }); }
+      const p = parseForm(body);
+      const pi = intents.get(p.payment_intent);
+      if (!pi || pi.status !== "succeeded") return send(400, { error: { type: "invalid_request_error", message: "PaymentIntent not refundable" } });
+      const already = [...refunds.values()].filter((r) => r.payment_intent === pi.id).reduce((sum, r) => sum + r.amount, 0);
+      const amount = p.amount ? Number(p.amount) : pi.amount - already;
+      if (amount <= 0 || already + amount > pi.amount) return send(400, { error: { type: "invalid_request_error", message: "Refund exceeds charge" } });
+      const refund = { id: `re_test_${++n}`, object: "refund", amount, payment_intent: pi.id, status: "succeeded" };
+      refunds.set(refund.id, refund);
+      if (key) idem.set(key, refund.id);
+      return send(200, refund);
+    }
     const m = url.pathname.match(/^\/v1\/payment_intents(?:\/([^/]+))?(?:\/(capture|cancel))?$/);
     if (!m) return send(404, { error: { message: "not found" } });
     const [, id, action] = m;

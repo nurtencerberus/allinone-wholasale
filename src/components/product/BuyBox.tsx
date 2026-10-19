@@ -7,13 +7,19 @@ import { useCart } from "@/components/cart/CartProvider";
 import type { Product } from "@/db/schema";
 import { formatMoney, unitPriceOf } from "@/lib/money";
 
+/** Only what the buy box needs — never the full Product row (cost, supplier) in the browser. */
+export type BuyBoxProduct = Pick<
+  Product,
+  "id" | "slug" | "name" | "sku" | "image" | "caseSize" | "msrpUnit" | "minCases" | "category" | "weightLbs" | "casePrice" | "priceTiers" | "stock"
+>;
+
 export function BuyBox({
   product,
   accountDiscountPct,
   taxExempt,
   wholesaleApproved,
 }: {
-  product: Product;
+  product: BuyBoxProduct;
   accountDiscountPct: number;
   taxExempt: boolean;
   wholesaleApproved: boolean;

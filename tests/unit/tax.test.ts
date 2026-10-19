@@ -67,3 +67,26 @@ describe("tax helpers", () => {
     expect(exemptionApplies(exemption({ taxExempt: false }), "NJ")).toBe(false);
   });
 });
+
+describe("allocateTax", () => {
+  it("splits the tax over taxable lines and freight, adding up exactly", async () => {
+    const { allocateTax, quoteTax } = await import("@/lib/tax");
+    const lines = [
+      { amount: 33333, taxClass: "general" },
+      { amount: 50000, taxClass: "supplement" },
+      { amount: 16667, taxClass: "candy" },
+    ];
+    const quote = quoteTax({ state: "NJ", lines, shipping: 2999 });
+    const allocation = allocateTax(quote, "NJ", lines);
+    expect(allocation.lines[1]).toEqual({ taxable: 0, tax: 0 });
+    expect(allocation.lines[0].taxable + allocation.lines[2].taxable + allocation.shippingTaxable).toBe(quote.taxableAmount);
+    expect(allocation.lines.reduce((sum, line) => sum + line.tax, 0) + allocation.shippingTax).toBe(quote.amount);
+  });
+
+  it("records nothing outside New Jersey", async () => {
+    const { allocateTax, quoteTax } = await import("@/lib/tax");
+    const lines = [{ amount: 10000, taxClass: "general" }];
+    const allocation = allocateTax(quoteTax({ state: "PA", lines, shipping: 500 }), "PA", lines);
+    expect(allocation).toEqual({ lines: [{ taxable: 0, tax: 0 }], shippingTaxable: 0, shippingTax: 0 });
+  });
+});

@@ -44,6 +44,17 @@ jobs:
         run: |
           npx drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts > /tmp/schema.sql
           diff <(grep -v '^--' db/schema.sql) <(grep -v '^--' /tmp/schema.sql)
+      - name: Migrations bring main's schema up to db/schema.sql
+        run: |
+          git fetch --depth=1 origin main
+          psql "$DATABASE_URL" -q -c "create database upgrade"
+          UPGRADE=postgresql://postgres@localhost:5432/upgrade
+          git show FETCH_HEAD:db/schema.sql | psql "$UPGRADE" -v ON_ERROR_STOP=1 -q
+          for f in db/migrations/*.sql; do psql "$UPGRADE" -v ON_ERROR_STOP=1 -q -f "$f"; done
+          for f in db/migrations/*.sql; do psql "$UPGRADE" -v ON_ERROR_STOP=1 -q -f "$f"; done  # re-runnable
+          psql "$DATABASE_URL" -q -c "create database fresh"
+          psql postgresql://postgres@localhost:5432/fresh -v ON_ERROR_STOP=1 -q -f db/schema.sql
+          diff <(psql "$UPGRADE" -q -f tests/schema-signature.sql) <(psql postgresql://postgres@localhost:5432/fresh -q -f tests/schema-signature.sql)
       - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/schema.sql
       - run: npm run build
       - name: Start fake Stripe and the app

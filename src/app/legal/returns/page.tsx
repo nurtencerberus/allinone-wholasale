@@ -24,19 +24,21 @@ export default function ReturnsPage() {
         <h2>How to return</h2>
         <ul>
           <li>
-            Email <a className="underline" href={`mailto:${SITE.email}`}>{SITE.email}</a> within 14 days of delivery with
-            your order number, the products and quantities, and the reason. For damage, include photos of the cartons and
-            products.
+            Open the order in your account and choose <strong>Request a return</strong> within 14 days of delivery, or
+            email <a className="underline" href={`mailto:${SITE.email}`}>{SITE.email}</a> with your order number, the
+            products and quantities, and the reason. For damage, email photos of the cartons and products.
           </li>
-          <li>We reply with a return authorization (RMA) and instructions. Please do not send items back without one.</li>
+          <li>We reply within one business day with a return authorization (RMA) number. Write it on every carton and do not send items back without one.</li>
           <li>For food and supplements, include the lot number printed on the package if you can.</li>
         </ul>
       </section>
       <section>
         <h2>Refunds</h2>
         <p>
-          Once the return is approved, we refund the products to the original payment method, or credit your Net-30
-          account. Sales tax charged on returned products is refunded with them.
+          Once the cartons arrive and are checked, we refund the products to the original payment method (card refunds
+          take 5–10 business days to appear), credit an open Net-30 invoice, or send a bank transfer for ACH payments.
+          Sales tax charged on returned products is refunded with them. Original freight is refunded when the return is
+          our error (damaged, defective, short-dated or wrong item).
         </p>
       </section>
       <section>

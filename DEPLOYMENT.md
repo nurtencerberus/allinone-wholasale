@@ -88,15 +88,26 @@ Alan adını bağlamadan **önce**, `*.vercel.app` adresinde yapın:
    ```sql
    UPDATE users SET role='admin', email_verified=true WHERE email='info@ciputracorp.com';
    ```
-3. `/login` ile girin; `/admin` açılmalıdır.
+3. `/login` ile girin. Canlı modda personel hesapları iki adımlı doğrulama (2FA) olmadan admin'e giremez:
+   ilk girişte `/account/security` sayfasına yönlendirilirsiniz. Telefonunuzdaki doğrulama uygulamasıyla
+   (Google Authenticator, 1Password, Authy…) QR kodu okutun, 6 haneli kodu girin ve gösterilen **10 kurtarma
+   kodunu** parola yöneticinize kaydedin. Sonra `/admin` açılır.
+4. Diğer çalışanlar önce kendileri kayıt olup e-postalarını doğrular; siz `/admin/users`'tan rol verirsiniz
+   (Operasyon, Satış, Muhasebe, Salt okunur, Sahip). Rol değişikliği sizin parolanızı ister, kişiye e-posta gider
+   ve `/admin/audit`'e yazılır.
 
 Kayıt sırasında e-posta doğrulanmadığı için bu adımı siteyi duyurmadan ve alan adını bağlamadan yapın: o
 e-postayla başkası önce kayıt olursa admin yetkisini ona vermiş olursunuz.
 
 ### 3.4 Ürünlerinizi girin
 Mağaza boş başlar.
-- **`/admin/products` → Add product:** tek tek ürün, fotoğraf yükleme (fotoğraf başına 4 MB).
-- **`/admin/catalog`:** JSON ile toplu içe aktarma.
+- **`/admin/products` → Add product:** tek tek ürün, fotoğraf yükleme (fotoğraf başına 4 MB). UPC/GTIN kontrol
+  hanesiyle doğrulanır; ASIN girilirse Amazon karşılaştırma bağlantısı yalnızca onaylı alıcılara gösterilir.
+- **Stok yalnızca lot olarak girilir.** Yeni üründe "Opening stock" + lot no + son kullanma (best-by) tarihi; sonraki
+  mal kabuller `/admin/inventory` → *Receive goods*. Gıda ve takviyede best-by zorunludur. Ürün formunda stok
+  sayısı düzenlenemez — sayım farkı için lotta *Adjust* (gerekçe + not ister).
+- **`/admin/catalog`:** JSON ile toplu içe aktarma. Tek satır hatalıysa hiçbir şey yazılmaz; mevcut ürünlerin stoğu
+  ve adresi (slug) değişmez.
 - **`/admin/lists`:** tedarikçi .xlsx / .csv fiyat listeleri (4 MB).
 - Kupon yönetim ekranı yoktur; kupon gerekiyorsa `coupons` tablosuna SQL ile eklenir.
 
@@ -144,22 +155,23 @@ curl https://ciputracorp.com/sitemap.xml | head     # adresler ciputracorp.com o
 curl https://ciputracorp.com/robots.txt             # Sitemap: https://ciputracorp.com/sitemap.xml
 curl -s https://ciputracorp.com/login | grep -c "Admin123"    # 0 olmalı
 ```
-Sonra: bir ürün ekleyin, ACH ile deneme siparişi verin, `/admin/orders`'ta "Mark paid" ve takip numarası
-girin, `/account` ve şifre sıfırlamayı deneyin.
+Sonra: bir ürün ekleyin (lotlu açılış stoğuyla), onaylı bir test hesabıyla ACH siparişi verin;
+`/admin/orders/<no>` sayfasında *Mark picking* → *Record payment received* → takip no ile *Mark shipped* →
+*Mark delivered*; sevk irsaliyesinde lot numarası görünmeli. Ardından alıcı hesabından iade talebi açıp
+`/admin/returns`'te onay → teslim alma → iade adımlarını deneyin. `/admin/inventory`'de stok defteri her hareketi
+göstermeli; günlük cron raporunda `stockDrift` boş olmalı.
 
 ---
 
 ## 5. Gerçek müşteri almadan önce açık işler
 
-Aşağıdakiler `B2B_ROADMAP.md`'de ayrıntılıdır ve **kapatılmadı**:
-- **Stoktan fazla sipariş alınabiliyor** (P0-3) ve asgari sipariş/MOQ sunucuda denetlenmiyor.
-- **Giriş ve kayıt uçlarında deneme sınırı yok** (P0-5).
-- **Stripe webhook yok** (P0-6).
-- **Güvenlik uyarısı olan bağımlılıklar** (P0-7): `xlsx` paketinin npm'de düzeltilmiş sürümü yok.
-- **Yasal sayfalar yok** (P0-9): satış şartları, gizlilik, iade, kargo.
-- **Satış vergisi:** yerleşik oranlar bir tahmindir. Hangi eyaletlerde vergi toplamanız gerektiğini mali
-  müşavirinizle belirleyin ve TaxJar'ı yapılandırın.
-- Net-30 yalnızca bir seçenektir: kredi limiti, kredi kontrolü, PDF fatura ve tahsilat takibi yoktur.
+Faz 0 ve Faz 1'de kapatılanlar ve kalanlar `IS-PLANI.md`'de (§3 durum tabloları). Kod dışı kalanlar:
+- Politika sayfalarının ABD'li bir avukatça incelenmesi (`/legal/*`).
+- NJ vergi sınıflarının ve aylık rapordaki rakamların (`/admin/reports/tax`) mali müşavirle teyidi.
+- Örnek katalogdaki doğrulanmamış iddiaların (NSF, cGMP vb.) belgeli gerçek bilgiyle değiştirilmesi. Sertifika
+  rozeti artık yalnızca belge bağlantısı girilirse gösterilir.
+- Stripe hesabının etkinleştirilmesi ve webhook (§3.7); Resend alan adı doğrulaması (§3.6).
+- Net-30 için kredi limiti, PDF fatura ve tahsilat takibi (Faz 3).
 
 ---
 
@@ -203,19 +215,24 @@ Bunlar benim yazdığım yer tutuculardır; işletmenizin gerçek politikası ol
 | E-posta gelmiyor | Resend'de alan adı **Verified** değil ya da `RESEND_FROM` doğrulanmış alan adında değil |
 | Vercel "Invalid Configuration" | DNS kayıtları yanlış veya yayılıyor; eski `@` A kaydını sildiniz mi? |
 | Sitemap'te yanlış alan adı | `NEXT_PUBLIC_SITE_URL` düzeltip yeniden deploy |
+| Admin `/account/security`'ye yönlendiriyor | Personel hesabında 2FA kurulmamış; sayfadaki adımları izleyin |
+| Telefon kayboldu, kurtarma kodu da yok | Başka bir sahip `/admin/users`'tan *2FA reset* yapar. Tek sahipseniz Neon SQL Editor'de: `UPDATE users SET totp_secret=NULL, totp_enabled_at=NULL, totp_last_step=NULL, recovery_codes='[]' WHERE email='…';` sonra hemen yeniden kurun |
+| Cron raporunda `stockDrift` dolu | Stok sütunu lotlarla uyuşmuyor (ör. veritabanına elle stok yazıldı). Lotlardan düzeltin; `products.stock`'u elle değiştirmeyin |
 
 ---
 
 ## 9. Şema değişirse
 
-`src/db/schema.ts` değiştiğinde:
-```bash
-npx drizzle-kit export --dialect=postgresql --schema=./src/db/schema.ts --sql > db/schema.sql
-```
-Bu dosya yalnızca **sıfırdan kurulum** içindir. Dolu veritabanına yalnızca farkı uygulayın; bunun için
-Neon'un **doğrudan** (pooler olmayan) adresiyle şunu kullanabilirsiniz:
-```bash
-npx drizzle-kit push --dialect=postgresql --schema=./src/db/schema.ts --url="postgresql://…"
-```
-`--url` tek başına çalışmaz: `--dialect` ve `--schema` ile birlikte verilmelidir. Veri kaybı uyarısını okumadan
-onaylamayın.
+`src/db/schema.ts` değiştiğinde iki dosya birlikte güncellenir:
+- `npm run db:export` → `db/schema.sql` (yalnızca **boş** veritabanı kurulumu için).
+- `db/migrations/NNNN_*.sql` → dolu (Neon) veritabanı için, tekrar çalıştırılabilir artımlı SQL.
+
+Dolu veritabanına migration'ları sırayla Neon **SQL Editor**'de çalıştırın (zaten uygulanmış olanı tekrar
+çalıştırmak zararsızdır). CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonucu verdiğini
+her PR'da kontrol eder. `drizzle-kit push` kullanmayın: veri taşıma adımlarını (ör. Faz 1'de mevcut stoğun açılış
+lotuna dönüşmesi) yapmaz.
+
+| Migration | Ne zaman | Not |
+|---|---|---|
+| `0001_faz0.sql` | Faz 0 deploy'undan önce | Uygulandı (19 Ekim 2026) |
+| `0002_faz1.sql` | Faz 1 deploy'undan **hemen** önce | Mevcut stok `<SKU>-OPENING` lotuna taşınır (best-by boş — `/admin/inventory`'de girin). Migration ile deploy arasında sipariş gelirse cron `stockDrift` raporlar |

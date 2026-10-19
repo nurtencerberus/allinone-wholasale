@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { wholesaleLists } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { LIST_CATEGORIES, MAX_LIST_BYTES, parseListFile } from "@/lib/wholesale-lists";
 
 export const runtime = "nodejs";
@@ -9,8 +10,8 @@ export const dynamic = "force-dynamic";
 /** Upload a supplier list (.xlsx / .xls / .csv) and publish it on the homepage. */
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("lists");
+    if (!admin) return staffDenied();
 
     const form = await request.formData();
     const file = form.get("file");
@@ -65,6 +66,14 @@ export async function POST(request: Request) {
         published: form.get("published") !== "false",
       })
       .returning({ id: wholesaleLists.id, title: wholesaleLists.title });
+    await recordAudit(db, {
+      actor: admin,
+      action: "list.upload",
+      entityType: "list",
+      entityId: created?.id,
+      after: { title, supplier, filename: file.name, rows: parsed.rowCount },
+      request,
+    });
 
     return Response.json({
       ok: true,

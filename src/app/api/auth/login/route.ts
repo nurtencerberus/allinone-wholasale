@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { createSession, toSessionUser } from "@/lib/auth";
 import { verifyPasswordOrDummy } from "@/lib/password";
 import { ensureSeeded } from "@/lib/seed";
+import { startLoginChallenge, twoFactorEnabled } from "@/lib/two-factor";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -30,6 +31,11 @@ export async function POST(request: Request) {
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (!verifyPasswordOrDummy(password, user?.passwordHash) || !user) {
       return Response.json({ error: "Invalid email or password." }, { status: 401 });
+    }
+
+    if (twoFactorEnabled(user)) {
+      await startLoginChallenge(user.id);
+      return Response.json({ ok: true, twoFactorRequired: true });
     }
 
     await createSession(user.id);

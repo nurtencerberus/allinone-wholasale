@@ -1,14 +1,15 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, wholesaleApplications } from "@/db/schema";
-import { requireAdmin } from "@/lib/auth";
+import { requireStaff, staffDenied } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
 import { sendEmail, wholesaleDecisionTemplate } from "@/lib/email";
 import { appOrigin } from "@/lib/site";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const admin = await requireAdmin();
-    if (!admin) return Response.json({ error: "Admin access required." }, { status: 403 });
+    const admin = await requireStaff("accounts");
+    if (!admin) return staffDenied();
 
     const { id } = await context.params;
     const applicationId = Number(id);
@@ -76,6 +77,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           .where(eq(users.id, targetId));
       }
 
+      await recordAudit(db, {
+        actor: admin,
+        action: "application.approve",
+        entityType: "application",
+        entityId: applicationId,
+        after: { userId: targetId, discountPct, taxExempt, certNumber: taxExempt ? certNumber : null, verifiedEin: Boolean(body.verifyEin) },
+        request,
+      });
+
       const template = wholesaleDecisionTemplate({
         company: application.companyName,
         approved: true,
@@ -101,6 +111,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         .update(wholesaleApplications)
         .set({ status: "rejected", rejectionReason: reason, reviewedAt: new Date() })
         .where(eq(wholesaleApplications.id, applicationId));
+
+      await recordAudit(db, {
+        actor: admin,
+        action: "application.reject",
+        entityType: "application",
+        entityId: applicationId,
+        after: { reason },
+        request,
+      });
 
       const template = wholesaleDecisionTemplate({
         company: application.companyName,

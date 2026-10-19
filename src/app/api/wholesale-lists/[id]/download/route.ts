@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { wholesaleLists } from "@/db/schema";
 import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
+import { hasPermission } from "@/lib/staff";
 import {
   listSlug,
   renderListFile,
@@ -19,7 +20,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
     const [row] = await db.select().from(wholesaleLists).where(eq(wholesaleLists.id, listId)).limit(1);
     const user = await getSessionUser();
-    const isAdmin = user?.role === "admin";
+    const isAdmin = hasPermission(user, "view");
 
     if (!row || (!row.published && !isAdmin)) {
       return Response.json({ error: "List not found." }, { status: 404 });

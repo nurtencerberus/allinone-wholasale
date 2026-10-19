@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import type { SessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/staff";
 
 export const ORDER_COOKIE_PREFIX = "mo_";
 
@@ -13,7 +14,7 @@ function sameToken(a: string | null | undefined, b: string | null | undefined): 
 
 /**
  * Who may open an order confirmation / invoice page:
- *  - an admin,
+ *  - staff with read access,
  *  - the signed-in account that placed it (or that owns the order e-mail),
  *  - anyone holding the order's unguessable access key (link in the e-mail, or the
  *    cookie set in the browser that placed the order).
@@ -23,7 +24,7 @@ export async function canViewOrder(
   user: SessionUser | null,
   tokenFromUrl?: string | null,
 ): Promise<boolean> {
-  if (user?.role === "admin") return true;
+  if (hasPermission(user, "view")) return true;
   if (user && order.userId !== null && order.userId === user.id) return true;
   if (user && user.emailVerified && user.email.toLowerCase() === order.email.toLowerCase()) return true;
   if (sameToken(order.accessToken, tokenFromUrl)) return true;

@@ -1,8 +1,11 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users, type User } from "@/db/schema";
+import { demoModeEnabled } from "@/lib/demo-mode";
 import { digestToken, randomToken } from "@/lib/password";
+import { hasPermission, isStaffRole, type Permission } from "@/lib/staff";
 
 export const SESSION_COOKIE = "meridian_session";
 const SESSION_DAYS = 30;
@@ -23,6 +26,7 @@ export type SessionUser = {
   taxExemptCertNumber: string | null;
   taxExemptExpires: Date | null;
   emailVerified: boolean;
+  twoFactorEnabled: boolean;
 };
 
 export function toSessionUser(user: User): SessionUser {
@@ -39,6 +43,7 @@ export function toSessionUser(user: User): SessionUser {
     taxExemptCertNumber: user.taxExemptCertNumber,
     taxExemptExpires: user.taxExemptExpires,
     emailVerified: user.emailVerified,
+    twoFactorEnabled: Boolean(user.totpEnabledAt && user.totpSecret),
   };
 }
 
@@ -91,9 +96,47 @@ export async function destroySession(): Promise<void> {
   });
 }
 
-export async function requireAdmin(): Promise<SessionUser | null> {
+/** Staff must sign in with a second factor. Demo deployments (and local tests) may skip it. */
+export function staffTwoFactorRequired(): boolean {
+  const flag = (process.env.STAFF_2FA ?? "").trim().toLowerCase();
+  if (flag === "required") return true;
+  if (flag === "off") return demoModeEnabled(); // never off in live mode
+  return !demoModeEnabled();
+}
+
+export type StaffCheck =
+  | { ok: true; user: SessionUser }
+  | { ok: false; reason: "signed_out" | "not_staff" | "two_factor" | "forbidden" };
+
+export async function checkStaff(permission: Permission): Promise<StaffCheck> {
   const user = await getSessionUser();
-  return user?.role === "admin" ? user : null;
+  if (!user) return { ok: false, reason: "signed_out" };
+  if (!isStaffRole(user.role)) return { ok: false, reason: "not_staff" };
+  if (staffTwoFactorRequired() && !user.twoFactorEnabled) return { ok: false, reason: "two_factor" };
+  if (!hasPermission(user, permission)) return { ok: false, reason: "forbidden" };
+  return { ok: true, user };
+}
+
+/** For API routes: the staff user, or null (respond with staffDenied()). */
+export async function requireStaff(permission: Permission): Promise<SessionUser | null> {
+  const check = await checkStaff(permission);
+  return check.ok ? check.user : null;
+}
+
+export function staffDenied(): Response {
+  return Response.json(
+    { error: "Staff access with two-factor sign-in and the right permission is required." },
+    { status: 403 },
+  );
+}
+
+/** For admin pages: returns the staff user or redirects to the right place. */
+export async function requireStaffPage(permission: Permission, path: string): Promise<SessionUser> {
+  const check = await checkStaff(permission);
+  if (check.ok) return check.user;
+  if (check.reason === "signed_out") redirect(`/login?next=${encodeURIComponent(path)}`);
+  if (check.reason === "two_factor") redirect(`/account/security?required=1&next=${encodeURIComponent(path)}`);
+  redirect(`/admin?denied=${permission}`);
 }
 
 /**

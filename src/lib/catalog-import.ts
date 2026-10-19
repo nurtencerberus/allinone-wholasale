@@ -1,37 +1,18 @@
 import type { Product } from "@/db/schema";
-import { defaultTaxClass, isTaxClass } from "@/lib/tax";
 
 export const CATALOG_CATEGORIES = ["supplements", "pantry", "home"] as const;
 
-export type NormalizedProduct = {
+/**
+ * One product row from an import file, mapped onto the field names that
+ * validateProductInput() (src/lib/product-input.ts) understands, money already in cents.
+ * The import route validates every row with it — the same rules as the admin form.
+ */
+export type ImportRow = {
+  row: number;
   sku: string;
-  slug: string;
-  name: string;
-  category: string;
-  tagline: string;
-  description: string;
-  story: string;
-  brand: string;
-  origin: string;
-  msrpUnit: number;
-  casePrice: number;
-  caseSize: number;
-  minCases: number;
-  priceTiers: { minCases: number; casePrice: number }[];
-  weightLbs: number;
-  dimensions: { l: number; w: number; h: number };
-  stock: number;
-  leadTimeDays: number;
-  ratingX10: number;
-  reviewCount: number;
-  image: string;
-  images: string[];
-  features: string[];
-  specs: { label: string; value: string }[];
-  badges: string[];
-  featured: boolean;
-  active: boolean;
-  taxClass: string;
+  input: Record<string, unknown>;
+  /** Requested slug for a new product; existing products keep theirs. */
+  slug: string | null;
 };
 
 export type CatalogExport = {
@@ -52,15 +33,10 @@ function slugify(value: string): string {
     .replace(/ö/g, "o")
     .replace(/ü/g, "u")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-function toInt(value: unknown, fallback = 0): number {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.round(number) : fallback;
 }
 
 function toStringList(value: unknown): string[] {
@@ -83,19 +59,31 @@ function guessCategory(value: unknown): string | null {
   return null;
 }
 
+const first = (row: Record<string, unknown>, ...keys: string[]) => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return undefined;
+};
+
+/** Money: cents by default, `currency: "usd"` (file or row) means dollars. Blank stays blank. */
+function money(value: unknown, scale: number): number | undefined {
+  if (value === undefined || value === null || String(value).trim() === "") return undefined;
+  const number = Number(String(value).replace(/[$,\s]/g, ""));
+  return Number.isFinite(number) ? Math.round(number * scale) : Number.NaN;
+}
+
 /**
- * Accepts either `{ products: [...] }` or a bare array, in cents (default) or
- * dollars (`currency: "usd"`). Tolerant of the field names another storefront
- * export typically uses: title/name, price/casePrice, qty/caseSize, weight…
+ * Accepts either `{ products: [...] }` or a bare array, in cents (default) or dollars
+ * (`currency: "usd"`). Tolerant of the field names another storefront export typically uses
+ * (title/name, price/casePrice, qty/caseSize, upc/gtin…). Ratings and review counts in the
+ * file are ignored — only real reviews are ever shown.
  */
-export function normalizeCatalogPayload(payload: unknown): {
-  products: NormalizedProduct[];
-  errors: string[];
-  warnings: string[];
-} {
+export function normalizeCatalogPayload(payload: unknown): { rows: ImportRow[]; errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const products: NormalizedProduct[] = [];
+  const rows: ImportRow[] = [];
 
   const root = (payload ?? {}) as Record<string, unknown>;
   const rawList = Array.isArray(payload)
@@ -107,137 +95,132 @@ export function normalizeCatalogPayload(payload: unknown): {
         : null;
 
   if (!rawList) {
-    return {
-      products: [],
-      errors: ["Expected a JSON array of products or an object with a `products` array."],
-      warnings,
-    };
+    return { rows, errors: ["Expected a JSON array of products or an object with a `products` array."], warnings };
+  }
+  if (rawList.length > 2000) {
+    return { rows, errors: ["Import at most 2,000 products per file."], warnings };
   }
 
-  const currency = String(root.currency ?? "cents").toLowerCase();
-  const scale = currency === "usd" || currency === "dollar" || currency === "dollars" ? 100 : 1;
+  let ignoredRatings = false;
+  const seen = new Map<string, number>();
 
   rawList.forEach((entry, index) => {
+    const rowNumber = index + 1;
     const row = (entry ?? {}) as Record<string, unknown>;
-    // Money unit: payload-level `currency`, overridable per row. Values are
-    // integer cents by default; "usd" scales dollars up by 100.
     const rowCurrency = String(row.currency ?? root.currency ?? "cents").toLowerCase();
     const scale = ["usd", "dollar", "dollars"].includes(rowCurrency) ? 100 : 1;
-    const name = String(row.name ?? row.title ?? row.product ?? "").trim();
-    const sku = String(row.sku ?? row.SKU ?? row.code ?? row.itemCode ?? "").trim().toUpperCase();
+    const name = String(first(row, "name", "title", "product") ?? "").trim();
+    const sku = String(first(row, "sku", "SKU", "code", "itemCode") ?? "").trim().toUpperCase();
 
-    if (!name && !sku) {
-      errors.push(`Row ${index + 1}: both name and SKU are missing — skipped.`);
-      return;
-    }
-    if (!name) {
-      errors.push(`Row ${index + 1} (${sku}): name is required — skipped.`);
-      return;
-    }
     if (!sku) {
-      errors.push(`Row ${index + 1} (${name}): SKU is required — skipped.`);
+      errors.push(`Row ${rowNumber}${name ? ` (${name})` : ""}: SKU is required.`);
       return;
     }
+    if (seen.has(sku)) {
+      errors.push(`Row ${rowNumber} (${sku}): duplicate of row ${seen.get(sku)} — each SKU may appear once.`);
+      return;
+    }
+    seen.set(sku, rowNumber);
 
-    const category = guessCategory(row.category ?? row.department ?? row.type);
+    const category = guessCategory(first(row, "category", "department", "type"));
     if (!category) {
-      errors.push(
-        `Row ${index + 1} (${sku}): unknown category “${String(row.category ?? "")}”. Use supplements, pantry or home — skipped.`,
-      );
+      errors.push(`Row ${rowNumber} (${sku}): unknown category “${String(row.category ?? "")}”. Use supplements, pantry or home.`);
       return;
     }
+    if (row.ratingX10 !== undefined || row.reviewCount !== undefined || row.rating !== undefined) ignoredRatings = true;
 
-    const casePrice = toInt(row.casePrice ?? row.price ?? row.wholesalePrice ?? row.unitPrice);
-    if (casePrice <= 0) {
-      errors.push(`Row ${index + 1} (${sku}): case price must be greater than zero — skipped.`);
-      return;
+    const casePrice = money(first(row, "casePrice", "price", "wholesalePrice", "unitPrice"), scale);
+    if (casePrice !== undefined && casePrice > 2_000_000) {
+      warnings.push(`${sku}: case price resolves to $${(casePrice / 100).toLocaleString("en-US")} — check the money unit ("currency": "cents" or "usd").`);
     }
-
-    const casePriceCents = casePrice * scale;
-    if (casePriceCents > 2_000_000) {
-      warnings.push(
-        `${sku}: case price resolves to ${casePriceCents} cents (${(casePriceCents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" })}) — double-check the money unit for this row (set "currency": "cents" or "usd" explicitly).`,
-      );
-    }
-
-    const caseSize = Math.max(1, toInt(row.caseSize ?? row.unitsPerCase ?? row.packSize ?? row.qty ?? 1, 1));
-    const msrpUnit = Math.max(
-      0,
-      toInt(row.msrpUnit ?? row.msrp ?? row.retailPrice ?? row.suggestedRetail ?? Math.round((casePrice / caseSize) * 1.6)),
-    );
-
     const dimensionsRaw = (row.dimensions ?? {}) as Record<string, unknown>;
-    const dimensions = {
-      l: Math.max(1, toInt(dimensionsRaw.l ?? dimensionsRaw.length ?? row.length ?? 12, 12)),
-      w: Math.max(1, toInt(dimensionsRaw.w ?? dimensionsRaw.width ?? row.width ?? 10, 10)),
-      h: Math.max(1, toInt(dimensionsRaw.h ?? dimensionsRaw.height ?? row.height ?? 8, 8)),
-    };
-
     const tiers = Array.isArray(row.priceTiers)
-      ? (row.priceTiers as unknown[])
-          .map((tier) => {
-            const entry = (tier ?? {}) as Record<string, unknown>;
-            return {
-              minCases: Math.max(1, toInt(entry.minCases ?? entry.qty ?? entry.cases)),
-              casePrice: toInt(entry.casePrice ?? entry.price),
-            };
-          })
-          .filter((tier) => tier.minCases > 0 && tier.casePrice > 0)
+      ? (row.priceTiers as unknown[]).map((tier) => {
+          const value = (tier ?? {}) as Record<string, unknown>;
+          return { minCases: first(value, "minCases", "qty", "cases"), casePrice: money(first(value, "casePrice", "price"), scale) };
+        })
       : [];
-
     const specs = Array.isArray(row.specs)
-      ? (row.specs as unknown[])
-          .map((spec) => {
-            const entry = (spec ?? {}) as Record<string, unknown>;
-            return { label: String(entry.label ?? entry.name ?? "").trim(), value: String(entry.value ?? "").trim() };
-          })
-          .filter((spec) => spec.label && spec.value)
+      ? (row.specs as unknown[]).map((spec) => {
+          const value = (spec ?? {}) as Record<string, unknown>;
+          return { label: String(value.label ?? value.name ?? ""), value: String(value.value ?? "") };
+        })
       : [];
+    const image = String(first(row, "image", "imageUrl", "photo") ?? "").trim();
+    const images = toStringList(row.images);
 
-    products.push({
+    rows.push({
+      row: rowNumber,
       sku,
-      slug: slugify(String(row.slug ?? "")) || slugify(name),
-      name,
-      category,
-      tagline: String(row.tagline ?? row.subtitle ?? "").trim() || `${caseSize} units per case · case-packed`,
-      description: String(row.description ?? row.body ?? "").trim() || `${name} — wholesale case pricing from Ciputra Corp.`,
-      story: String(row.story ?? row.sourcing ?? "").trim() || "Sourced and case-packed by Ciputra Corp.",
-      brand: String(row.brand ?? row.vendor ?? "Ciputra Corp.").trim(),
-      origin: String(row.origin ?? row.country ?? "United States").trim(),
-      msrpUnit: msrpUnit * scale,
-      casePrice: casePrice * scale,
-      caseSize,
-      minCases: Math.max(1, toInt(row.minCases ?? 1, 1)),
-      priceTiers: tiers.map((tier) => ({ ...tier, casePrice: tier.casePrice * scale })),
-      weightLbs: Math.max(1, toInt(row.weightLbs ?? row.weight ?? 8, 8)),
-      dimensions,
-      stock: Math.max(0, toInt(row.stock ?? row.inventory ?? row.onHand ?? 50, 50)),
-      leadTimeDays: Math.max(0, toInt(row.leadTimeDays ?? row.leadTime ?? 2, 2)),
-      ratingX10: Math.min(50, Math.max(0, toInt(row.ratingX10 ?? 45, 45))),
-      reviewCount: Math.max(0, toInt(row.reviewCount ?? 0, 0)),
-      image: String(row.image ?? row.imageUrl ?? row.photo ?? "").trim() || "/images/cat-supplements.jpg",
-      images: toStringList(row.images),
-      features: toStringList(row.features ?? row.bullets),
-      specs,
-      badges: toStringList(row.badges),
-      featured: Boolean(row.featured),
-      active: row.active === undefined ? true : Boolean(row.active),
-      taxClass: isTaxClass(row.taxClass) ? row.taxClass : defaultTaxClass(category),
+      slug: slugify(String(row.slug ?? "")) || null,
+      input: {
+        name,
+        sku,
+        category,
+        taxClass: row.taxClass,
+        brand: first(row, "brand", "vendor"),
+        origin: row.origin,
+        tagline: first(row, "tagline", "subtitle"),
+        description: first(row, "description", "body"),
+        story: first(row, "story", "sourcing"),
+        casePrice,
+        msrpUnit: money(first(row, "msrpUnit", "msrp", "retailPrice", "suggestedRetail"), scale),
+        caseSize: first(row, "caseSize", "unitsPerCase", "packSize", "qty"),
+        minCases: row.minCases,
+        priceTiers: tiers,
+        weightLbs: first(row, "weightLbs", "weight"),
+        dimensions: {
+          l: first(dimensionsRaw, "l", "length") ?? row.length,
+          w: first(dimensionsRaw, "w", "width") ?? row.width,
+          h: first(dimensionsRaw, "h", "height") ?? row.height,
+        },
+        leadTimeDays: first(row, "leadTimeDays", "leadTime"),
+        images: images.length ? images : image ? [image] : [],
+        features: toStringList(first(row, "features", "bullets")),
+        specs,
+        badges: toStringList(row.badges),
+        featured: Boolean(row.featured),
+        active: row.active === undefined ? true : Boolean(row.active),
+        gtin: first(row, "gtin", "upc", "ean", "barcode"),
+        caseGtin: first(row, "caseGtin", "itf14"),
+        asin: row.asin,
+        mpn: row.mpn,
+        manufacturer: row.manufacturer,
+        supplierName: first(row, "supplierName", "supplier"),
+        supplierSku: row.supplierSku,
+        supplierUrl: row.supplierUrl,
+        costPrice: money(first(row, "costPrice", "cost", "landedCost"), scale),
+        mapPrice: money(first(row, "mapPrice", "map"), scale),
+        unitsPerPallet: first(row, "unitsPerPallet", "casesPerPallet"),
+        palletTi: first(row, "palletTi", "ti"),
+        palletHi: first(row, "palletHi", "hi"),
+        freightClass: row.freightClass,
+        nmfc: row.nmfc,
+        hazmat: Boolean(row.hazmat),
+        unNumber: row.unNumber,
+        htsCode: first(row, "htsCode", "hts"),
+        countryOfOrigin: first(row, "countryOfOrigin", "coo"),
+        shelfLifeDays: row.shelfLifeDays,
+        ingredients: row.ingredients,
+        allergens: toStringList(row.allergens),
+        factsPanelImage: row.factsPanelImage,
+        fdaDisclaimer: row.fdaDisclaimer,
+        prop65Warning: row.prop65Warning,
+        certifications: Array.isArray(row.certifications) ? row.certifications : [],
+        seoTitle: row.seoTitle,
+        seoDescription: row.seoDescription,
+        reorderPoint: row.reorderPoint,
+        // Opening stock applies to new products only; existing stock changes through lots.
+        openingStock: first(row, "openingStock", "stock", "inventory", "onHand"),
+        openingLot: first(row, "openingLot", "lot", "lotNumber"),
+        openingExpiresOn: first(row, "openingExpiresOn", "bestBy", "expiresOn", "expiry"),
+      },
     });
   });
 
-  if (!products.length && !errors.length) {
-    errors.push("No orderable rows found in the payload.");
-  }
-
-  const seen = new Set<string>();
-  for (const product of products) {
-    if (seen.has(product.sku)) warnings.push(`Duplicate SKU in file: ${product.sku} — later rows overwrite earlier ones.`);
-    seen.add(product.sku);
-    if (!product.images.length) product.images = [product.image];
-  }
-
-  return { products, errors, warnings };
+  if (ignoredRatings) warnings.push("Ratings and review counts in the file were ignored — only real reviews are shown.");
+  if (!rows.length && !errors.length) errors.push("No product rows found in the payload.");
+  return { rows, errors, warnings };
 }
 
 export function serializeCatalog(rows: Product[]): CatalogExport {
@@ -247,15 +230,5 @@ export function serializeCatalog(rows: Product[]): CatalogExport {
     currency: "cents",
     count: rows.length,
     products: rows,
-  };
-}
-
-export function catalogSummary(products: NormalizedProduct[]) {
-  return {
-    products: products.length,
-    categories: Array.from(new Set(products.map((product) => product.category))).sort(),
-    avgCasePrice: products.length
-      ? Math.round(products.reduce((sum, product) => sum + product.casePrice, 0) / products.length)
-      : 0,
   };
 }

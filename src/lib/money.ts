@@ -42,3 +42,13 @@ export function formatDateTime(value: Date | string | null | undefined): string 
 export function classNames(...values: (string | false | null | undefined)[]): string {
   return values.filter(Boolean).join(" ");
 }
+
+/** A calendar date stored as `YYYY-MM-DD` (best-by dates), shown without a timezone shift. */
+export function formatIsoDate(value: string | null | undefined, style: "long" | "month" = "long"): string {
+  if (!value) return "—";
+  const date = new Date(`${value}T00:00:00Z`);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    ...(style === "month" ? { month: "2-digit", year: "numeric" } : { month: "short", day: "numeric", year: "numeric" }),
+  }).format(date);
+}

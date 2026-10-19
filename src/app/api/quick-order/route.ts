@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
@@ -37,11 +37,28 @@ export async function POST(request: Request) {
     }
 
     const skus = Array.from(new Set(parsed.map((row) => row.sku)));
-    const rows = await db.select().from(products).where(and(inArray(products.sku, skus), eq(products.active, true)));
-    const bySku = new Map(rows.map((row) => [row.sku.toUpperCase(), row]));
+    // A pasted code may be our SKU or the unit / case barcode (UPC, EAN, ITF-14).
+    const barcodes = skus.map((sku) => sku.replace(/[\s-]/g, "")).filter((code) => /^\d{8,14}$/.test(code));
+    const rows = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          eq(products.active, true),
+          barcodes.length
+            ? or(inArray(products.sku, skus), inArray(products.gtin, barcodes), inArray(products.caseGtin, barcodes))
+            : inArray(products.sku, skus),
+        ),
+      );
+    const bySku = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      bySku.set(row.sku.toUpperCase(), row);
+      if (row.gtin) bySku.set(row.gtin, row);
+      if (row.caseGtin) bySku.set(row.caseGtin, row);
+    }
 
     const lines = parsed.map((row) => {
-      const product = bySku.get(row.sku);
+      const product = bySku.get(row.sku) ?? bySku.get(row.sku.replace(/[\s-]/g, ""));
       if (!product) return { sku: row.sku, cases: row.cases, found: false as const };
       return {
         sku: row.sku,

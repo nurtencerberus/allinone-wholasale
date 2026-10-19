@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { desc } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db";
 import { wholesaleLists } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { requireStaffPage } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AdminLists } from "@/components/admin/AdminLists";
 
@@ -14,9 +13,7 @@ export const metadata = {
 };
 
 export default async function AdminListsPage() {
-  const session = await getSessionUser();
-  if (!session) redirect("/login?next=/admin/lists");
-  if (session.role !== "admin") redirect("/admin");
+  const session = await requireStaffPage("view", "/admin/lists");
 
   // The file body (bytea) is deliberately not selected here.
   const rows = await db

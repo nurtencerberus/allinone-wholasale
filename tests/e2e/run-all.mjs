@@ -1,6 +1,6 @@
 // Runs every e2e suite in order and fails if any fails.
 import { spawnSync } from "node:child_process";
-const suites = ["auth", "account", "cart", "pricelock", "payments"];
+const suites = ["auth", "account", "cart", "pricelock", "payments", "faz1"];
 let failed = 0;
 for (const suite of suites) {
   console.log(`\n=== ${suite} ===`);
