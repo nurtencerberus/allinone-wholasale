@@ -6,6 +6,7 @@ import {
   orderItemLots,
   orderItems,
   orders,
+  productLots,
   returnItems,
   returnRequests,
   type Order,
@@ -15,7 +16,7 @@ import { stripeClient } from "@/lib/card-checkout";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { adjustLot, returnToLot, type Tx } from "@/lib/inventory";
 import { formatMoney } from "@/lib/money";
-import { cancelOrderAndRestock, recordOrderEvent } from "@/lib/orders";
+import { cancelOrderAndRestock, legacyLotNumber, recordOrderEvent } from "@/lib/orders";
 import { appOrigin, SITE } from "@/lib/site";
 
 /**
@@ -513,16 +514,32 @@ export async function receiveReturn(
         .where(eq(orderItemLots.orderItemId, line.id))
         .orderBy(asc(orderItemLots.id))
         .for("update");
+      // Lines placed before lots existed have no allocation: book them against a catch-all lot.
+      const allocations = lots.length
+        ? lots
+        : [{ id: null, lotId: null, lotNumber: legacyLotNumber(line.sku), expiresOn: null, cases: item.cases, returnedCases: 0 }];
       let remaining = item.cases;
-      for (const lot of lots) {
+      for (const lot of allocations) {
         if (remaining === 0) break;
         const take = Math.min(remaining, lot.cases - lot.returnedCases);
         if (take <= 0) continue;
         remaining -= take;
-        await tx.update(orderItemLots).set({ returnedCases: lot.returnedCases + take }).where(eq(orderItemLots.id, lot.id));
+        if (lot.id !== null) {
+          await tx.update(orderItemLots).set({ returnedCases: lot.returnedCases + take }).where(eq(orderItemLots.id, lot.id));
+        }
+        const lotId =
+          lot.lotId ??
+          (
+            await tx
+              .select({ id: productLots.id })
+              .from(productLots)
+              .where(and(eq(productLots.productId, line.productId), eq(productLots.lotNumber, lot.lotNumber)))
+              .limit(1)
+          )[0]?.id ??
+          null;
         await returnToLot(tx, {
           productId: line.productId,
-          lotId: lot.lotId,
+          lotId,
           lotNumber: lot.lotNumber,
           expiresOn: lot.expiresOn,
           cases: take,
@@ -533,9 +550,18 @@ export async function receiveReturn(
           note: `${decision.condition} → ${decision.disposition}`,
           actorId: actor.id,
         });
-        if (decision.disposition === "destroy" && lot.lotId !== null) {
+        const landedLot =
+          lotId ??
+          (
+            await tx
+              .select({ id: productLots.id })
+              .from(productLots)
+              .where(and(eq(productLots.productId, line.productId), eq(productLots.lotNumber, lot.lotNumber)))
+              .limit(1)
+          )[0]?.id;
+        if (decision.disposition === "destroy" && landedLot) {
           await adjustLot(tx, {
-            lotId: lot.lotId,
+            lotId: landedLot,
             delta: -take,
             bucket: "quarantine",
             reason: "writeoff",

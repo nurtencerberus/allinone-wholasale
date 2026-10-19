@@ -193,6 +193,11 @@ export async function createOrderRecord(input: {
   throw new Error("Could not allocate an order number.");
 }
 
+/** Lot that receives stock for order lines placed before lots existed. */
+export function legacyLotNumber(sku: string): string {
+  return `${sku}-LEGACY`.slice(0, 40);
+}
+
 /**
  * Cancels an order that has not shipped and returns its cases to the lots they came from,
  * once. Returns false if it was already cancelled or shipped. Money is handled by the caller
@@ -214,10 +219,26 @@ export async function cancelOrderAndRestock(
     const lines = await trx
       .select({ item: orderItems, lot: orderItemLots })
       .from(orderItems)
-      .innerJoin(orderItemLots, eq(orderItemLots.orderItemId, orderItems.id))
+      .leftJoin(orderItemLots, eq(orderItemLots.orderItemId, orderItems.id))
       .where(eq(orderItems.orderId, orderId));
     for (const { item, lot } of lines) {
       if (item.productId === null) continue;
+      if (!lot) {
+        // Placed before stock moved into lots (Faz 1): the cases go back into a catch-all lot.
+        await returnToLot(trx, {
+          productId: item.productId,
+          lotId: null,
+          lotNumber: legacyLotNumber(item.sku),
+          expiresOn: null,
+          cases: item.cases,
+          bucket: "on_hand",
+          reason: "cancel",
+          refType: "order",
+          refId: orderId,
+          actorId: typeof actor === "object" ? actor.id : null,
+        });
+        continue;
+      }
       await returnToLot(trx, {
         productId: item.productId,
         lotId: lot.lotId,

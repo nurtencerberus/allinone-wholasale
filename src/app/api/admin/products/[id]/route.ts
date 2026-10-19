@@ -60,7 +60,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
           const [row] = await tx
             .update(products)
             .set({ ...result.values, updatedAt: new Date() })
-            .where(and(eq(products.id, id), sql`date_trunc('milliseconds', ${products.updatedAt}) = ${expected.toISOString()}::timestamptz`))
+            // JS dates carry milliseconds, Postgres microseconds: match within one millisecond.
+            .where(
+              and(
+                eq(products.id, id),
+                sql`abs(extract(epoch from ${products.updatedAt} - ${expected.toISOString()}::timestamptz)) < 0.001`,
+              ),
+            )
             .returning({ updatedAt: products.updatedAt });
           if (!row) return null;
           const diff = diffFields(current as unknown as Record<string, unknown>, result.values as unknown as Record<string, unknown>);

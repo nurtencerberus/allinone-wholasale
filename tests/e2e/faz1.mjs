@@ -304,6 +304,15 @@ check("failed refund is flagged, order still cancelled", r.status === 200 && (aw
 r = await admin.req("PATCH", `/api/admin/orders/${c2.id}`, { action: "retryRefund" });
 check("retry sends the refund once", r.status === 200 && (await q("select payment_status from orders where id=$1", [c2.id]))[0].payment_status === "refunded" && (await ctl("/_control/state")).refunds.filter((x) => x.payment_intent === c2.payment_ref).length === 1);
 
+// Orders placed before lots existed (demo order MSC-1043) still return their cases on cancel.
+const [legacy] = await q("select o.id, o.status, i.product_id, i.cases, i.sku from orders o join order_items i on i.order_id=o.id where o.order_number='MSC-1043'");
+if (legacy && legacy.status === "processing") {
+  const before = await stockOf(legacy.product_id);
+  r = await admin.req("PATCH", `/api/admin/orders/${legacy.id}`, { action: "cancel", reason: "Legacy order test" });
+  const [legacyLot] = await q("select qty_on_hand from product_lots where product_id=$1 and lot_number=$2", [legacy.product_id, `${legacy.sku}-LEGACY`]);
+  check("pre-lot order cancel returns stock to a LEGACY lot", r.status === 200 && (await stockOf(legacy.product_id)) === before + legacy.cases && legacyLot?.qty_on_hand === legacy.cases, r.text);
+}
+
 // --- H. Per-line tax record (ODE-7 / VRG-7) -------------------------------------------------------
 const [home] = await q("select id from products where active and tax_class='general' and stock > 5 order by id limit 1");
 const mixed = await achOrder([{ productId: prod.id, cases: 5 }, { productId: home.id, cases: 2 }]);
