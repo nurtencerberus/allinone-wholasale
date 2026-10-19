@@ -1,13 +1,12 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
+import { productConflictMessage } from "@/db/errors";
 import { products } from "@/db/schema";
 import { requireStaff, staffDenied } from "@/lib/auth";
-import {
-  catalogSummary,
-  normalizeCatalogPayload,
-  serializeCatalog,
-  type NormalizedProduct,
-} from "@/lib/catalog-import";
+import { recordAudit } from "@/lib/audit";
+import { normalizeCatalogPayload, serializeCatalog } from "@/lib/catalog-import";
+import { InventoryError, receiveLot } from "@/lib/inventory";
+import { parseOpeningStock, slugifyName, validateProductInput, type OpeningStock, type ProductValues } from "@/lib/product-input";
 import { ensureSeeded } from "@/lib/seed";
 
 export const runtime = "nodejs";
@@ -26,9 +25,7 @@ export async function GET() {
     return new Response(body, {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        "Content-Disposition": `attachment; filename="meridian-catalog-${new Date()
-          .toISOString()
-          .slice(0, 10)}.json"`,
+        "Content-Disposition": `attachment; filename="ciputra-catalog-${new Date().toISOString().slice(0, 10)}.json"`,
         "Cache-Control": "no-store",
       },
     });
@@ -38,7 +35,13 @@ export async function GET() {
   }
 }
 
-/** Upsert products by SKU — used to merge another project's product data. */
+type Planned = { sku: string; values: ProductValues; existingId: number | null; slug: string | null; opening: OpeningStock };
+
+/**
+ * Upsert products by SKU. Every row passes the same validation as the admin form; if any row
+ * fails, nothing is written and every problem is reported with its row number. Existing
+ * products keep their slug (links) and their stock (lots); new products may bring opening stock.
+ */
 export async function POST(request: Request) {
   try {
     const admin = await requireStaff("products");
@@ -52,89 +55,97 @@ export async function POST(request: Request) {
       return Response.json({ error: "Body must be valid JSON." }, { status: 400 });
     }
 
-    const { products: normalized, errors, warnings } = normalizeCatalogPayload(payload);
-    if (!normalized.length) {
+    const { rows, errors, warnings } = normalizeCatalogPayload(payload);
+    const existing = rows.length
+      ? await db
+          .select({ id: products.id, sku: products.sku, slug: products.slug })
+          .from(products)
+          .where(inArray(products.sku, rows.map((row) => row.sku)))
+      : [];
+    const existingBySku = new Map(existing.map((row) => [row.sku, row]));
+
+    const planned: Planned[] = [];
+    for (const row of rows) {
+      const result = validateProductInput(row.input);
+      if (!result.ok) {
+        errors.push(`Row ${row.row} (${row.sku}): ${result.error}`);
+        continue;
+      }
+      const current = existingBySku.get(row.sku);
+      let opening: OpeningStock = null;
+      if (!current) {
+        const parsed = parseOpeningStock(row.input, result.values);
+        if (!parsed.ok) {
+          errors.push(`Row ${row.row} (${row.sku}): ${parsed.error}`);
+          continue;
+        }
+        opening = parsed.opening;
+      } else if (row.input.openingStock !== undefined) {
+        warnings.push(`${row.sku}: stock in the file was ignored — receive or adjust lots on the Inventory screen.`);
+      }
+      planned.push({ sku: row.sku, values: result.values, existingId: current?.id ?? null, slug: row.slug, opening });
+    }
+
+    if (errors.length || !planned.length) {
       return Response.json(
-        { error: errors[0] ?? "No products to import.", errors, warnings },
+        { error: errors[0] ?? "No products to import.", errors, warnings, written: false },
         { status: 422 },
       );
     }
 
+    const taken = new Set((await db.select({ slug: products.slug }).from(products)).map((row) => row.slug));
+    const pickSlug = (wanted: string) => {
+      let slug = wanted;
+      for (let suffix = 2; taken.has(slug); suffix += 1) slug = `${wanted}-${suffix}`;
+      taken.add(slug);
+      return slug;
+    };
+
     const created: string[] = [];
     const updated: string[] = [];
-    const failed: { sku: string; reason: string }[] = [];
-
-    for (const entry of normalized) {
-      const values = toDbValues(entry);
-      try {
-        const [existing] = await db
-          .select({ id: products.id })
-          .from(products)
-          .where(eq(products.sku, entry.sku))
-          .limit(1);
-
-        if (existing) {
-          await db.update(products).set(values).where(eq(products.id, existing.id));
-          updated.push(entry.sku);
-        } else {
-          await db.insert(products).values(values);
+    try {
+      await db.transaction(async (tx) => {
+        for (const entry of planned) {
+          if (entry.existingId) {
+            await tx.update(products).set({ ...entry.values, updatedAt: new Date() }).where(eq(products.id, entry.existingId));
+            updated.push(entry.sku);
+            continue;
+          }
+          const [row] = await tx
+            .insert(products)
+            .values({ ...entry.values, slug: pickSlug(entry.slug ?? slugifyName(entry.values.name)), stock: 0, ratingX10: 0, reviewCount: 0 })
+            .returning({ id: products.id });
+          if (entry.opening) {
+            await receiveLot(tx, {
+              productId: row.id,
+              lotNumber: entry.opening.lotNumber,
+              expiresOn: entry.opening.expiresOn,
+              cases: entry.opening.cases,
+              reason: "import",
+              refType: "import",
+              actorId: admin.id,
+            });
+          }
           created.push(entry.sku);
         }
-      } catch (error) {
-        failed.push({
-          sku: entry.sku,
-          reason:
-            error instanceof Error && /slug/i.test(error.message)
-              ? "slug already used by another product"
-              : "database rejected the row (check required fields)",
+        await recordAudit(tx, {
+          actor: admin,
+          action: "catalog.import",
+          entityType: "catalog",
+          after: { created: created.length, updated: updated.length, skus: [...created, ...updated].slice(0, 50) },
+          request,
         });
-      }
+      });
+    } catch (error) {
+      if (error instanceof InventoryError) return Response.json({ error: error.message, errors: [error.message], warnings, written: false }, { status: 422 });
+      const conflict = productConflictMessage(error, { sku: "in this file", gtin: "in this file" });
+      if (conflict) return Response.json({ error: conflict, errors: [conflict], warnings, written: false }, { status: 409 });
+      throw error;
     }
 
-    return Response.json({
-      ok: true,
-      created,
-      updated,
-      failed,
-      errors,
-      warnings,
-      summary: catalogSummary(normalized),
-    });
+    return Response.json({ ok: true, written: true, created, updated, failed: [], errors: [], warnings });
   } catch (error) {
     console.error("[catalog-import]", error);
     return Response.json({ error: "Could not import the catalog." }, { status: 500 });
   }
-}
-
-function toDbValues(entry: NormalizedProduct) {
-  return {
-    sku: entry.sku,
-    slug: entry.slug,
-    name: entry.name,
-    category: entry.category,
-    tagline: entry.tagline,
-    description: entry.description,
-    story: entry.story,
-    brand: entry.brand,
-    origin: entry.origin,
-    msrpUnit: entry.msrpUnit,
-    casePrice: entry.casePrice,
-    caseSize: entry.caseSize,
-    minCases: entry.minCases,
-    priceTiers: entry.priceTiers,
-    weightLbs: entry.weightLbs,
-    dimensions: entry.dimensions,
-    stock: entry.stock,
-    leadTimeDays: entry.leadTimeDays,
-    ratingX10: entry.ratingX10,
-    reviewCount: entry.reviewCount,
-    image: entry.image,
-    images: entry.images,
-    features: entry.features,
-    specs: entry.specs,
-    badges: entry.badges,
-    featured: entry.featured,
-    active: entry.active,
-    taxClass: entry.taxClass,
-  };
 }

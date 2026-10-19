@@ -150,6 +150,7 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
       paymentRef: paymentIntentId,
       poNumber: null,
       idempotencyKey: null,
+      exemptionCert: priced.taxQuote.source === "exempt" ? user.taxExemptCertNumber : null,
     });
   } catch (error) {
     if (error instanceof DuplicatePaymentError) {

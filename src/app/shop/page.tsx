@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { and, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { Download, FileSpreadsheet, Lock, PackageSearch, SlidersHorizontal, X } from "lucide-react";
 import { db } from "@/db";
@@ -57,7 +58,7 @@ export default async function ShopPage({
   const showPrices = canSeePrices(viewer);
   const sorts = showPrices ? SORTS : SORTS.filter((item) => !item.key.startsWith("price"));
   const category = params.category && CATEGORIES.some((c) => c.key === params.category) ? params.category : undefined;
-  const q = (params.q ?? "").trim();
+  const q = (params.q ?? "").trim().slice(0, 80);
   const sort = sorts.some((item) => item.key === params.sort) ? params.sort! : "featured";
   const band = showPrices ? PRICE_BANDS.find((item) => item.key === params.price) : undefined;
   const inStockOnly = params.stock === "in";
@@ -65,12 +66,30 @@ export default async function ShopPage({
   const filters = [eq(products.active, true)];
   if (category) filters.push(eq(products.category, category));
   if (q) {
+    // An exact SKU, UPC/GTIN, ASIN or MPN goes straight to the product (scanner and buyer-sheet lookups).
+    const code = q.replace(/[\s-]/g, "").toUpperCase();
+    if (code.length >= 3) {
+      const [exact] = await db
+        .select({ slug: products.slug })
+        .from(products)
+        .where(
+          and(
+            eq(products.active, true),
+            or(eq(products.sku, q.toUpperCase()), eq(products.gtin, code), eq(products.caseGtin, code), eq(products.asin, code), ilike(products.mpn, q)),
+          ),
+        )
+        .limit(2);
+      if (exact) redirect(`/products/${exact.slug}`);
+    }
     filters.push(
       or(
         ilike(products.name, `%${q}%`),
         ilike(products.sku, `%${q}%`),
         ilike(products.description, `%${q}%`),
         ilike(products.brand, `%${q}%`),
+        ilike(products.gtin, `%${code}%`),
+        ilike(products.asin, `%${code}%`),
+        ilike(products.mpn, `%${q}%`),
       )!,
     );
   }

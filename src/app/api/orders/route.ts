@@ -143,6 +143,7 @@ export async function POST(request: Request) {
         paymentRef,
         poNumber,
         idempotencyKey,
+        exemptionCert: priced.taxQuote.source === "exempt" ? user.taxExemptCertNumber : null,
       });
     } catch (error) {
       if (error instanceof StockShortError) {

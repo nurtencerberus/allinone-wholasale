@@ -20,39 +20,14 @@ export default async function AdminProductsPage() {
     .from(products)
     .orderBy(desc(products.active), asc(products.category), asc(products.name));
 
-  const catalog: AdminProduct[] = rows.map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    sku: row.sku,
-    name: row.name,
-    category: row.category,
-    taxClass: row.taxClass,
-    tagline: row.tagline,
-    description: row.description,
-    story: row.story,
-    brand: row.brand,
-    origin: row.origin,
-    msrpUnit: row.msrpUnit,
-    casePrice: row.casePrice,
-    caseSize: row.caseSize,
-    minCases: row.minCases,
-    priceTiers: row.priceTiers ?? [],
-    weightLbs: row.weightLbs,
-    dimensions: row.dimensions,
-    stock: row.stock,
-    leadTimeDays: row.leadTimeDays,
-    image: row.image,
-    images: row.images ?? [],
-    features: row.features ?? [],
-    specs: row.specs ?? [],
-    badges: row.badges ?? [],
-    featured: row.featured,
-    active: row.active,
-    reviewCount: row.reviewCount,
-  }));
+  const catalog: AdminProduct[] = rows.map(({ createdAt: _created, ratingX10: _rating, ...row }) => {
+    void _created;
+    void _rating;
+    return { ...row, priceTiers: row.priceTiers ?? [], updatedAt: row.updatedAt.toISOString() };
+  });
 
   const live = catalog.filter((product) => product.active).length;
-  const lowStock = catalog.filter((product) => product.active && product.stock <= 10).length;
+  const lowStock = catalog.filter((product) => product.active && product.stock <= product.reorderPoint).length;
 
   return (
     <div>

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, desc, eq, ne } from "drizzle-orm";
-import { Boxes, Lock, MapPin, Package, Ruler, Star, Truck } from "lucide-react";
+import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
+import { AlertTriangle, Boxes, CalendarCheck, ExternalLink, FileCheck2, Lock, MapPin, Package, Ruler, Star, Truck } from "lucide-react";
 import { db } from "@/db";
-import { products, reviews } from "@/db/schema";
+import { productLots, products, reviews } from "@/db/schema";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
@@ -11,7 +11,9 @@ import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/staff";
 import { toCardProduct } from "@/lib/catalog-view";
 import { categoryName, jsonLdHtml, SITE } from "@/lib/site";
-import { formatDate, formatMoney, unitPriceOf } from "@/lib/money";
+import { formatDate, formatIsoDate, formatMoney, unitPriceOf } from "@/lib/money";
+import { addDays, EXPIRY_PULL_DAYS, isoDate } from "@/lib/inventory";
+import { amazonUrl, FDA_DISCLAIMER, regionName } from "@/lib/product-data";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,8 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       return { title: "Product not found", robots: { index: false, follow: false } };
     }
     return {
-      title: `${product.name} — wholesale case of ${product.caseSize}`,
-      description: `${product.tagline}. ${product.description.slice(0, 150)}…`,
+      title: product.seoTitle || `${product.name} — wholesale case of ${product.caseSize}`,
+      description: product.seoDescription || `${product.tagline}. ${product.description.slice(0, 150)}…`,
       alternates: { canonical: `/products/${product.slug}` },
       openGraph: {
         title: `${product.name} · wholesale`,
@@ -41,7 +43,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
   if (!product) notFound();
 
-  const [productReviews, related, user] = await Promise.all([
+  const [productReviews, related, user, nextLot] = await Promise.all([
     db.select().from(reviews).where(eq(reviews.productId, product.id)).orderBy(desc(reviews.createdAt)),
     db
       .select()
@@ -55,6 +57,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       )
       .limit(3),
     getSessionUser(),
+    // The lot an order would ship from next (FEFO), for the "best by" promise.
+    db
+      .select({ expiresOn: productLots.expiresOn })
+      .from(productLots)
+      .where(
+        and(
+          eq(productLots.productId, product.id),
+          eq(productLots.status, "available"),
+          gt(productLots.qtyOnHand, 0),
+          or(isNull(productLots.expiresOn), gt(productLots.expiresOn, isoDate(addDays(new Date(), EXPIRY_PULL_DAYS)))),
+        ),
+      )
+      .orderBy(sql`${productLots.expiresOn} asc nulls last`)
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
 
   // Archived products are hidden from the public store; admins can still preview them.
@@ -72,6 +89,40 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ? productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length
     : 0;
   const wholesaleApproved = user?.accountTier === "wholesale";
+  const country = regionName(product.countryOfOrigin);
+  const originLabel = product.origin || country;
+  // Amazon is a comparison reference for trade buyers only; guests are not sent off-site.
+  const amazonLink = showPrices ? amazonUrl(product.asin) : null;
+  const documentedCerts = product.certifications.filter((cert) => cert.documentUrl);
+  const buyBoxProduct = {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    sku: product.sku,
+    image: product.image,
+    caseSize: product.caseSize,
+    msrpUnit: product.msrpUnit,
+    minCases: product.minCases,
+    category: product.category,
+    weightLbs: product.weightLbs,
+    casePrice: product.casePrice,
+    priceTiers: product.priceTiers,
+    stock: product.stock,
+  };
+  const labelFacts = [
+    product.gtin ? { label: "UPC / GTIN", value: product.gtin } : null,
+    product.caseGtin ? { label: "Case GTIN (ITF-14)", value: product.caseGtin } : null,
+    product.mpn ? { label: "Manufacturer part no.", value: product.mpn } : null,
+    product.manufacturer ? { label: "Manufacturer", value: product.manufacturer } : null,
+    country ? { label: "Country of origin", value: country } : null,
+    product.shelfLifeDays ? { label: "Shelf life from manufacture", value: `${product.shelfLifeDays} days` } : null,
+    nextLot?.expiresOn ? { label: "Ships with best-by", value: `${formatIsoDate(nextLot.expiresOn, "month")} or later` } : null,
+    product.unitsPerPallet
+      ? { label: "Pallet", value: `${product.unitsPerPallet} cases${product.palletTi && product.palletHi ? ` (${product.palletTi} × ${product.palletHi})` : ""}` }
+      : null,
+    product.freightClass ? { label: "Freight class", value: product.freightClass } : null,
+    product.hazmat ? { label: "Hazardous material", value: product.unNumber ?? "Yes" } : null,
+  ].filter((entry): entry is { label: string; value: string } => Boolean(entry));
   const descriptionParagraphs = product.description.split("\n\n");
 
   const productJsonLd = {
@@ -83,7 +134,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     description: product.description.replace(/\n/g, " "),
     brand: { "@type": "Brand", name: product.brand },
     category: categoryName(product.category),
-    countryOfOrigin: product.origin,
+    ...(product.gtin ? { gtin: product.gtin } : {}),
+    ...(product.mpn ? { mpn: product.mpn } : {}),
+    ...(country ? { countryOfOrigin: { "@type": "Country", name: country } } : {}),
     // Google rejects an AggregateRating without reviews, so new products omit it.
     ...(hasReviews
       ? {
@@ -165,7 +218,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             {[
               { icon: Package, label: `${product.caseSize} units / case` },
               { icon: Boxes, label: `${product.stock} cases ready` },
-              { icon: MapPin, label: product.origin },
+              { icon: MapPin, label: originLabel || "Origin on label" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg border border-ink/10 bg-[#fffdf8] px-2 py-3">
                 <item.icon size={15} className="mx-auto text-fern" />
@@ -216,7 +269,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mt-5">
             {showPrices ? (
               <BuyBox
-                product={product}
+                product={buyBoxProduct}
                 accountDiscountPct={wholesaleApproved ? user?.wholesaleDiscountPct ?? 0 : 0}
                 taxExempt={Boolean(user?.taxExempt)}
                 wholesaleApproved={wholesaleApproved}
@@ -300,6 +353,28 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               ))}
             </dl>
 
+            {labelFacts.length ? (
+              <dl className="mt-4 divide-y divide-ink/8 overflow-hidden rounded-lg border border-ink/10 bg-[#fffdf8]">
+                {labelFacts.map((fact) => (
+                  <div key={fact.label} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                    <dt className="text-[11.5px] font-semibold text-ink/50">{fact.label}</dt>
+                    <dd className="text-right font-mono text-[11.5px] font-medium text-ink/80">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+
+            {amazonLink ? (
+              <a
+                href={amazonLink}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="mt-3 inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-fern hover:underline"
+              >
+                Compare the retail listing on Amazon <ExternalLink size={11} />
+              </a>
+            ) : null}
+
             <div className="mt-5 rounded-lg border border-fern/25 bg-fern/5 p-4">
               <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.16em] text-fern uppercase">
                 <Ruler size={13} /> Dimensional freight data
@@ -351,6 +426,78 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </section>
+
+      {product.ingredients || product.allergens.length || product.factsPanelImage || product.fdaDisclaimer || product.prop65Warning || documentedCerts.length ? (
+        <section id="label" className="wrap grid gap-8 py-12 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <h2 className="display text-[26px]">Label &amp; compliance</h2>
+            {product.prop65Warning ? (
+              <div className="mt-4 flex items-start gap-2.5 rounded-lg border-2 border-ink bg-[#fffdf8] p-4" role="note">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0 fill-gold text-ink" aria-hidden="true" />
+                <p className="text-[12.5px] leading-relaxed">
+                  <strong>WARNING (California Proposition 65):</strong>{" "}
+                  {product.prop65Warning.replace(/^\s*warning:?\s*/i, "")}{" "}
+                  <a className="underline" href="https://www.p65warnings.ca.gov/" target="_blank" rel="noopener noreferrer">
+                    www.P65Warnings.ca.gov
+                  </a>
+                </p>
+              </div>
+            ) : null}
+            {product.ingredients ? (
+              <div className="mt-4">
+                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/45 uppercase">Ingredients</h3>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/70">{product.ingredients}</p>
+              </div>
+            ) : null}
+            {product.allergens.length ? (
+              <p className="mt-3 text-[12.5px] font-semibold">
+                Contains: <span className="capitalize">{product.allergens.join(", ")}</span>
+              </p>
+            ) : product.taxClass !== "general" && product.ingredients ? (
+              <p className="mt-3 text-[12px] text-ink/55">No major food allergens declared.</p>
+            ) : null}
+            {product.fdaDisclaimer ? (
+              <p className="mt-4 border-l-2 border-ink/20 pl-3 text-[11.5px] leading-relaxed text-ink/60">
+                *{FDA_DISCLAIMER}
+              </p>
+            ) : null}
+            {documentedCerts.length ? (
+              <div className="mt-5">
+                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/45 uppercase">Certifications on file</h3>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {documentedCerts.map((cert) => (
+                    <li key={cert.name}>
+                      <a
+                        href={cert.documentUrl ?? undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-fern/30 bg-fern/8 px-3 py-1 text-[11px] font-semibold text-fern hover:underline"
+                      >
+                        <FileCheck2 size={12} /> {cert.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {nextLot?.expiresOn ? (
+              <p className="mt-5 flex items-center gap-2 text-[11.5px] text-ink/60">
+                <CalendarCheck size={13} className="text-fern" /> Orders ship from the earliest lot with at least{" "}
+                {EXPIRY_PULL_DAYS} days to its best-by date; the lot number is printed on your packing slip.
+              </p>
+            ) : null}
+          </div>
+          {product.factsPanelImage ? (
+            <figure className="rounded-xl border border-ink/10 bg-white p-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={product.factsPanelImage} alt={`${product.taxClass === "supplement" ? "Supplement" : "Nutrition"} Facts panel for ${product.name}`} className="mx-auto max-h-[520px] w-auto" />
+              <figcaption className="mt-2 text-center text-[10.5px] text-ink/45">
+                {product.taxClass === "supplement" ? "Supplement Facts" : "Nutrition Facts"} as printed on the label
+              </figcaption>
+            </figure>
+          ) : null}
+        </section>
+      ) : null}
 
       <section id="reviews" className="wrap py-12">
         {!hasReviews ? (

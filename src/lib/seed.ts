@@ -1,5 +1,6 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { addDays, isoDate, receiveLot } from "@/lib/inventory";
 import {
   addresses,
   coupons,
@@ -139,6 +140,39 @@ async function seed(): Promise<void> {
     )
     .onConflictDoNothing()
     .returning({ id: products.id, slug: products.slug });
+
+  // Demo stock lives in lots like real stock: food and supplements get two lots with
+  // different best-by dates so FEFO picking is visible; home goods have no best-by date.
+  if (inserted.length) {
+    const bySlug = new Map(PRODUCTS.map((product) => [product.slug, product]));
+    await db.transaction(async (tx) => {
+      for (const row of inserted) {
+        const product = bySlug.get(row.slug);
+        if (!product || product.stock <= 0) continue;
+        await tx.update(products).set({ stock: 0 }).where(eq(products.id, row.id));
+        const dated = product.category !== "home";
+        const first = dated ? Math.max(1, Math.floor(product.stock / 3)) : product.stock;
+        await receiveLot(tx, {
+          productId: row.id,
+          lotNumber: `${product.sku}-A`,
+          expiresOn: dated ? isoDate(addDays(new Date(), 240)) : null,
+          cases: first,
+          supplier: "Demo supplier",
+          reason: "opening",
+        });
+        if (dated && product.stock - first > 0) {
+          await receiveLot(tx, {
+            productId: row.id,
+            lotNumber: `${product.sku}-B`,
+            expiresOn: isoDate(addDays(new Date(), 540)),
+            cases: product.stock - first,
+            supplier: "Demo supplier",
+            reason: "opening",
+          });
+        }
+      }
+    });
+  }
 
   const productRows = inserted.length
     ? inserted

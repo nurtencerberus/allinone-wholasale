@@ -1,8 +1,11 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, lt, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { orders, rateLimits, sessions } from "@/db/schema";
+import { loginChallenges, orders, products, rateLimits, sessions } from "@/db/schema";
 import { sweepStaleCheckouts } from "@/lib/card-checkout";
+import { escapeHtml, sendEmail } from "@/lib/email";
+import { pullExpiringLots, stockDrift } from "@/lib/inventory";
 import { cancelOrderAndRestock } from "@/lib/orders";
+import { appOrigin, SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +50,38 @@ export async function GET(request: Request) {
   }
   report.unpaidAchCancelled = cancelled;
 
-  // 3. Expired sessions and rate-limit windows.
+  // 3. Lots close to their best-by date stop being sold.
+  report.lotsPulled = await pullExpiringLots();
+
+  // 4. Low stock: one daily digest to the trade desk.
+  const low = await db
+    .select({ sku: products.sku, name: products.name, stock: products.stock, reorderPoint: products.reorderPoint })
+    .from(products)
+    .where(and(eq(products.active, true), lte(products.stock, products.reorderPoint)))
+    .orderBy(products.stock)
+    .limit(100);
+  report.lowStock = low.length;
+  if (low.length) {
+    try {
+      await sendEmail({
+        to: process.env.OPS_EMAIL?.trim() || SITE.email,
+        subject: `${low.length} SKU(s) at or below reorder point`,
+        html: `<p>These products are at or below their reorder point:</p><ul>${low
+          .map((row) => `<li>${escapeHtml(row.sku)} — ${escapeHtml(row.name)}: ${row.stock} cases (reorder at ${row.reorderPoint})</li>`)
+          .join("")}</ul><p><a href="${appOrigin()}/admin/inventory">Open inventory</a></p>`,
+      });
+    } catch (error) {
+      console.error("[cron-low-stock]", error);
+    }
+  }
+
+  // 5. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
+  const drift = await stockDrift();
+  report.stockDrift = drift;
+  if (drift.length) console.error("[cron-stock-drift]", JSON.stringify(drift));
+
+  // 6. Expired sessions, sign-in challenges and rate-limit windows.
+  await db.delete(loginChallenges).where(lt(loginChallenges.expiresAt, new Date()));
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;
 

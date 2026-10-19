@@ -67,6 +67,46 @@ export function exemptionApplies(exemption: TaxExemption | null | undefined, sta
 
 export type TaxLine = { amount: number; taxClass: string };
 
+/** Whether a product class is exempt in a state we collect in (false where we do not collect). */
+export function classExempt(state: string, taxClass: string): boolean {
+  return NEXUS[state.toUpperCase()]?.exempt.has(taxClass as TaxClass) ?? false;
+}
+
+/** Splits an integer total over weights; the rounding difference lands on the largest weight. */
+export function spreadCents(total: number, weights: number[]): number[] {
+  const sum = weights.reduce((acc, weight) => acc + Math.max(0, weight), 0);
+  if (!total || sum <= 0) return weights.map(() => 0);
+  const shares = weights.map((weight) => Math.floor((total * Math.max(0, weight)) / sum));
+  const largest = weights.indexOf(Math.max(...weights));
+  shares[largest] += total - shares.reduce((acc, share) => acc + share, 0);
+  return shares;
+}
+
+export type TaxAllocation = {
+  lines: { taxable: number; tax: number }[];
+  shippingTaxable: number;
+  shippingTax: number;
+};
+
+/**
+ * Per-line record of a quote (ODE-7, VRG-7): which part of each line and of freight was
+ * taxed, and how much tax each carries. Line and freight taxes add up to `quote.amount`
+ * exactly, so a partial refund can return the right tax.
+ */
+export function allocateTax(quote: TaxQuote, state: string, lines: TaxLine[]): TaxAllocation {
+  if (quote.source !== "state_rate" || (quote.amount === 0 && quote.taxableAmount === 0)) {
+    return { lines: lines.map(() => ({ taxable: 0, tax: 0 })), shippingTaxable: 0, shippingTax: 0 };
+  }
+  const taxable = lines.map((line) => (classExempt(state, line.taxClass) ? 0 : Math.max(0, line.amount)));
+  const shippingTaxable = Math.max(0, quote.taxableAmount - taxable.reduce((sum, value) => sum + value, 0));
+  const taxes = spreadCents(quote.amount, [...taxable, shippingTaxable]);
+  return {
+    lines: taxable.map((value, index) => ({ taxable: value, tax: taxes[index] })),
+    shippingTaxable,
+    shippingTax: taxes[taxes.length - 1],
+  };
+}
+
 export function quoteTax(input: {
   state: string;
   /** Goods after every discount, per tax class. */

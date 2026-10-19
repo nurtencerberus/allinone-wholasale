@@ -19,41 +19,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { Dimensions, PriceTier } from "@/db/schema";
+import type { Product } from "@/db/schema";
 import { formatMoney } from "@/lib/money";
+import { ALLERGENS, amazonUrl, FREIGHT_CLASSES } from "@/lib/product-data";
 import { CATEGORIES, categoryName } from "@/lib/site";
 import { defaultTaxClass } from "@/lib/tax";
 
-export type AdminProduct = {
-  taxClass: string;
-  id: number;
-  slug: string;
-  sku: string;
-  name: string;
-  category: string;
-  tagline: string;
-  description: string;
-  story: string;
-  brand: string;
-  origin: string;
-  msrpUnit: number;
-  casePrice: number;
-  caseSize: number;
-  minCases: number;
-  priceTiers: PriceTier[];
-  weightLbs: number;
-  dimensions: Dimensions;
-  stock: number;
-  leadTimeDays: number;
-  image: string;
-  images: string[];
-  features: string[];
-  specs: { label: string; value: string }[];
-  badges: string[];
-  featured: boolean;
-  active: boolean;
-  reviewCount: number;
-};
+/** Staff-only view of a product (includes cost). `updatedAt` is the edit version. */
+export type AdminProduct = Omit<Product, "createdAt" | "updatedAt" | "ratingX10"> & { updatedAt: string };
 
 type FormState = {
   id: number | null;
@@ -75,7 +48,6 @@ type FormState = {
   l: string;
   w: string;
   h: string;
-  stock: string;
   leadTimeDays: string;
   images: string[];
   featuresText: string;
@@ -83,6 +55,40 @@ type FormState = {
   badgesText: string;
   featured: boolean;
   active: boolean;
+  updatedAt: string | null;
+  stock: number;
+  openingStock: string;
+  openingLot: string;
+  openingExpiresOn: string;
+  reorderPoint: string;
+  gtin: string;
+  caseGtin: string;
+  asin: string;
+  mpn: string;
+  manufacturer: string;
+  supplierName: string;
+  supplierSku: string;
+  supplierUrl: string;
+  costPrice: string;
+  mapPrice: string;
+  countryOfOrigin: string;
+  unitsPerPallet: string;
+  palletTi: string;
+  palletHi: string;
+  freightClass: string;
+  nmfc: string;
+  hazmat: boolean;
+  unNumber: string;
+  htsCode: string;
+  shelfLifeDays: string;
+  ingredients: string;
+  allergens: string[];
+  factsPanelImage: string;
+  fdaDisclaimer: boolean;
+  prop65Warning: string;
+  certificationsText: string;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 const EMPTY: FormState = {
@@ -105,7 +111,6 @@ const EMPTY: FormState = {
   l: "",
   w: "",
   h: "",
-  stock: "50",
   leadTimeDays: "2",
   images: [],
   featuresText: "",
@@ -113,7 +118,44 @@ const EMPTY: FormState = {
   badgesText: "",
   featured: false,
   active: true,
+  updatedAt: null,
+  stock: 0,
+  openingStock: "",
+  openingLot: "",
+  openingExpiresOn: "",
+  reorderPoint: "10",
+  gtin: "",
+  caseGtin: "",
+  asin: "",
+  mpn: "",
+  manufacturer: "",
+  supplierName: "",
+  supplierSku: "",
+  supplierUrl: "",
+  costPrice: "",
+  mapPrice: "",
+  countryOfOrigin: "",
+  unitsPerPallet: "",
+  palletTi: "",
+  palletHi: "",
+  freightClass: "",
+  nmfc: "",
+  hazmat: false,
+  unNumber: "",
+  htsCode: "",
+  shelfLifeDays: "",
+  ingredients: "",
+  allergens: [],
+  factsPanelImage: "",
+  fdaDisclaimer: true,
+  prop65Warning: "",
+  certificationsText: "",
+  seoTitle: "",
+  seoDescription: "",
 };
+
+const str = (value: number | string | null | undefined) => (value === null || value === undefined ? "" : String(value));
+const optionalCents = (value: string) => (value.trim() ? toCents(value) : null);
 
 const toDollars = (cents: number) => (cents / 100).toFixed(2);
 
@@ -145,7 +187,6 @@ const fromProduct = (product: AdminProduct): FormState => ({
   l: String(product.dimensions.l),
   w: String(product.dimensions.w),
   h: String(product.dimensions.h),
-  stock: String(product.stock),
   leadTimeDays: String(product.leadTimeDays),
   images: product.images.length ? product.images : [product.image],
   featuresText: product.features.join("\n"),
@@ -153,6 +194,40 @@ const fromProduct = (product: AdminProduct): FormState => ({
   badgesText: product.badges.join(", "),
   featured: product.featured,
   active: product.active,
+  updatedAt: product.updatedAt,
+  stock: product.stock,
+  openingStock: "",
+  openingLot: "",
+  openingExpiresOn: "",
+  reorderPoint: String(product.reorderPoint),
+  gtin: str(product.gtin),
+  caseGtin: str(product.caseGtin),
+  asin: str(product.asin),
+  mpn: str(product.mpn),
+  manufacturer: str(product.manufacturer),
+  supplierName: str(product.supplierName),
+  supplierSku: str(product.supplierSku),
+  supplierUrl: str(product.supplierUrl),
+  costPrice: product.costPrice === null ? "" : toDollars(product.costPrice),
+  mapPrice: product.mapPrice === null ? "" : toDollars(product.mapPrice),
+  countryOfOrigin: str(product.countryOfOrigin),
+  unitsPerPallet: str(product.unitsPerPallet),
+  palletTi: str(product.palletTi),
+  palletHi: str(product.palletHi),
+  freightClass: str(product.freightClass),
+  nmfc: str(product.nmfc),
+  hazmat: product.hazmat,
+  unNumber: str(product.unNumber),
+  htsCode: str(product.htsCode),
+  shelfLifeDays: str(product.shelfLifeDays),
+  ingredients: str(product.ingredients),
+  allergens: product.allergens,
+  factsPanelImage: str(product.factsPanelImage),
+  fdaDisclaimer: product.fdaDisclaimer,
+  prop65Warning: str(product.prop65Warning),
+  certificationsText: product.certifications.map((cert) => (cert.documentUrl ? `${cert.name} | ${cert.documentUrl}` : cert.name)).join("\n"),
+  seoTitle: str(product.seoTitle),
+  seoDescription: str(product.seoDescription),
 });
 
 function parseSpecs(text: string) {
@@ -164,6 +239,29 @@ function parseSpecs(text: string) {
       return { label: line.slice(0, index).trim(), value: line.slice(index + 1).trim() };
     })
     .filter((row): row is { label: string; value: string } => Boolean(row && row.label && row.value));
+}
+
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  mono = false,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <label className="label" htmlFor={id}>{label}</label>
+      <input id={id} className={`field ${mono ? "font-mono" : ""}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+    </div>
+  );
 }
 
 function Section({ step, title, hint, children }: { step: number; title: string; hint?: string; children: React.ReactNode }) {
@@ -202,7 +300,10 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
       if (status === "live" && !product.active) return false;
       if (status === "archived" && product.active) return false;
       if (!needle) return true;
-      return [product.name, product.sku, product.brand].join(" ").toLowerCase().includes(needle);
+      return [product.name, product.sku, product.brand, product.gtin ?? "", product.asin ?? "", product.mpn ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
     });
   }, [products, query, department, status]);
 
@@ -218,6 +319,11 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
     const h = Number(form.h);
     const weight = Number(form.weightLbs);
     const unitCost = Number.isFinite(casePrice) && caseSize > 0 ? Math.round(casePrice / caseSize) : null;
+    const landed = form.costPrice.trim() ? toCents(form.costPrice) : Number.NaN;
+    const ourMargin =
+      Number.isFinite(landed) && Number.isFinite(casePrice) && casePrice > 0
+        ? Math.round(((casePrice - landed) / casePrice) * 100)
+        : null;
     const effectiveMsrp = Number.isFinite(msrp) ? msrp : unitCost !== null ? Math.round(unitCost * 1.6) : null;
     const margin =
       unitCost !== null && effectiveMsrp
@@ -225,7 +331,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
         : null;
     const dim = l > 0 && w > 0 && h > 0 ? (l * w * h) / 139 : null;
     const billable = dim !== null && weight > 0 ? Math.max(weight, Math.round(dim * 10) / 10) : null;
-    return { unitCost, effectiveMsrp, margin, dim, billable, msrpDefaulted: !Number.isFinite(msrp) };
+    return { unitCost, effectiveMsrp, margin, ourMargin, dim, billable, msrpDefaulted: !Number.isFinite(msrp) };
   }, [form]);
 
   const openEditor = (next: FormState) => {
@@ -300,7 +406,6 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
         .map((tier) => ({ minCases: Number(tier.minCases), casePrice: toCents(tier.casePrice) })),
       weightLbs: form.weightLbs,
       dimensions: { l: form.l, w: form.w, h: form.h },
-      stock: form.stock,
       leadTimeDays: form.leadTimeDays,
       images: form.images,
       features: form.featuresText.split(/\n+/),
@@ -308,6 +413,45 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
       badges: form.badgesText.split(","),
       featured: form.featured,
       active: form.active,
+      updatedAt: form.updatedAt,
+      reorderPoint: form.reorderPoint,
+      gtin: form.gtin,
+      caseGtin: form.caseGtin,
+      asin: form.asin,
+      mpn: form.mpn,
+      manufacturer: form.manufacturer,
+      supplierName: form.supplierName,
+      supplierSku: form.supplierSku,
+      supplierUrl: form.supplierUrl,
+      costPrice: optionalCents(form.costPrice),
+      mapPrice: optionalCents(form.mapPrice),
+      countryOfOrigin: form.countryOfOrigin,
+      unitsPerPallet: form.unitsPerPallet,
+      palletTi: form.palletTi,
+      palletHi: form.palletHi,
+      freightClass: form.freightClass,
+      nmfc: form.nmfc,
+      hazmat: form.hazmat,
+      unNumber: form.unNumber,
+      htsCode: form.htsCode,
+      shelfLifeDays: form.shelfLifeDays,
+      ingredients: form.ingredients,
+      allergens: form.allergens,
+      factsPanelImage: form.factsPanelImage,
+      fdaDisclaimer: form.fdaDisclaimer,
+      prop65Warning: form.prop65Warning,
+      certifications: form.certificationsText
+        .split(/\n+/)
+        .map((line) => {
+          const [name, documentUrl] = line.split("|").map((part) => part.trim());
+          return { name, documentUrl: documentUrl || null };
+        })
+        .filter((cert) => cert.name),
+      seoTitle: form.seoTitle,
+      seoDescription: form.seoDescription,
+      ...(form.id
+        ? {}
+        : { openingStock: form.openingStock, openingLot: form.openingLot, openingExpiresOn: form.openingExpiresOn }),
     };
 
     try {
@@ -514,10 +658,11 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     </p>
                   </div>
                   <div>
-                    <label className="label" htmlFor="pf-brand">Brand</label>
+                    <label className="label" htmlFor="pf-brand">Brand *</label>
                     <input
                       id="pf-brand"
                       className="field"
+                      required
                       value={form.brand}
                       onChange={(event) => patchForm({ brand: event.target.value })}
                       placeholder="Meridian Labs"
@@ -728,17 +873,69 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                 </div>
               </Section>
 
-              <Section step={4} title="Inventory & dispatch">
+              <Section
+                step={4}
+                title="Inventory & dispatch"
+                hint={
+                  form.id
+                    ? "Stock changes only through lots: receive goods or adjust a lot on the Inventory screen."
+                    : "Opening stock becomes the product's first lot. Food and supplements need a best-by date."
+                }
+              >
                 <div className="grid gap-3 sm:grid-cols-4">
+                  {form.id ? (
+                    <div>
+                      <p className="label">Sellable stock</p>
+                      <p className="py-2 text-[13px] font-bold tabular-nums">
+                        {form.stock} cases ·{" "}
+                        <Link href="/admin/inventory" className="text-[11px] font-semibold text-fern hover:underline">
+                          manage lots
+                        </Link>
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="label" htmlFor="pf-opening">Opening stock (cases)</label>
+                        <input
+                          id="pf-opening"
+                          className="field"
+                          inputMode="numeric"
+                          value={form.openingStock}
+                          onChange={(event) => patchForm({ openingStock: event.target.value.replace(/\D/g, "") })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="pf-opening-lot">Lot number</label>
+                        <input
+                          id="pf-opening-lot"
+                          className="field font-mono uppercase"
+                          value={form.openingLot}
+                          onChange={(event) => patchForm({ openingLot: event.target.value.toUpperCase() })}
+                          placeholder="auto"
+                        />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor="pf-opening-bb">Best by</label>
+                        <input
+                          id="pf-opening-bb"
+                          type="date"
+                          className="field"
+                          value={form.openingExpiresOn}
+                          onChange={(event) => patchForm({ openingExpiresOn: event.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
                   <div>
-                    <label className="label" htmlFor="pf-stock">Stock (cases) *</label>
+                    <label className="label" htmlFor="pf-reorder">Reorder point (cases)</label>
                     <input
-                      id="pf-stock"
+                      id="pf-reorder"
                       className="field"
                       inputMode="numeric"
-                      required
-                      value={form.stock}
-                      onChange={(event) => patchForm({ stock: event.target.value.replace(/\D/g, "") })}
+                      value={form.reorderPoint}
+                      onChange={(event) => patchForm({ reorderPoint: event.target.value.replace(/\D/g, "") })}
                     />
                   </div>
                   <div>
@@ -751,20 +948,129 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       onChange={(event) => patchForm({ leadTimeDays: event.target.value.replace(/\D/g, "") })}
                     />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-3">
                     <label className="label" htmlFor="pf-badges">Badges (comma separated)</label>
                     <input
                       id="pf-badges"
                       className="field"
                       value={form.badgesText}
                       onChange={(event) => patchForm({ badgesText: event.target.value })}
-                      placeholder="New, NSF certified"
+                      placeholder="New, Best seller (certifications go in Compliance)"
                     />
                   </div>
                 </div>
               </Section>
 
-              <Section step={5} title="Photos" hint="The first photo is the main image. JPG, PNG, WebP or GIF, up to 4 MB each, 8 photos max.">
+              <Section
+                step={5}
+                title="Identity & sourcing"
+                hint="UPC / GTIN is checked against its GS1 check digit. The ASIN is a reference only — the Amazon link is built from it."
+              >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <TextField id="pf-gtin" label="UPC / GTIN (unit)" value={form.gtin} onChange={(value) => patchForm({ gtin: value.replace(/[^\d]/g, "") })} placeholder="012345678905" mono />
+                  <TextField id="pf-case-gtin" label="Case GTIN (ITF-14)" value={form.caseGtin} onChange={(value) => patchForm({ caseGtin: value.replace(/[^\d]/g, "") })} placeholder="10012345678902" mono />
+                  <div>
+                    <TextField id="pf-asin" label="ASIN" value={form.asin} onChange={(value) => patchForm({ asin: value.toUpperCase().trim() })} placeholder="B0ABC12345" mono />
+                    {amazonUrl(form.asin) ? (
+                      <a href={amazonUrl(form.asin) ?? undefined} target="_blank" rel="noopener noreferrer nofollow" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-fern hover:underline">
+                        amazon.com/dp/{form.asin} <ExternalLink size={10} />
+                      </a>
+                    ) : null}
+                  </div>
+                  <TextField id="pf-mpn" label="Manufacturer part no. (MPN)" value={form.mpn} onChange={(value) => patchForm({ mpn: value })} />
+                  <TextField id="pf-mfr" label="Manufacturer" value={form.manufacturer} onChange={(value) => patchForm({ manufacturer: value })} />
+                  <TextField id="pf-coo" label="Country of origin (ISO code)" value={form.countryOfOrigin} onChange={(value) => patchForm({ countryOfOrigin: value.toUpperCase().slice(0, 2) })} placeholder="US" mono />
+                  <TextField id="pf-supplier" label="Supplier" value={form.supplierName} onChange={(value) => patchForm({ supplierName: value })} />
+                  <TextField id="pf-supplier-sku" label="Supplier SKU" value={form.supplierSku} onChange={(value) => patchForm({ supplierSku: value })} mono />
+                  <TextField id="pf-supplier-url" label="Supplier URL" value={form.supplierUrl} onChange={(value) => patchForm({ supplierUrl: value })} placeholder="https://" />
+                  <TextField id="pf-cost" label="Landed cost / case ($) — staff only" value={form.costPrice} onChange={(value) => patchForm({ costPrice: value })} placeholder="96.00" />
+                  <TextField id="pf-map" label="MAP / unit ($)" value={form.mapPrice} onChange={(value) => patchForm({ mapPrice: value })} placeholder="optional" />
+                </div>
+              </Section>
+
+              <Section step={6} title="Logistics" hint="Pallet pattern and freight class are used for LTL quotes and the warehouse.">
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <TextField id="pf-pallet" label="Cases / pallet" value={form.unitsPerPallet} onChange={(value) => patchForm({ unitsPerPallet: value.replace(/\D/g, "") })} />
+                  <TextField id="pf-ti" label="TI (cases / layer)" value={form.palletTi} onChange={(value) => patchForm({ palletTi: value.replace(/\D/g, "") })} />
+                  <TextField id="pf-hi" label="HI (layers)" value={form.palletHi} onChange={(value) => patchForm({ palletHi: value.replace(/\D/g, "") })} />
+                  <div>
+                    <label className="label" htmlFor="pf-class">Freight class</label>
+                    <select id="pf-class" className="field" value={form.freightClass} onChange={(event) => patchForm({ freightClass: event.target.value })}>
+                      <option value="">—</option>
+                      {FREIGHT_CLASSES.map((entry) => (
+                        <option key={entry} value={entry}>{entry}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <TextField id="pf-nmfc" label="NMFC item" value={form.nmfc} onChange={(value) => patchForm({ nmfc: value })} />
+                  <TextField id="pf-hts" label="HTS code" value={form.htsCode} onChange={(value) => patchForm({ htsCode: value })} placeholder="2106.90.9998" mono />
+                  <label className="mt-6 flex items-center gap-2 text-[12px] font-medium">
+                    <input type="checkbox" checked={form.hazmat} onChange={(event) => patchForm({ hazmat: event.target.checked })} className="accent-[#14241c]" />
+                    Hazardous material
+                  </label>
+                  {form.hazmat ? (
+                    <TextField id="pf-un" label="UN number" value={form.unNumber} onChange={(value) => patchForm({ unNumber: value.toUpperCase() })} placeholder="UN1993" mono />
+                  ) : null}
+                </div>
+              </Section>
+
+              <Section
+                step={7}
+                title="Compliance"
+                hint="Shown on the product page. Certification badges appear only with a document on file."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextField id="pf-shelf" label="Shelf life (days)" value={form.shelfLifeDays} onChange={(value) => patchForm({ shelfLifeDays: value.replace(/\D/g, "") })} placeholder="730" />
+                  <TextField id="pf-facts" label="Supplement / Nutrition Facts image (URL or /api/product-images/…)" value={form.factsPanelImage} onChange={(value) => patchForm({ factsPanelImage: value })} />
+                  <div className="sm:col-span-2">
+                    <label className="label" htmlFor="pf-ingredients">Ingredients</label>
+                    <textarea id="pf-ingredients" className="field min-h-[70px]" value={form.ingredients} onChange={(event) => patchForm({ ingredients: event.target.value })} />
+                  </div>
+                  <fieldset className="sm:col-span-2">
+                    <legend className="label">Major allergens (FALCPA)</legend>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                      {ALLERGENS.map((allergen) => (
+                        <label key={allergen} className="flex items-center gap-1.5 text-[11.5px] capitalize">
+                          <input
+                            type="checkbox"
+                            className="accent-[#14241c]"
+                            checked={form.allergens.includes(allergen)}
+                            onChange={(event) =>
+                              patchForm({
+                                allergens: event.target.checked
+                                  ? [...form.allergens, allergen]
+                                  : form.allergens.filter((entry) => entry !== allergen),
+                              })
+                            }
+                          />
+                          {allergen}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <label className="flex items-start gap-2 text-[12px] font-medium sm:col-span-2">
+                    <input type="checkbox" checked={form.fdaDisclaimer} onChange={(event) => patchForm({ fdaDisclaimer: event.target.checked })} className="mt-0.5 accent-[#14241c]" />
+                    Makes structure/function claims — show the FDA (DSHEA) disclaimer
+                  </label>
+                  <div className="sm:col-span-2">
+                    <label className="label" htmlFor="pf-prop65">California Prop 65 warning (leave blank if none)</label>
+                    <textarea id="pf-prop65" className="field min-h-[60px]" value={form.prop65Warning} onChange={(event) => patchForm({ prop65Warning: event.target.value })} placeholder="WARNING: This product can expose you to chemicals including lead, which is known to the State of California to cause cancer…" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="label" htmlFor="pf-certs">Certifications — one per line: Name | document URL</label>
+                    <textarea id="pf-certs" className="field min-h-[60px] font-mono text-[11px]" value={form.certificationsText} onChange={(event) => patchForm({ certificationsText: event.target.value })} placeholder={"NSF Certified for Sport | https://info.nsf.org/…\nNon-GMO Project Verified | /api/product-images/42"} />
+                  </div>
+                </div>
+              </Section>
+
+              <Section step={8} title="Search engines (optional)">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextField id="pf-seo-title" label="SEO title (max 70)" value={form.seoTitle} onChange={(value) => patchForm({ seoTitle: value.slice(0, 70) })} />
+                  <TextField id="pf-seo-desc" label="Meta description (max 170)" value={form.seoDescription} onChange={(value) => patchForm({ seoDescription: value.slice(0, 170) })} />
+                </div>
+              </Section>
+
+              <Section step={9} title="Photos" hint="The first photo is the main image. JPG, PNG, WebP or GIF, up to 4 MB each, 8 photos max.">
                 <div className="flex flex-wrap gap-3">
                   {form.images.map((url, index) => (
                     <div key={url} className="group relative">
@@ -833,7 +1139,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     className="btn btn-outline btn-sm shrink-0"
                     onClick={() => {
                       const url = imageUrl.trim();
-                      if (!/^https?:\/\/\S+$/i.test(url) && !/^\/(?!\/)\S*$/.test(url)) {
+                      if (!/^https:\/\/\S+$/i.test(url) && !/^\/(?!\/)\S*$/.test(url)) {
                         return setError("Enter a full https:// image URL or a /path on this site.");
                       }
                       setError(null);
@@ -851,7 +1157,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                 ) : null}
               </Section>
 
-              <Section step={6} title="Details (optional)">
+              <Section step={10} title="Details (optional)">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="label" htmlFor="pf-features">What ships in the case</label>
@@ -910,6 +1216,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       metrics?.effectiveMsrp != null ? formatMoney(metrics.effectiveMsrp) : "—",
                     ],
                     ["Retailer margin", metrics?.margin != null ? `${metrics.margin}%` : "—"],
+                    ["Our margin (on cost)", metrics?.ourMargin != null ? `${metrics.ourMargin}%` : "—"],
                     ["Dimensional weight", metrics?.dim != null ? `${metrics.dim.toFixed(1)} lb` : "—"],
                     ["Billable per case", metrics?.billable != null ? `${metrics.billable.toFixed(1)} lb` : "—"],
                   ].map(([label, value]) => (
@@ -992,24 +1299,14 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                   </td>
                   <td className="px-2 py-3 whitespace-nowrap text-ink/60">{product.caseSize} / case</td>
                   <td className="px-2 py-3">
-                    <input
-                      key={`${product.id}-${product.stock}`}
-                      type="number"
-                      min={0}
-                      defaultValue={product.stock}
-                      aria-label={`Stock for ${product.name}`}
-                      disabled={rowBusy === product.id}
-                      onBlur={(event) => {
-                        const next = Number(event.target.value);
-                        if (Number.isFinite(next) && next !== product.stock) void quickPatch(product, { stock: next });
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") (event.target as HTMLInputElement).blur();
-                      }}
-                      className={`w-[72px] rounded border bg-white px-2 py-1 text-[11.5px] font-bold tabular-nums ${
-                        product.stock <= 10 ? "border-clay/40 text-clay" : "border-ink/20"
-                      }`}
-                    />
+                    <Link
+                      href="/admin/inventory"
+                      className={`font-bold tabular-nums hover:underline ${product.stock <= product.reorderPoint ? "text-clay" : ""}`}
+                      title="Manage lots on the Inventory screen"
+                    >
+                      {product.stock}
+                    </Link>
+                    <p className="text-[9.5px] text-ink/40">reorder at {product.reorderPoint}</p>
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -1044,7 +1341,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => openEditor({ ...fromProduct(product), id: null, sku: "", name: `${product.name} (copy)`, active: false })}
+                        onClick={() => openEditor({ ...fromProduct(product), id: null, sku: "", gtin: "", caseGtin: "", updatedAt: null, name: `${product.name} (copy)`, active: false })}
                         className="rounded-full border border-ink/15 p-2 text-ink/55 hover:border-ink/40 hover:text-ink"
                         title="Duplicate as a new product"
                         aria-label={`Duplicate ${product.name}`}
@@ -1101,7 +1398,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
           </table>
         </div>
         <p className="border-t border-ink/10 bg-parchment/30 px-4 py-2.5 text-[10px] text-ink/45">
-          Edit stock in place — press Enter or click away to save. Archived products disappear from the store,
+          Stock is managed by lot on the Inventory screen. Archived products disappear from the store,
           search, sitemap and order sheets but stay in your order history.
         </p>
       </div>
