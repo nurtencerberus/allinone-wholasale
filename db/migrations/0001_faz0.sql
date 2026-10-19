@@ -1,5 +1,6 @@
 -- Faz 0 migration for a database created from an older db/schema.sql.
--- Run once in the Neon SQL Editor BEFORE deploying the faz-0 code. Safe to re-run.
+-- Run once in the Neon SQL Editor BEFORE deploying the faz-0 code. Re-running is harmless
+-- apart from invalidating any password-reset or verification links issued since the last run.
 -- A fresh, empty database should use db/schema.sql instead.
 
 BEGIN;
@@ -21,5 +22,25 @@ UPDATE "users" SET "tax_exempt" = false WHERE "tax_exempt" = true AND "tax_exemp
 
 -- Reset/verification tokens are now stored as digests; links issued before this change stop working.
 UPDATE "users" SET "reset_token" = NULL, "reset_expires" = NULL, "verification_token" = NULL, "verification_expires" = NULL;
+
+-- Card checkouts: server-side draft so an authorised payment always becomes an order.
+CREATE TABLE IF NOT EXISTS "checkout_sessions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"payment_intent_id" text NOT NULL,
+	"user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+	"payload" jsonb NOT NULL,
+	"amount" integer NOT NULL,
+	"status" text DEFAULT 'open' NOT NULL,
+	"order_id" integer REFERENCES "orders"("id") ON DELETE set null,
+	"failure_reason" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
+CREATE INDEX IF NOT EXISTS "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
+
+-- Retried order submits are recognised by this key.
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "idempotency_key" text;
+CREATE UNIQUE INDEX IF NOT EXISTS "orders_idempotency_key_unique" ON "orders" USING btree ("idempotency_key");
 
 COMMIT;

@@ -78,6 +78,12 @@ export function CheckoutFlow({
   const [intent, setIntent] = useState<{ mode: "stripe" | "demo" | "unavailable"; clientSecret: string | null; publishableKey: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // One id per checkout attempt: retries of the same submit are recognised server-side.
+  const [checkoutId] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`,
+  );
 
   const payload = items.map((item) => ({ productId: item.productId, cases: item.cases }));
 
@@ -177,11 +183,16 @@ export function CheckoutFlow({
           address,
           couponCode: couponCode || undefined,
           shippingOptionId: priced.shippingOptionId,
-          email: contact.email,
+          checkoutId,
+          ...contact,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not initialise payment.");
+      // The return page after a 3-D Secure redirect needs to know which cart to clear.
+      try {
+        window.sessionStorage.setItem("checkout:pending", String(data.paymentIntentId ?? ""));
+      } catch {}
       setIntent({ mode: data.mode, clientSecret: data.clientSecret, publishableKey: data.publishableKey });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not initialise payment.");
@@ -195,26 +206,17 @@ export function CheckoutFlow({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: payload,
-          address,
-          couponCode: couponCode || undefined,
-          shippingOptionId: quote?.shippingOptionId,
-          email: contact.email,
-          name: contact.name,
-          company: contact.company,
-          phone: contact.phone,
-          notes: contact.notes,
-          paymentRef: input.paymentRef,
-          paymentMethod: input.method,
-          poNumber: input.poNumber,
-        }),
+      const data = await submitOrder({
+        items: payload,
+        address,
+        couponCode: couponCode || undefined,
+        shippingOptionId: quote?.shippingOptionId,
+        checkoutId,
+        ...contact,
+        paymentIntentId: input.paymentRef,
+        paymentMethod: input.method,
+        poNumber: input.poNumber,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Order could not be placed.");
       clear();
       router.push(`/order/${data.orderNumber}?t=${data.accessToken}`);
     } catch (caught) {
@@ -783,4 +785,23 @@ export function CheckoutFlow({
       </div>
     </div>
   );
+}
+
+/**
+ * Posts the order. A card order may still be finalising (the Stripe webhook got there first),
+ * in which case the server answers 202 and we ask again shortly.
+ */
+export async function submitOrder(body: Record<string, unknown>): Promise<{ orderNumber: string; accessToken: string }> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (response.ok) return data;
+    if (!data.retry) throw new Error(data.error ?? "Order could not be placed.");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new Error("Your payment is being confirmed. Check your account's order history in a minute.");
 }

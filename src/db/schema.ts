@@ -229,6 +229,8 @@ export const orders = pgTable(
     // Unguessable key that lets a guest buyer open their own confirmation page.
     accessToken: text("access_token"),
     paymentRef: text("payment_ref"),
+    // Client-generated key (scoped to the account) so a retried submit cannot create a second order.
+    idempotencyKey: text("idempotency_key"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -237,6 +239,7 @@ export const orders = pgTable(
     uniqueIndex("orders_number_unique").on(table.orderNumber),
     // One captured card payment can produce at most one order (NULLs are allowed repeatedly).
     uniqueIndex("orders_payment_ref_unique").on(table.paymentRef),
+    uniqueIndex("orders_idempotency_key_unique").on(table.idempotencyKey),
     index("orders_user_idx").on(table.userId),
   ],
 );
@@ -296,6 +299,41 @@ export const wholesaleLists = pgTable(
 );
 
 /** Fixed-window counters for abuse limits (logins, sign-ups, card attempts, uploads). */
+/**
+ * Everything needed to create an order, saved when a card payment is started. The order is
+ * created from this row (by the browser or the Stripe webhook, whichever arrives first), so a
+ * closed tab can never leave an authorised card without an order.
+ */
+export const checkoutSessions = pgTable(
+  "checkout_sessions",
+  {
+    id: serial("id").primaryKey(),
+    paymentIntentId: text("payment_intent_id").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    payload: jsonb("payload").$type<CheckoutPayload>().notNull(),
+    amount: integer("amount").notNull(),
+    status: text("status").notNull().default("open"), // open | finalizing | ordered | failed
+    orderId: integer("order_id").references(() => orders.id, { onDelete: "set null" }),
+    failureReason: text("failure_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("checkout_sessions_pi_unique").on(table.paymentIntentId),
+    index("checkout_sessions_status_idx").on(table.status, table.updatedAt),
+  ],
+);
+
+export type CheckoutPayload = {
+  items: { productId: number; cases: number }[];
+  couponCode: string | null;
+  address: { line1: string; line2?: string; city: string; state: string; zip: string };
+  shippingOptionId: string;
+  contact: { email: string; name: string; company: string | null; phone: string | null; notes: string | null };
+};
+
 export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").notNull().default(0),
@@ -311,3 +349,4 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type WholesaleApplication = typeof wholesaleApplications.$inferSelect;
 export type Address = typeof addresses.$inferSelect;
 export type Coupon = typeof coupons.$inferSelect;
+export type CheckoutSession = typeof checkoutSessions.$inferSelect;
