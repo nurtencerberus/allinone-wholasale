@@ -81,6 +81,9 @@ CREATE TABLE "companies" (
 	"tax_exempt_cert_number" text,
 	"tax_exempt_expires" timestamp with time zone,
 	"ein" text,
+	"credit_limit" integer DEFAULT 0 NOT NULL,
+	"payment_terms_days" integer DEFAULT 30 NOT NULL,
+	"credit_hold" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -192,6 +195,7 @@ CREATE TABLE "orders" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"order_number" text NOT NULL,
 	"user_id" integer,
+	"due_at" timestamp with time zone,
 	"company_id" integer,
 	"email" text NOT NULL,
 	"customer_name" text NOT NULL,
@@ -420,6 +424,9 @@ CREATE TABLE "users" (
 	"tax_exempt_cert_number" text,
 	"tax_exempt_expires" timestamp with time zone,
 	"ein" text,
+	"credit_limit" integer DEFAULT 0 NOT NULL,
+	"payment_terms_days" integer DEFAULT 30 NOT NULL,
+	"credit_hold" boolean DEFAULT false NOT NULL,
 	"company_id" integer,
 	"company_role" text,
 	"totp_secret" text,

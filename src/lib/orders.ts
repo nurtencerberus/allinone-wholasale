@@ -84,6 +84,8 @@ export async function createOrderRecord(input: {
   paymentStatus: string;
   paymentRef: string | null;
   poNumber: string | null;
+  /** ODE-6: when an invoice order falls due; null for anything paid up front. */
+  dueAt?: Date | null;
   idempotencyKey: string | null;
   /** Resale certificate the exemption relied on, for the tax record. */
   exemptionCert?: string | null;
@@ -135,6 +137,7 @@ export async function createOrderRecord(input: {
             paymentStatus: input.paymentStatus,
             paymentMethod: input.paymentMethod,
             poNumber: input.poNumber,
+            dueAt: input.dueAt ?? null,
             accessToken,
             paymentRef: input.paymentRef,
             idempotencyKey: input.idempotencyKey,

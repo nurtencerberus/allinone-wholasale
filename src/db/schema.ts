@@ -46,6 +46,11 @@ export const companies = pgTable(
     taxExemptCertNumber: text("tax_exempt_cert_number"),
     taxExemptExpires: timestamp("tax_exempt_expires", { withTimezone: true }),
     ein: text("ein"),
+    /** ODE-6: invoice terms. 0 = no credit, so Net-30 is refused. */
+    creditLimit: integer("credit_limit").notNull().default(0),
+    paymentTermsDays: integer("payment_terms_days").notNull().default(30),
+    /** Set by the trade desk to stop new invoice orders whatever the balance says. */
+    creditHold: boolean("credit_hold").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -100,6 +105,10 @@ export const users = pgTable(
     taxExemptCertNumber: text("tax_exempt_cert_number"),
     taxExemptExpires: timestamp("tax_exempt_expires", { withTimezone: true }),
     ein: text("ein"),
+    /** ODE-6: invoice terms, canonical on the company when there is one. */
+    creditLimit: integer("credit_limit").notNull().default(0),
+    paymentTermsDays: integer("payment_terms_days").notNull().default(30),
+    creditHold: boolean("credit_hold").notNull().default(false),
     /** The company this person buys for (UX-7); null for a single-person account. */
     companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
     /** owner = manages members and terms, buyer = can order, viewer = read-only. */
@@ -501,6 +510,8 @@ export const orders = pgTable(
     id: serial("id").primaryKey(),
     orderNumber: text("order_number").notNull(),
     userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    /** ODE-6: when an invoice order falls due. Null for anything paid up front. */
+    dueAt: timestamp("due_at", { withTimezone: true }),
     /** The company the order was placed for, so colleagues can see it (UX-7). */
     companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
     email: text("email").notNull(),

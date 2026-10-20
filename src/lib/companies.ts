@@ -103,6 +103,9 @@ export async function syncCompanyTerms(companyId: number, tx: Executor = db): Pr
       taxExemptExpires: company.taxExemptExpires,
       company: company.name,
       ein: company.ein,
+      creditLimit: company.creditLimit,
+      paymentTermsDays: company.paymentTermsDays,
+      creditHold: company.creditHold,
     })
     // Staff accounts keep their own role and are never re-termed by a company.
     .where(and(eq(users.companyId, companyId), eq(users.role, "customer")));
@@ -131,6 +134,9 @@ export async function createCompanyForUser(user: SessionUser, name: string, acto
         taxExemptCertNumber: row.taxExemptCertNumber,
         taxExemptExpires: row.taxExemptExpires,
         ein: row.ein,
+        creditLimit: row.creditLimit,
+        paymentTermsDays: row.paymentTermsDays,
+        creditHold: row.creditHold,
       })
       .returning();
     await tx.update(users).set({ companyId: company.id, companyRole: "owner", company: clean }).where(eq(users.id, user.id));

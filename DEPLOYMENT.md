@@ -259,3 +259,4 @@ CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonuc
 | `0009_account_prices.sql` | Sözleşmeli fiyat deploy'undan önce | `account_prices` tablosu. Olmadan yeni kod teklif ve sipariş fiyatlamasında hata verir |
 | `0010_quote_requests.sql` | RFQ deploy'undan önce | `quote_requests` ve `quote_items` tabloları. Olmadan teklif ekranları ve gecelik cron hata verir |
 | `0011_company_accounts.sql` | Firma hesabı deploy'undan önce | `companies`, `company_invites` ve `company_id` sütunları. **Mevcut hesaplar birleştirilmez** — herkes bugünkü gibi tek kişilik devam eder, firma hesabı `/account/team`'den kurulur |
+| `0012_credit_terms.sql` | Kredi kontrolü deploy'undan önce | Kredi limiti / vade / hold sütunları ve `orders.due_at`. **Varsayılan limit 0'dır: migration sonrası Net-30 siparişleri, ticaret masası limit verene kadar reddedilir.** Mevcut açık faturalara 30 günlük vade tarihi yazılır |
