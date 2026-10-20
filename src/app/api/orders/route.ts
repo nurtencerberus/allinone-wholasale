@@ -139,6 +139,7 @@ export async function POST(request: Request) {
       order = await createOrderRecord({
         priced,
         userId: user.id,
+        companyId: user.companyId,
         contact: payload.contact,
         address: payload.address,
         paymentMethod: method,

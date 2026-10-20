@@ -20,7 +20,7 @@ export default async function QuickOrderPage() {
   const catalog = await cachedActiveCatalog();
   // Agreed prices belong to the viewer, so they are read per request and merged into the rows
   // that come from the shared catalogue cache (UX-7).
-  const contracts = await contractPricesFor(user?.id, catalog.map((product) => product.id));
+  const contracts = await contractPricesFor(user, catalog.map((product) => product.id));
 
   const wholesale = user?.accountTier === "wholesale";
   const discountPct = wholesale ? (user?.wholesaleDiscountPct ?? 0) : 0;

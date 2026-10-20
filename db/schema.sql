@@ -1,6 +1,7 @@
 CREATE TABLE "account_prices" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"user_id" integer NOT NULL,
+	"company_id" integer,
 	"product_id" integer NOT NULL,
 	"case_price" integer NOT NULL,
 	"min_cases" integer,
@@ -67,6 +68,33 @@ CREATE TABLE "checkout_sessions" (
 	"failure_reason" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE "companies" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"account_tier" text DEFAULT 'retail' NOT NULL,
+	"wholesale_discount_pct" integer DEFAULT 0 NOT NULL,
+	"tax_exempt" boolean DEFAULT false NOT NULL,
+	"tax_exempt_state" text,
+	"tax_exempt_cert_type" text,
+	"tax_exempt_cert_number" text,
+	"tax_exempt_expires" timestamp with time zone,
+	"ein" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE "company_invites" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"company_id" integer NOT NULL,
+	"email" text NOT NULL,
+	"company_role" text DEFAULT 'buyer' NOT NULL,
+	"token_digest" text NOT NULL,
+	"invited_by" integer,
+	"expires_at" timestamp with time zone NOT NULL,
+	"accepted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE "coupon_redemptions" (
@@ -164,6 +192,7 @@ CREATE TABLE "orders" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"order_number" text NOT NULL,
 	"user_id" integer,
+	"company_id" integer,
 	"email" text NOT NULL,
 	"customer_name" text NOT NULL,
 	"company" text,
@@ -305,6 +334,7 @@ CREATE TABLE "quote_requests" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"reference" text NOT NULL,
 	"user_id" integer NOT NULL,
+	"company_id" integer,
 	"status" text DEFAULT 'requested' NOT NULL,
 	"customer_note" text,
 	"admin_note" text,
@@ -390,6 +420,8 @@ CREATE TABLE "users" (
 	"tax_exempt_cert_number" text,
 	"tax_exempt_expires" timestamp with time zone,
 	"ein" text,
+	"company_id" integer,
+	"company_role" text,
 	"totp_secret" text,
 	"totp_pending_secret" text,
 	"totp_enabled_at" timestamp with time zone,
@@ -445,6 +477,7 @@ CREATE TABLE "wholesale_lists" (
 );
 
 ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
@@ -454,6 +487,8 @@ ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_id_products_id_fk" F
 ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "company_invites" ADD CONSTRAINT "company_invites_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "company_invites" ADD CONSTRAINT "company_invites_invited_by_users_id_fk" FOREIGN KEY ("invited_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_coupon_id_coupons_id_fk" FOREIGN KEY ("coupon_id") REFERENCES "public"."coupons"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
@@ -468,10 +503,12 @@ ALTER TABLE "order_item_lots" ADD CONSTRAINT "order_item_lots_lot_id_product_lot
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "orders" ADD CONSTRAINT "orders_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "orders" ADD CONSTRAINT "orders_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "product_lots" ADD CONSTRAINT "product_lots_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "quote_items" ADD CONSTRAINT "quote_items_quote_id_quote_requests_id_fk" FOREIGN KEY ("quote_id") REFERENCES "public"."quote_requests"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "quote_items" ADD CONSTRAINT "quote_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "quote_requests" ADD CONSTRAINT "quote_requests_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "quote_requests" ADD CONSTRAINT "quote_requests_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "quote_requests" ADD CONSTRAINT "quote_requests_quoted_by_users_id_fk" FOREIGN KEY ("quoted_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "return_items" ADD CONSTRAINT "return_items_return_id_return_requests_id_fk" FOREIGN KEY ("return_id") REFERENCES "public"."return_requests"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "return_items" ADD CONSTRAINT "return_items_order_item_id_order_items_id_fk" FOREIGN KEY ("order_item_id") REFERENCES "public"."order_items"("id") ON DELETE cascade ON UPDATE no action;
@@ -479,6 +516,7 @@ ALTER TABLE "return_requests" ADD CONSTRAINT "return_requests_order_id_orders_id
 ALTER TABLE "return_requests" ADD CONSTRAINT "return_requests_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "reviews" ADD CONSTRAINT "reviews_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "users" ADD CONSTRAINT "users_company_id_companies_id_fk" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "wholesale_applications" ADD CONSTRAINT "wholesale_applications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 CREATE UNIQUE INDEX "account_prices_account_product_unique" ON "account_prices" USING btree ("user_id","product_id");
 CREATE INDEX "account_prices_user_idx" ON "account_prices" USING btree ("user_id");
@@ -490,6 +528,9 @@ CREATE UNIQUE INDEX "carts_user_unique" ON "carts" USING btree ("user_id");
 CREATE INDEX "carts_updated_idx" ON "carts" USING btree ("updated_at");
 CREATE UNIQUE INDEX "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
 CREATE INDEX "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
+CREATE INDEX "companies_name_idx" ON "companies" USING btree ("name");
+CREATE UNIQUE INDEX "company_invites_token_unique" ON "company_invites" USING btree ("token_digest");
+CREATE INDEX "company_invites_company_idx" ON "company_invites" USING btree ("company_id");
 CREATE UNIQUE INDEX "coupon_redemptions_order_unique" ON "coupon_redemptions" USING btree ("coupon_id","order_id");
 CREATE INDEX "coupon_redemptions_customer_idx" ON "coupon_redemptions" USING btree ("coupon_id","user_id");
 CREATE UNIQUE INDEX "coupons_code_unique" ON "coupons" USING btree ("code");

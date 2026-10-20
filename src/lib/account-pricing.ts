@@ -25,11 +25,16 @@ function live(rows: AccountPrice[], now: Date): AccountPrice[] {
   );
 }
 
-/** Every price in force for this account, optionally narrowed to the products in a cart. */
-export async function contractPricesFor(
-  userId: number | null | undefined,
-  productIds?: number[],
-): Promise<ContractPrices> {
+export type PricedAccount = { id: number; companyId?: number | null } | null | undefined;
+
+/**
+ * Every price in force for this buyer, optionally narrowed to the products in a cart. A member
+ * of a company account also gets the company's prices (UX-7); a price agreed with the person
+ * directly wins over the company's for that SKU.
+ */
+export async function contractPricesFor(account: PricedAccount, productIds?: number[]): Promise<ContractPrices> {
+  const userId = account?.id;
+  const companyId = account?.companyId ?? null;
   if (!userId) return NO_CONTRACT_PRICES;
   if (productIds && !productIds.length) return NO_CONTRACT_PRICES;
 
@@ -39,16 +44,22 @@ export async function contractPricesFor(
     .from(accountPrices)
     .where(
       and(
-        eq(accountPrices.userId, userId),
+        companyId ? or(eq(accountPrices.userId, userId), eq(accountPrices.companyId, companyId)) : eq(accountPrices.userId, userId),
         productIds ? inArray(accountPrices.productId, productIds) : undefined,
         or(isNull(accountPrices.startsAt), lte(accountPrices.startsAt, now)),
         or(isNull(accountPrices.expiresAt), gt(accountPrices.expiresAt, now)),
       ),
     );
 
-  return new Map(
-    live(rows, now).map((row) => [row.productId, { casePrice: row.casePrice, minCases: row.minCases }]),
-  );
+  const result: ContractPrices = new Map();
+  for (const row of live(rows, now)) {
+    // The company price is the floor everyone shares; a price agreed with this person wins.
+    const mine = row.userId === userId;
+    if (!result.has(row.productId) || mine) {
+      result.set(row.productId, { casePrice: row.casePrice, minCases: row.minCases });
+    }
+  }
+  return result;
 }
 
 /** Everything the trade desk sees on an account's price list, in force or not. */

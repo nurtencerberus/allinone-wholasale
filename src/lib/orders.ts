@@ -76,6 +76,8 @@ export type CreatedOrder = { id: number; orderNumber: string; accessToken: strin
 export async function createOrderRecord(input: {
   priced: PricedOrder;
   userId: number;
+  /** The company the buyer belongs to, so colleagues can see the order (UX-7). */
+  companyId?: number | null;
   contact: OrderContact;
   address: OrderAddress;
   paymentMethod: "card" | "net30" | "ach";
@@ -106,6 +108,7 @@ export async function createOrderRecord(input: {
           .values({
             orderNumber,
             userId: input.userId,
+            companyId: input.companyId ?? null,
             email: input.contact.email,
             customerName: input.contact.name,
             company: input.contact.company,

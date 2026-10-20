@@ -113,6 +113,13 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
   ve tarih penceresi vardır; dışındaysa normal fiyatlandırmaya düşer. `PricedLine.priceSource` =
   catalog | tier | contract. Vitrinde BuyBox ve hızlı sipariş aynı kuralı uygular ama **gösterim amaçlıdır** —
   bağlayıcı olan `priceCart()`. Fiyat kullanıcıya özel olduğu için katalog önbelleğine girmez.
+- **Firma hesabı (UX-7):** `companies` + `users.company_id/company_role` (owner | buyer | viewer),
+  davetler `company_invites` (yalnızca jeton özeti saklanır, 14 gün, tek e-postaya bağlı).
+  Ticari koşullar (tier, indirim, muafiyet) firmada **asıl**, `syncCompanyTerms()` ile üye kullanıcı
+  satırlarına kopyalanır — fiyatlama, oturum ve admin ekranları eskisi gibi tek alanı okumaya devam eder.
+  Firma kapsamı: `account_prices.company_id` (kişiye özel fiyat firmanınkini ezer), `quote_requests.company_id`,
+  `orders.company_id` → `canViewOrder()` meslektaşı da kabul eder. Yeni bir "firma verisi" eklerken bu üç
+  sütunu ve `companyScope()`'u hatırlayın; aksi halde bir firmanın verisi diğerine görünebilir.
 - **RFQ (UX-7):** `quote_requests` + `quote_items` (`src/lib/quotes.ts`; istemciye giden tip ve sabitler
   `src/lib/quotes-view.ts` — sunucu modülünü istemci bileşenine import etmeyin). Durum makinesi
   `QUOTE_TRANSITIONS`: requested → quoted → accepted/declined; karar verilmiş teklif yeniden açılmaz.

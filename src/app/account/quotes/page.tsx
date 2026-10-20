@@ -13,7 +13,7 @@ export const metadata = {
 export default async function BuyerQuotesPage() {
   const user = await getSessionUser();
   if (!canSeePrices(user)) return <PriceLockNotice user={user} next="/account/quotes" />;
-  const quotes = await listQuotes(user.id);
+  const quotes = await listQuotes(user);
 
   return (
     <div>

@@ -76,7 +76,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   // UX-7: the price this account has agreed for this SKU, if any. Read per request — it is
   // specific to the viewer, so it never goes near the shared catalogue cache.
-  const contractPrice = (await contractPricesFor(user?.id, [product.id])).get(product.id) ?? null;
+  const contractPrice = (await contractPricesFor(user, [product.id])).get(product.id) ?? null;
 
   // Archived products are hidden from the public store; admins can still preview them.
   const archivedPreview = !product.active;
