@@ -2,7 +2,8 @@ import { and, eq, lt, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { loginChallenges, orders, products, rateLimits, sessions } from "@/db/schema";
 import { sweepStaleCheckouts } from "@/lib/card-checkout";
-import { escapeHtml, sendEmail } from "@/lib/email";
+import { abandonedCarts, markCartReminded } from "@/lib/cart-store";
+import { abandonedCartTemplate, escapeHtml, sendEmail } from "@/lib/email";
 import { pullExpiringLots, stockDrift } from "@/lib/inventory";
 import { cancelOrderAndRestock } from "@/lib/orders";
 import { appOrigin, SITE } from "@/lib/site";
@@ -81,12 +82,27 @@ export async function GET(request: Request) {
     }
   }
 
-  // 5. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
+  // 5. One reminder for a cart a trade buyer left sitting (SEP-7).
+  const waiting = await abandonedCarts();
+  const reminded: string[] = [];
+  for (const cart of waiting) {
+    try {
+      const template = abandonedCartTemplate({ name: cart.name, lines: cart.lines, url: `${appOrigin()}/checkout` });
+      await sendEmail({ to: cart.email, subject: template.subject, html: template.html });
+      await markCartReminded(cart.cartId);
+      reminded.push(cart.email);
+    } catch (error) {
+      console.error("[cron-cart-reminder]", cart.cartId, error);
+    }
+  }
+  report.cartsReminded = reminded.length;
+
+  // 6. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
   const drift = await stockDrift();
   report.stockDrift = drift;
   if (drift.length) console.error("[cron-stock-drift]", JSON.stringify(drift));
 
-  // 6. Expired sessions, sign-in challenges and rate-limit windows.
+  // 7. Expired sessions, sign-in challenges and rate-limit windows.
   await db.delete(loginChallenges).where(lt(loginChallenges.expiresAt, new Date()));
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;

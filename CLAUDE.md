@@ -187,6 +187,10 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
   (oturuma bağlı başlık), dolayısıyla statik prerender beklenmez.
 - Etkileşimli parçalar `src/components/**` altında `"use client"` bileşenleri ve `/api/**` route'larına `fetch` eder.
 - Sepet istemci tarafında `CartProvider` + `localStorage`; sunucuya yalnızca `{ productId, cases }[]` gider.
+  Girişli kullanıcıda sepet ayrıca sunucuda tutulur (`carts`/`cart_items`, `src/lib/cart-store.ts`): açılışta
+  `PATCH /api/cart` yerel sepeti kayıtlıyla **birleştirir** (satır başına büyük adet alınır, toplanmaz), her
+  değişiklikte `PUT /api/cart` kaydeder, sipariş oluşunca `clearCart()` boşaltır. Cron 3 gün dokunulmamış sepet
+  için **tek** hatırlatma e-postası atar (`reminded_at`; sepet değişince sıfırlanır).
 - DB bağlantı havuzu `src/db/index.ts`: serverless için küçük (`DATABASE_POOL_MAX`, varsayılan 5), Neon'da
   **pooled** (`-pooler`) bağlantı dizesi + `sslmode=require`. Stripe/pg kullanan route'lar `runtime = "nodejs"`.
 - Güvenlik başlıkları `next.config.ts`'te tanımlı; **CSP** de orada (`default-src 'self'`, Stripe için

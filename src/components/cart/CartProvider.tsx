@@ -72,7 +72,7 @@ function readStored(key: string): CartItem[] {
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children, signedIn = false }: { children: ReactNode; signedIn?: boolean }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [view, setView] = useState<CartView | null>(null);
   const [hydrated, setHydrated] = useState(false);
@@ -90,9 +90,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // storage may be unavailable in private mode
       }
     }
-    setItems(stored.length ? stored : legacy);
-    setHydrated(true);
-  }, []);
+    const local = stored.length ? stored : legacy;
+    setItems(local);
+
+    if (!signedIn) {
+      setHydrated(true);
+      return;
+    }
+    // Signed in: fold this browser's cart into the one on the server and take the result, so a
+    // cart started on another device is here too (SEP-7).
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/cart", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ items: local }),
+        });
+        const data = (await response.json()) as { items?: CartItem[]; stored?: boolean };
+        if (!cancelled && data.stored && Array.isArray(data.items)) setItems(data.items);
+      } catch {
+        // Offline: the local cart stands on its own until the next change syncs.
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -139,6 +165,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => void load(items), 150);
     return () => clearTimeout(timer);
   }, [items, hydrated, load]);
+
+  // Keep the stored cart in step. Last write wins, which is what a buyer expects from the
+  // device they are using; a failed write only means the server copy is one change behind.
+  useEffect(() => {
+    if (!hydrated || !signedIn) return;
+    const timer = setTimeout(() => {
+      void fetch("/api/cart", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items }),
+      }).catch(() => undefined);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [items, hydrated, signedIn]);
 
   useEffect(() => {
     if (!isOpen) return;

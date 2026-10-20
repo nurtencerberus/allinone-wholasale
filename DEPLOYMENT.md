@@ -241,3 +241,4 @@ lotuna dönüşmesi) yapmaz.
 | `0005_weight_ounces.sql` | Faz 2 kargo deploy'undan **önce** | `weight_oz` sütununu ekler ve `weight_lbs × 16` ile doldurur, eski sütunu NULL kabul eder. Eski kod çalışmaya devam eder — kesinti yok |
 | `0006_drop_weight_lbs.sql` | Faz 2 kargo deploy'u canlıya çıktıktan **sonra** | Artık kullanılmayan `weight_lbs` sütununu düşürür. Önce çalıştırılırsa canlıdaki eski kod ürün sayfalarında hata verir |
 | `0007_performance_indexes.sql` | Performans deploy'uyla birlikte (öncesi veya sonrası fark etmez) | Jeton aramaları, hesap sipariş geçmişi, admin listeleri ve gecelik temizlik için eksik indeksler. Veriye dokunmaz |
+| `0008_server_cart.sql` | Sunucu sepeti deploy'undan önce | `carts` ve `cart_items` tabloları. Olmadan yeni kod sepet senkronunda hata verir (misafir sepeti etkilenmez) |

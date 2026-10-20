@@ -108,6 +108,22 @@ export const orderConfirmationTemplate = (input: {
   ),
 });
 
+/** SEP-7: one nudge for a cart a trade buyer left sitting. Items only, never prices. */
+export const abandonedCartTemplate = (input: {
+  name: string;
+  lines: { name: string; sku: string; cases: number }[];
+  url: string;
+}) => ({
+  subject: "Your Ciputra cart is still here",
+  html: shell(
+    `Still need these, ${escapeHtml(input.name.split(" ")[0])}?`,
+    `Your cart is saved and waiting:<ul>${input.lines
+      .map((line) => `<li>${line.cases} × ${escapeHtml(line.name)} <span style="color:#6b7a71">(${escapeHtml(line.sku)})</span></li>`)
+      .join("")}</ul>Stock and freight are priced when you check out, so quantities may need a second look if an item has moved.`,
+    { label: "Open your cart", url: input.url },
+  ),
+});
+
 export const wholesaleDecisionTemplate = (input: {
   company: string;
   approved: boolean;

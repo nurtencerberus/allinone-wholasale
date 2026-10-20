@@ -8,6 +8,7 @@ import { priceCart } from "@/lib/checkout";
 import { parseCheckoutRequest, type CheckoutRequestBody } from "@/lib/checkout-request";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
+import { clearCart } from "@/lib/cart-store";
 import { CouponUnavailableError, createOrderRecord, sendOrderConfirmation, StockShortError } from "@/lib/orders";
 import { ensureSeeded } from "@/lib/seed";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -164,6 +165,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    // The cart became an order: the stored copy must not follow the buyer to the next device.
+    await clearCart(user.id).catch((error) => console.error("[orders] cart clear", error));
     await sendOrderConfirmation(order, payload.contact, priced.total);
     await rememberOrder(order.orderNumber, order.accessToken);
 

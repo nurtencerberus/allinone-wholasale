@@ -3,6 +3,7 @@ import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { checkoutSessions, orders, users, type CheckoutPayload } from "@/db/schema";
 import { canSeePrices, toSessionUser } from "@/lib/auth";
+import { clearCart } from "@/lib/cart-store";
 import { priceCart } from "@/lib/checkout";
 import {
   cancelOrderAndRestock,
@@ -184,6 +185,7 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
     .update(checkoutSessions)
     .set({ status: "ordered", orderId: order.id, updatedAt: new Date() })
     .where(eq(checkoutSessions.id, session.id));
+  await clearCart(user.id).catch((error) => console.error("[card-checkout] cart clear", error));
   await sendOrderConfirmation(order, payload.contact, priced.total);
 
   return { ok: true, orderId: order.id, orderNumber: order.orderNumber, accessToken: order.accessToken, alreadyExisted: false };

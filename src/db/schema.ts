@@ -349,6 +349,41 @@ export const couponRedemptions = pgTable(
   ],
 );
 
+/**
+ * The signed-in buyer's cart, kept on the server so it follows them between devices and
+ * survives a cleared browser (SEP-7). Guests keep theirs in local storage only.
+ */
+export const carts = pgTable(
+  "carts",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When the abandoned-cart reminder was sent for the cart as it stood then. */
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("carts_user_unique").on(table.userId), index("carts_updated_idx").on(table.updatedAt)],
+);
+
+export const cartItems = pgTable(
+  "cart_items",
+  {
+    id: serial("id").primaryKey(),
+    cartId: integer("cart_id")
+      .notNull()
+      .references(() => carts.id, { onDelete: "cascade" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    cases: integer("cases").notNull(),
+    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // One row per product: the quantity is replaced, never appended to.
+  (table) => [uniqueIndex("cart_items_product_unique").on(table.cartId, table.productId)],
+);
+
 export const addresses = pgTable(
   "addresses",
   {
@@ -638,6 +673,8 @@ export const rateLimits = pgTable(
   (table) => [index("rate_limits_reset_idx").on(table.resetAt)],
 );
 
+export type Cart = typeof carts.$inferSelect;
+export type CartRow = typeof cartItems.$inferSelect;
 export type WholesaleList = typeof wholesaleLists.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;

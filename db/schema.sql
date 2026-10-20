@@ -27,6 +27,21 @@ CREATE TABLE "audit_log" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE "cart_items" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"cart_id" integer NOT NULL,
+	"product_id" integer NOT NULL,
+	"cases" integer NOT NULL,
+	"added_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE "carts" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"user_id" integer NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"reminded_at" timestamp with time zone
+);
+
 CREATE TABLE "checkout_sessions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"payment_intent_id" text NOT NULL,
@@ -393,6 +408,9 @@ CREATE TABLE "wholesale_lists" (
 
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cart_id_carts_id_fk" FOREIGN KEY ("cart_id") REFERENCES "public"."carts"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_coupon_id_coupons_id_fk" FOREIGN KEY ("coupon_id") REFERENCES "public"."coupons"("id") ON DELETE cascade ON UPDATE no action;
@@ -420,6 +438,9 @@ ALTER TABLE "wholesale_applications" ADD CONSTRAINT "wholesale_applications_user
 CREATE INDEX "addresses_user_idx" ON "addresses" USING btree ("user_id");
 CREATE INDEX "audit_log_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id");
 CREATE INDEX "audit_log_created_idx" ON "audit_log" USING btree ("created_at");
+CREATE UNIQUE INDEX "cart_items_product_unique" ON "cart_items" USING btree ("cart_id","product_id");
+CREATE UNIQUE INDEX "carts_user_unique" ON "carts" USING btree ("user_id");
+CREATE INDEX "carts_updated_idx" ON "carts" USING btree ("updated_at");
 CREATE UNIQUE INDEX "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
 CREATE INDEX "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
 CREATE UNIQUE INDEX "coupon_redemptions_order_unique" ON "coupon_redemptions" USING btree ("coupon_id","order_id");
