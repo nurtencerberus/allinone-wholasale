@@ -1,17 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  BadgeCheck,
-  Check,
-  Loader2,
-  Percent,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  ShieldOff,
-  UserCog,
-} from "lucide-react";
+import { BadgeCheck, Check, Loader2, Percent, RefreshCw, Search, ShieldCheck, ShieldOff, Tag, UserCog } from "lucide-react";
 import { formatDate, formatMoney } from "@/lib/money";
 import { ROLE_LABELS, ROLES } from "@/lib/staff";
 
@@ -332,6 +323,16 @@ export function AdminUsers({
                   </td>
 
                   <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {account.accountTier === "wholesale" ? (
+                        <Link
+                          href={`/admin/accounts/${account.id}/prices`}
+                          className="btn btn-outline btn-sm whitespace-nowrap"
+                          title="Agreed prices for this account"
+                        >
+                          <Tag size={11} /> Prices
+                        </Link>
+                      ) : null}
                     <button
                       onClick={() => save(account)}
                       disabled={busyId === account.id || (!canManageAccounts && !canManageStaff)}
@@ -344,6 +345,7 @@ export function AdminUsers({
                       ) : null}
                       Save
                     </button>
+                    </div>
                   </td>
                 </tr>
               );

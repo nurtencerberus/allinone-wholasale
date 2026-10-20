@@ -35,11 +35,17 @@ export type QuickOrderSku = {
   minCases: number;
   msrpUnit: number;
   weightLbs: number;
+  /** This account's agreed price for the SKU and the cases it needs, if one exists (UX-7). */
+  contractCasePrice?: number | null;
+  contractMinCases?: number | null;
 };
 
 type Notice = { tone: "ok" | "warn" | "error"; messages: string[] };
 
 function effectivePrice(sku: QuickOrderSku, cases: number, discountPct: number): number {
+  // A negotiated price replaces the tier price and is not discounted again (UX-7), the same
+  // rule priceCart() applies on the server.
+  if (sku.contractCasePrice && cases >= (sku.contractMinCases ?? sku.minCases)) return sku.contractCasePrice;
   let best = sku.casePrice;
   for (const tier of sku.priceTiers ?? []) {
     if (cases >= tier.minCases) best = Math.min(best, tier.casePrice);

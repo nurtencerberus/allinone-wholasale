@@ -107,6 +107,12 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
   müşteri başı kullanım limiti, `allowed_tiers`, `stackable` (sözleşme indirimiyle birleşmez) ve asgari tutar.
   Kullanım siparişle **aynı transaction'da** sayılır (`coupons` satırı `FOR UPDATE`, `coupon_redemptions` kaydı);
   kargo kuponu yalnızca `option.ground` servisini sıfırlar. Admin ekranı `/admin/coupons` (`accounts` izni).
+- **Sözleşmeli fiyat (UX-7):** `account_prices` (hesap + ürün) anlaşılmış koli fiyatını tutar.
+  `contractPricesFor()` (`src/lib/account-pricing.ts`) ile okunur ve **katalog/kademe fiyatının yerine geçer**;
+  hesabın yüzde indirimi bunun **üstüne uygulanmaz** (aksi halde çifte indirim olur). İsteğe bağlı `min_cases`
+  ve tarih penceresi vardır; dışındaysa normal fiyatlandırmaya düşer. `PricedLine.priceSource` =
+  catalog | tier | contract. Vitrinde BuyBox ve hızlı sipariş aynı kuralı uygular ama **gösterim amaçlıdır** —
+  bağlayıcı olan `priceCart()`. Fiyat kullanıcıya özel olduğu için katalog önbelleğine girmez.
 - **Tek fiyat kaynağı `priceCart()`** (`src/lib/checkout.ts`): kademe fiyatı → toptan hesap indirimi (en fazla %40) →
   kupon (satırlara `allocateDiscount` ile dağıtılır) → adres kontrolü → kargo (`quoteShipping`) → vergi (`quoteTax`).
   Sorunları sessizce düzeltmez, **`blockers`** listesi döner (asgari koli/tutar, stok, >999 koli, teslimat bölgesi,

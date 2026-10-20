@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { couponRedemptions, coupons, products, type Coupon, type Dimensions } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth";
+import { contractPricesFor } from "@/lib/account-pricing";
 import { quoteShipping, summariseFreight, type ShippingOption } from "@/lib/shipping";
 import { allocateTax, quoteTax, type TaxAllocation, type TaxQuote } from "@/lib/tax";
 import { shipToProblem } from "@/lib/ship-to";
@@ -32,6 +33,8 @@ export type PricedLine = {
   stock: number;
   listCasePrice: number;
   casePrice: number;
+  /** catalog = list price, tier = volume break, contract = this account's negotiated price. */
+  priceSource: "catalog" | "tier" | "contract";
   unitPrice: number;
   lineTotal: number;
   catalogLineTotal: number;
@@ -165,6 +168,7 @@ export async function priceCart(input: {
 
   const byId = new Map(rows.map((row) => [row.id, row]));
   const user = input.user ?? null;
+  const contracts = await contractPricesFor(user?.id, rows.map((row) => row.id));
   const wholesaleActive = user?.accountTier === "wholesale";
   const discountPct = wholesaleActive ? Math.min(Math.max(user?.wholesaleDiscountPct ?? 0, 0), 40) : 0;
 
@@ -190,10 +194,21 @@ export async function priceCart(input: {
           : `${product.name} is out of stock.`,
       );
     }
-    const listCasePrice = resolveCasePrice(product, item.cases);
-    const casePrice = discountPct
-      ? Math.round(listCasePrice * (1 - discountPct / 100))
-      : listCasePrice;
+    // A negotiated price replaces the catalogue and tier price, and the account's percentage
+    // discount is not applied on top of it (UX-7): the buyer is discounted once, not twice.
+    const contract = contracts.get(product.id);
+    const contractApplies = Boolean(contract && item.cases >= (contract.minCases ?? product.minCases));
+    const listCasePrice = contractApplies ? contract!.casePrice : resolveCasePrice(product, item.cases);
+    const casePrice = contractApplies
+      ? contract!.casePrice
+      : discountPct
+        ? Math.round(listCasePrice * (1 - discountPct / 100))
+        : listCasePrice;
+    const priceSource: PricedLine["priceSource"] = contractApplies
+      ? "contract"
+      : listCasePrice < product.casePrice
+        ? "tier"
+        : "catalog";
     lines.push({
       productId: product.id,
       slug: product.slug,
@@ -208,11 +223,15 @@ export async function priceCart(input: {
       stock: product.stock,
       listCasePrice,
       casePrice,
+      priceSource,
       unitPrice: Math.round(casePrice / Math.max(product.caseSize, 1)),
       lineTotal: casePrice * item.cases,
       catalogLineTotal: product.casePrice * item.cases,
-      tierSaving: Math.max(0, (product.casePrice - listCasePrice) * item.cases),
-      accountSaving: Math.max(0, (listCasePrice - casePrice) * item.cases),
+      // A contract saving is an account saving, not a volume break.
+      tierSaving: contractApplies ? 0 : Math.max(0, (product.casePrice - listCasePrice) * item.cases),
+      accountSaving: contractApplies
+        ? Math.max(0, (product.casePrice - casePrice) * item.cases)
+        : Math.max(0, (listCasePrice - casePrice) * item.cases),
       weightOz: product.weightOz,
       dimensions: product.dimensions,
     });

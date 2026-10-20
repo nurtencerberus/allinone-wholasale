@@ -350,6 +350,39 @@ export const couponRedemptions = pgTable(
 );
 
 /**
+ * UX-7: a negotiated case price for one account and one product. It replaces the catalogue and
+ * tier price for that buyer — the account's percentage discount is **not** applied on top, or a
+ * negotiated price would quietly be discounted twice. An optional window lets the trade desk
+ * agree a price for a season; outside it the buyer falls back to normal pricing.
+ */
+export const accountPrices = pgTable(
+  "account_prices",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    /** Agreed price per case, in cents. */
+    casePrice: integer("case_price").notNull(),
+    /** Minimum cases this price depends on; null means the product's own minimum. */
+    minCases: integer("min_cases"),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    note: text("note"),
+    createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("account_prices_account_product_unique").on(table.userId, table.productId),
+    index("account_prices_user_idx").on(table.userId),
+  ],
+);
+
+/**
  * The signed-in buyer's cart, kept on the server so it follows them between devices and
  * survives a cleared browser (SEP-7). Guests keep theirs in local storage only.
  */
@@ -673,6 +706,7 @@ export const rateLimits = pgTable(
   (table) => [index("rate_limits_reset_idx").on(table.resetAt)],
 );
 
+export type AccountPrice = typeof accountPrices.$inferSelect;
 export type Cart = typeof carts.$inferSelect;
 export type CartRow = typeof cartItems.$inferSelect;
 export type WholesaleList = typeof wholesaleLists.$inferSelect;
