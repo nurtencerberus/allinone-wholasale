@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 export function ProductGallery({
@@ -16,12 +17,14 @@ export function ProductGallery({
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-xl border border-ink/10 bg-parchment">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative aspect-square overflow-hidden rounded-xl border border-ink/10 bg-parchment">
+        <Image
           src={gallery[active]}
           alt={`${name} — image ${active + 1}`}
-          className="aspect-square w-full object-cover"
+          fill
+          priority
+          sizes="(min-width: 1024px) 45vw, 100vw"
+          className="object-cover"
         />
         {badge ? (
           <span className="absolute left-4 top-4 rounded-full bg-ink/85 px-3 py-1.5 text-[9.5px] font-bold tracking-[0.1em] text-cream uppercase backdrop-blur">
@@ -40,12 +43,11 @@ export function ProductGallery({
               type="button"
               onClick={() => setActive(index)}
               aria-label={`View image ${index + 1}`}
-              className={`overflow-hidden rounded-lg border transition-all ${
+              className={`relative aspect-square overflow-hidden rounded-lg border transition-all ${
                 active === index ? "border-ink ring-1 ring-ink/20" : "border-ink/10 opacity-70 hover:opacity-100"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image} alt="" className="aspect-square w-full object-cover" />
+              <Image src={image} alt="" fill sizes="120px" className="object-cover" />
             </button>
           ))}
         </div>

@@ -60,7 +60,12 @@ export const users = pgTable(
     recoveryCodes: jsonb("recovery_codes").$type<string[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("users_email_unique").on(table.email)],
+  (table) => [
+    uniqueIndex("users_email_unique").on(table.email),
+    // Sign-up verification and password reset look a user up by the token digest alone.
+    index("users_verification_token_idx").on(table.verificationToken),
+    index("users_reset_token_idx").on(table.resetToken),
+  ],
 );
 
 export const sessions = pgTable(
@@ -73,7 +78,11 @@ export const sessions = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("sessions_user_idx").on(table.userId)],
+  (table) => [
+    index("sessions_user_idx").on(table.userId),
+    // The daily cron deletes everything already expired.
+    index("sessions_expires_idx").on(table.expiresAt),
+  ],
 );
 
 /** Password accepted, second factor pending. The cookie holds the token; the row holds its digest. */
@@ -213,6 +222,8 @@ export const products = pgTable(
     uniqueIndex("products_gtin_unique").on(table.gtin),
     index("products_asin_idx").on(table.asin),
     index("products_category_idx").on(table.category),
+    // The storefront only ever lists active products, and the home page the featured ones.
+    index("products_active_featured_idx").on(table.active, table.featured),
   ],
 );
 
@@ -425,6 +436,9 @@ export const orders = pgTable(
     uniqueIndex("orders_payment_ref_unique").on(table.paymentRef),
     uniqueIndex("orders_idempotency_key_unique").on(table.idempotencyKey),
     index("orders_user_idx").on(table.userId),
+    // Account history matches on the verified email; every admin list is newest-first.
+    index("orders_email_idx").on(table.email),
+    index("orders_created_idx").on(table.createdAt),
   ],
 );
 
@@ -613,11 +627,16 @@ export type CheckoutPayload = {
 };
 
 /** Fixed-window counters for abuse limits (logins, sign-ups, card attempts, uploads). */
-export const rateLimits = pgTable("rate_limits", {
-  key: text("key").primaryKey(),
-  count: integer("count").notNull().default(0),
-  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
-});
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    key: text("key").primaryKey(),
+    count: integer("count").notNull().default(0),
+    resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+  },
+  // The daily cron sweeps every window that has already closed.
+  (table) => [index("rate_limits_reset_idx").on(table.resetAt)],
+);
 
 export type WholesaleList = typeof wholesaleLists.$inferSelect;
 export type User = typeof users.$inferSelect;

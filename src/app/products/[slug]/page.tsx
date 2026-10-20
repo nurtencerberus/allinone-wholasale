@@ -1,3 +1,4 @@
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
@@ -16,10 +17,19 @@ import { addDays, EXPIRY_PULL_DAYS, isoDate } from "@/lib/inventory";
 import { amazonUrl, FDA_DISCLAIMER, regionName } from "@/lib/product-data";
 import { ozToLbs } from "@/lib/weight";
 
+/**
+ * One row per request: generateMetadata and the page itself both need the product, and React's
+ * cache() keeps that a single query instead of two (PRF-3).
+ */
+const productBySlug = cache(async (slug: string) => {
+  const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+  return product ?? null;
+});
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   try {
-    const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+    const product = await productBySlug(slug);
     if (!product || !product.active) {
       return { title: "Product not found", robots: { index: false, follow: false } };
     }
@@ -41,7 +51,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
+  const product = await productBySlug(slug);
   if (!product) notFound();
 
   const [productReviews, related, user, nextLot] = await Promise.all([

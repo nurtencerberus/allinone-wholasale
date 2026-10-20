@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { and, asc, desc, eq } from "drizzle-orm";
 import {
@@ -268,10 +269,13 @@ export default async function HomePage() {
 
           <div className="relative">
             <div className="relative overflow-hidden rounded-[20px] border border-ink/10 shadow-[0_30px_70px_-40px_rgba(20,36,28,0.6)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/hero-warehouse.jpg"
                 alt="Wholesale warehouse shelves stocked with cartons, supplement bottles and home goods"
+                width={1280}
+                height={960}
+                priority
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 className="h-[380px] w-full object-cover sm:h-[460px] lg:h-[540px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
@@ -359,10 +363,12 @@ export default async function HomePage() {
               href={`/shop?category=${category.key}`}
               className="group relative overflow-hidden rounded-xl border border-ink/10"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={category.image}
                 alt={category.name}
+                width={800}
+                height={720}
+                sizes="(min-width: 768px) 33vw, 100vw"
                 className="h-[300px] w-full object-cover transition-transform duration-700 group-hover:scale-105 sm:h-[360px]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/25 to-transparent" />
