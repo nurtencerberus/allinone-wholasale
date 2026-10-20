@@ -49,6 +49,8 @@ export const SITE = {
   originZip: "07503",
   originState: "NJ",
   freeFreightThreshold: 75000,
+  /** The freight allowance covers ground parcel to zones 1–6 only (src/lib/shipping.ts). */
+  freeFreightMaxZone: 6,
   minOrderValue: 15000,
 };
 

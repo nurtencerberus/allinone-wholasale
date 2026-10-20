@@ -2,8 +2,8 @@ import { randomInt } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { pgConstraint } from "@/db/errors";
-import { orderEvents, orderItemLots, orderItems, orders } from "@/db/schema";
-import type { PricedOrder } from "@/lib/checkout";
+import { couponRedemptions, coupons, orderEvents, orderItemLots, orderItems, orders } from "@/db/schema";
+import { couponProblem, type PricedOrder } from "@/lib/checkout";
 import { orderConfirmationTemplate, sendEmail } from "@/lib/email";
 import { allocateFefo, returnToLot, StockShortError, type Tx } from "@/lib/inventory";
 import { formatMoney } from "@/lib/money";
@@ -41,6 +41,9 @@ export async function recordOrderEvent(
     visibleToCustomer: Boolean(event.visibleToCustomer),
   });
 }
+
+/** The coupon was still valid when the cart was priced but not when the order was written. */
+export class CouponUnavailableError extends Error {}
 
 export class DuplicatePaymentError extends Error {
   constructor() {
@@ -157,6 +160,41 @@ export async function createOrderRecord(input: {
             })),
           )
           .returning({ id: orderItems.id });
+
+        // Coupon use is counted in the same transaction as the order, with the coupon row locked:
+        // two orders placed at once cannot both take the last redemption, and an order that
+        // fails later never burns one. The rules are checked again here against fresh counts.
+        if (priced.couponId) {
+          const [coupon] = await tx.select().from(coupons).where(eq(coupons.id, priced.couponId)).for("update").limit(1);
+          if (!coupon) throw new CouponUnavailableError(`Coupon ${priced.couponCode} is no longer available.`);
+          let customerRedemptions = 0;
+          if (coupon.perCustomerLimit !== null) {
+            const [used] = await tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(couponRedemptions)
+              .where(and(eq(couponRedemptions.couponId, coupon.id), eq(couponRedemptions.userId, input.userId)));
+            customerRedemptions = used?.count ?? 0;
+          }
+          const problem = couponProblem(coupon, {
+            now: new Date(),
+            eligibleBase: priced.lines.reduce((sum, line) => sum + line.lineTotal, 0),
+            accountDiscount: priced.accountDiscount,
+            accountTier: priced.accountTier,
+            customerRedemptions,
+          });
+          if (problem) throw new CouponUnavailableError(problem);
+          await tx
+            .update(coupons)
+            .set({ redeemedCount: coupon.redeemedCount + 1 })
+            .where(eq(coupons.id, coupon.id));
+          await tx.insert(couponRedemptions).values({
+            couponId: coupon.id,
+            orderId: row.id,
+            userId: input.userId,
+            email: input.contact.email,
+            amount: priced.couponDiscount,
+          });
+        }
 
         // Lock products in id order so two orders for the same items cannot deadlock.
         const byProduct = [...priced.lines.entries()].sort((a, b) => a[1].productId - b[1].productId);

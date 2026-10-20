@@ -1,4 +1,5 @@
 import type { Product } from "@/db/schema";
+import { ozToLbs } from "@/lib/weight";
 
 /**
  * What a product card or cart line may receive in the browser. Wholesale prices are
@@ -37,7 +38,7 @@ export function toCardProduct(product: Product, showPrices: boolean): CardProduc
     caseSize: product.caseSize,
     minCases: product.minCases,
     msrpUnit: product.msrpUnit,
-    weightLbs: product.weightLbs,
+    weightLbs: ozToLbs(product.weightOz),
     stock: product.stock,
     casePrice: showPrices ? product.casePrice : null,
   };

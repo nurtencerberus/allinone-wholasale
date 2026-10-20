@@ -168,7 +168,9 @@ export function normalizeCatalogPayload(payload: unknown): { rows: ImportRow[]; 
         caseSize: first(row, "caseSize", "unitsPerCase", "packSize", "qty"),
         minCases: row.minCases,
         priceTiers: tiers,
+        // Pounds from a supplier sheet, or ounces when the file is precise (src/lib/weight.ts).
         weightLbs: first(row, "weightLbs", "weight"),
+        weightOz: first(row, "weightOz", "weightOunces"),
         dimensions: {
           l: first(dimensionsRaw, "l", "length") ?? row.length,
           w: first(dimensionsRaw, "w", "width") ?? row.width,

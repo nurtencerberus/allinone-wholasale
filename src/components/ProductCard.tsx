@@ -102,22 +102,7 @@ export function ProductCard({ product, index }: { product: CardProduct; index?: 
                   disabled={adding || product.stock < product.minCases}
                   onClick={() => {
                     setAdding(true);
-                    addItem(
-                      {
-                        productId: product.id,
-                        slug: product.slug,
-                        name: product.name,
-                        sku: product.sku,
-                        image: product.image,
-                        casePrice,
-                        caseSize: product.caseSize,
-                        msrpUnit: product.msrpUnit,
-                        minCases: product.minCases,
-                        category: product.category,
-                        weightLbs: product.weightLbs,
-                      },
-                      product.minCases,
-                    );
+                    addItem({ productId: product.id, minCases: product.minCases }, product.minCases);
                     window.setTimeout(() => setAdding(false), 500);
                   }}
                   aria-label={`Add ${product.minCases} case${product.minCases === 1 ? "" : "s"} of ${product.name} to cart`}

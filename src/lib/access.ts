@@ -1,6 +1,10 @@
 // Client-safe access rules (no database or cookie imports), shared by server and browser code.
 import { isStaffRole } from "@/lib/staff";
 
+/** Customer account tiers; "wholesale" is the approved trade account. */
+export const ACCOUNT_TIERS = ["retail", "wholesale"] as const;
+export type AccountTier = (typeof ACCOUNT_TIERS)[number];
+
 type PriceViewer = { role: string; accountTier: string };
 
 /**

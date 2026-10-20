@@ -310,8 +310,9 @@ export default function WholesalePage() {
               ))}
             </div>
             <div className="border-t border-ink/10 bg-fern/5 px-5 py-3 text-[10.5px] leading-relaxed text-fern">
-              Freight allowance: parcel freight is waived on orders over {formatMoney(SITE.freeFreightThreshold)} shipping
-              to zones 1–6. LTL is always quoted at cost.
+              Freight allowance: ground parcel freight is waived on orders over{" "}
+              {formatMoney(SITE.freeFreightThreshold)} shipping to zones 1–{SITE.freeFreightMaxZone} in the contiguous 48
+              states. Air upgrades and LTL are always quoted at cost.
             </div>
           </div>
         </div>

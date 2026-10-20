@@ -4,6 +4,7 @@ import { products } from "@/db/schema";
 import { buildOrderSheetCsv, buildOrderSheetXlsx, type OrderSheetProduct } from "@/lib/order-sheet";
 import { ensureSeeded } from "@/lib/seed";
 import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
+import { ozToLbs } from "@/lib/weight";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
       priceTiers: product.priceTiers ?? [],
       msrpUnit: product.msrpUnit,
       stock: product.stock,
-      weightLbs: product.weightLbs,
+      weightLbs: ozToLbs(product.weightOz),
       dimensions: product.dimensions,
       leadTimeDays: product.leadTimeDays,
       slug: product.slug,

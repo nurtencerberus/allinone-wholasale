@@ -6,11 +6,12 @@ import { ArrowRight, Check, Minus, Plus, ShieldCheck, Truck } from "lucide-react
 import { useCart } from "@/components/cart/CartProvider";
 import type { Product } from "@/db/schema";
 import { formatMoney, unitPriceOf } from "@/lib/money";
+import { ozToLbs } from "@/lib/weight";
 
 /** Only what the buy box needs — never the full Product row (cost, supplier) in the browser. */
 export type BuyBoxProduct = Pick<
   Product,
-  "id" | "slug" | "name" | "sku" | "image" | "caseSize" | "msrpUnit" | "minCases" | "category" | "weightLbs" | "casePrice" | "priceTiers" | "stock"
+  "id" | "slug" | "name" | "sku" | "image" | "caseSize" | "msrpUnit" | "minCases" | "category" | "weightOz" | "casePrice" | "priceTiers" | "stock"
 >;
 
 export function BuyBox({
@@ -45,22 +46,7 @@ export function BuyBox({
   const lowStock = product.stock <= 10;
 
   const handleAdd = () => {
-    addItem(
-      {
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        sku: product.sku,
-        image: product.image,
-        casePrice: accountPrice,
-        caseSize: product.caseSize,
-        msrpUnit: product.msrpUnit,
-        minCases: product.minCases,
-        category: product.category,
-        weightLbs: product.weightLbs,
-      },
-      cases,
-    );
+    addItem({ productId: product.id, minCases: product.minCases }, cases);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
   };
@@ -176,7 +162,7 @@ export function BuyBox({
             },
             {
               icon: Truck,
-              text: `Dimensional freight quoted at checkout · ${product.weightLbs} lb carton`,
+              text: `Dimensional freight quoted at checkout · ${ozToLbs(product.weightOz)} lb carton`,
               tone: "text-ink/60",
             },
             {

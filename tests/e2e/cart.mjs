@@ -92,6 +92,61 @@ r = await quote([...big, { productId: home.id, cases: 2 }], NJ);
 check("inactive product removed with notice", r.json.quote.removedProductIds.includes(home.id) && r.json.quote.messages.some((m) => m.includes("no longer available")));
 await q("update products set active=true where id=$1", [home.id]);
 
+// --- freight rules (KRG-4, KRG-7) -------------------------------------------------------------
+// The allowance is for ground parcel, so the shipment must stay under the pallet thresholds:
+// price and carton size are fixed here instead of relying on whatever the seed happens to hold.
+const freightSku = [...prods].sort((a, b) => b.case_price - a.case_price)[0];
+const [freightBefore] = await q("select weight_oz, dimensions from products where id=$1", [freightSku.id]);
+await q(`update products set weight_oz = 48, dimensions = '{"l":8,"w":6,"h":4}'::jsonb where id=$1`, [freightSku.id]);
+const freight = [{ productId: freightSku.id, cases: casesFor(freightSku, 150_000) }];
+r = await quote(freight, NJ);
+let shipOptions = r.json.quote.shippingOptions;
+const groundOption = shipOptions.find((option) => option.ground);
+check("a ground option is offered", Boolean(groundOption), JSON.stringify(shipOptions.map((o) => o.id)));
+check("the freight allowance waives ground over the threshold", r.json.quote.shippingCost === 0 && /allowance/i.test(groundOption?.note ?? ""), JSON.stringify(r.json.quote.shippingOptions));
+const airOption = shipOptions.find((option) => !option.ground && option.mode === "parcel");
+if (airOption) {
+  r = await quote(freight, NJ, { shippingOptionId: airOption.id });
+  check("the allowance does not pay for an air upgrade", r.json.quote.shippingCost > 0, `${r.json.quote.shippingCost}`);
+}
+r = await quote([{ productId: freightSku.id, cases: freightSku.min_cases }], NJ);
+check("a small order pays for ground", r.json.quote.shippingOptions.find((o) => o.ground)?.cost > 0, JSON.stringify(r.json.quote.shippingOptions.map((o) => [o.id, o.cost])));
+
+await q("update products set hazmat = true where id=$1", [freightSku.id]);
+r = await quote(freight, NJ);
+check("hazardous goods are not offered an air service", r.json.quote.shippingOptions.every((option) => option.ground || option.mode === "ltl"), JSON.stringify(r.json.quote.shippingOptions.map((o) => o.id)));
+await q("update products set hazmat = false where id=$1", [freightSku.id]);
+await q("update products set weight_oz = $2, dimensions = $3 where id=$1", [freightSku.id, freightBefore.weight_oz, freightBefore.dimensions]);
+
+// --- cart view (SEP-3): prices come from the server, never from local storage ----------------
+const cartItems = [{ productId: supp.id, cases: 2 }, { productId: supp.id, cases: 1 }];
+r = await buyer.post("/api/cart", { items: cartItems });
+const buyerCart = r.json?.cart;
+check(
+  "cart view prices the cart for a trade account",
+  r.status === 200 && buyerCart?.pricesVisible === true && buyerCart.lines.length === 1 && buyerCart.lines[0].cases === 3 && buyerCart.lines[0].casePrice > 0,
+  r.text.slice(0, 160),
+);
+check(
+  "cart subtotal equals the sum of its lines",
+  buyerCart.subtotal === buyerCart.lines.reduce((sum, line) => sum + line.lineTotal, 0),
+  `${buyerCart.subtotal}`,
+);
+const guestCart = new Client();
+r = await guestCart.post("/api/cart", { items: cartItems });
+check(
+  "the same cart shows no price once signed out",
+  r.status === 200 && r.json.cart.pricesVisible === false && r.json.cart.subtotal === null && r.json.cart.lines.every((line) => line.casePrice === null && line.lineTotal === null),
+  r.text.slice(0, 160),
+);
+check("locked cart still shows what is in it", r.json.cart.lines.length === 1 && r.json.cart.lines[0].sku === (await q("select sku from products where id=$1", [supp.id]))[0].sku);
+r = await buyer.post("/api/cart", { items: [{ productId: supp.id, cases: supp.stock + 1 }] });
+check("cart view flags a line that cannot be ordered", r.json.cart.lines[0].problem?.includes("stock"), JSON.stringify(r.json.cart.lines[0]));
+await q("update products set active=false where id=$1", [home.id]);
+r = await buyer.post("/api/cart", { items: [{ productId: home.id, cases: 1 }, { productId: supp.id, cases: 2 }] });
+check("cart view drops an inactive product", r.json.cart.removedProductIds.includes(home.id) && r.json.cart.lines.length === 1);
+await q("update products set active=true where id=$1", [home.id]);
+
 // --- order endpoint refuses blockers ---------------------------------------
 const opt = (await quote(big, NJ)).json.quote.shippingOptionId;
 r = await buyer.post("/api/orders", { items: [{ productId: cheapest.id, cases: 1 }], address: NJ, shippingOptionId: opt, paymentMethod: "ach", name: "Dana", email: "buyer@harborhouse.com", checkoutId: crypto.randomUUID() });

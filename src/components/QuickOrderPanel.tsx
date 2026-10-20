@@ -185,22 +185,7 @@ export function QuickOrderPanel({
     if (!selected.length) return;
     for (const sku of selected) {
       const count = qty[sku.productId] ?? 0;
-      addItem(
-        {
-          productId: sku.productId,
-          slug: sku.slug,
-          name: sku.name,
-          sku: sku.sku,
-          image: sku.image,
-          casePrice: effectivePrice(sku, count, discountPct),
-          caseSize: sku.caseSize,
-          msrpUnit: sku.msrpUnit,
-          minCases: sku.minCases,
-          category: sku.category,
-          weightLbs: sku.weightLbs,
-        },
-        count,
-      );
+      addItem({ productId: sku.productId, minCases: sku.minCases }, count);
     }
     setAdded(totals.cases);
     setQty({});

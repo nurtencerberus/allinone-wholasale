@@ -5,6 +5,7 @@ import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import { resolveCasePrice } from "@/lib/checkout";
 import { ensureSeeded } from "@/lib/seed";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { ozToLbs } from "@/lib/weight";
 
 export async function POST(request: Request) {
   try {
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
           msrpUnit: product.msrpUnit,
           minCases: product.minCases,
           category: product.category,
-          weightLbs: product.weightLbs,
+          weightLbs: ozToLbs(product.weightOz),
           stock: product.stock,
           priceTiers: product.priceTiers,
         },

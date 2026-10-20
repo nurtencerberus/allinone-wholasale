@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Menu, Search, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import type { SessionUser } from "@/lib/auth";
+import { formatMoney } from "@/lib/money";
 import { SITE } from "@/lib/site";
 
 const NAV = [
@@ -38,7 +39,9 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           <div className="flex items-center gap-3 sm:gap-5">
             <span className="text-cream">B2B wholesale · USA</span>
             <span className="hidden text-cream/40 sm:inline">|</span>
-            <span className="hidden sm:inline">Free freight over $750</span>
+            <span className="hidden sm:inline">
+              Free ground freight over {formatMoney(SITE.freeFreightThreshold)} · zones 1–{SITE.freeFreightMaxZone}
+            </span>
             <span className="hidden text-cream/40 md:inline">|</span>
             <span className="hidden md:inline">Net 30 for approved retailers</span>
           </div>

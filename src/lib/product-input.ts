@@ -10,6 +10,7 @@ import {
   normaliseGtin,
   regionName,
 } from "@/lib/product-data";
+import { lbsToOz, ozToLbs } from "@/lib/weight";
 
 export type ProductValues = {
   sku: string;
@@ -25,7 +26,7 @@ export type ProductValues = {
   caseSize: number;
   minCases: number;
   priceTiers: PriceTier[];
-  weightLbs: number;
+  weightOz: number;
   dimensions: Dimensions;
   leadTimeDays: number;
   image: string;
@@ -223,10 +224,16 @@ export function validateProductInput(body: unknown): Result {
     previousPrice = tier.casePrice;
   }
 
-  const weightLbs = int(input.weightLbs);
-  if (!Number.isFinite(weightLbs) || weightLbs < 1 || weightLbs > 2000) {
-    return { ok: false, error: "Carton weight must be a whole number of pounds from 1 to 2,000." };
+  // Weight is entered and imported in pounds and stored in whole ounces, so a light carton
+  // (0.6 lb) is priced for freight as it really is instead of rounding to 0 or 1 lb (KRG-6).
+  const weightOz =
+    input.weightOz === undefined || input.weightOz === null || input.weightOz === ""
+      ? lbsToOz(Number(input.weightLbs))
+      : int(input.weightOz);
+  if (!Number.isFinite(weightOz) || weightOz < 1 || weightOz > 32_000) {
+    return { ok: false, error: "Carton weight must be between 0.06 lb (1 oz) and 2,000 lb." };
   }
+  const weightLbs = ozToLbs(weightOz);
 
   const dimensions: Dimensions = {
     l: int((input.dimensions as Record<string, unknown> | undefined)?.l),
@@ -387,7 +394,7 @@ export function validateProductInput(body: unknown): Result {
       caseSize,
       minCases,
       priceTiers: tiers,
-      weightLbs,
+      weightOz,
       dimensions,
       leadTimeDays: leadRaw,
       image: gallery[0],

@@ -4,18 +4,10 @@ import { useState } from "react";
 import { Check, Copy, Printer, RotateCcw } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 
+/** Reordering only needs quantities; the cart reads names and prices back from the server. */
 export type ReorderItem = {
   productId: number;
-  slug: string;
-  name: string;
-  sku: string;
-  image: string;
-  casePrice: number;
-  caseSize: number;
-  msrpUnit: number;
   minCases: number;
-  category: string;
-  weightLbs: number;
   cases: number;
 };
 
@@ -30,7 +22,7 @@ export function OrderActions({
   const [done, setDone] = useState(false);
 
   const reorder = () => {
-    for (const { cases, ...item } of items) addItem(item, cases);
+    for (const item of items) addItem({ productId: item.productId, minCases: item.minCases }, item.cases);
     setDone(true);
   };
 

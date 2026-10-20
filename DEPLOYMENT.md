@@ -237,3 +237,6 @@ lotuna dönüşmesi) yapmaz.
 | `0001_faz0.sql` | Faz 0 deploy'undan önce | Uygulandı (19 Ekim 2026) |
 | `0002_faz1.sql` | Faz 1 deploy'undan **hemen** önce | Mevcut stok `<SKU>-OPENING` lotuna taşınır (best-by boş — `/admin/inventory`'de girin). Migration ile deploy arasında sipariş gelirse cron `stockDrift` raporlar |
 | `0003_return_items_unique.sql` | İade düzeltmeleriyle aynı deploy'da | Aynı sipariş satırını iki kez içeren iade satırlarını tek satıra toplar, sonra `return_items(return_id, order_item_id)` için tekil indeks ekler |
+| `0004_coupon_rules.sql` | Faz 2 sepet/kupon deploy'undan önce (0003'ten sonra) | Kupona tarih, kullanım limiti, tier ve stacking alanları; `coupon_redemptions` tablosu. Kuponlu mevcut siparişler kullanım kaydına dönüştürülür ve `redeemed_count` buna göre ayarlanır |
+| `0005_weight_ounces.sql` | Faz 2 kargo deploy'undan **önce** | `weight_oz` sütununu ekler ve `weight_lbs × 16` ile doldurur, eski sütunu NULL kabul eder. Eski kod çalışmaya devam eder — kesinti yok |
+| `0006_drop_weight_lbs.sql` | Faz 2 kargo deploy'u canlıya çıktıktan **sonra** | Artık kullanılmayan `weight_lbs` sütununu düşürür. Önce çalıştırılırsa canlıdaki eski kod ürün sayfalarında hata verir |

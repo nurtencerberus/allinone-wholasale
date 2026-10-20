@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Product } from "@/db/schema";
 import { formatMoney } from "@/lib/money";
+import { ozToLbs } from "@/lib/weight";
 import { ALLERGENS, amazonUrl, FREIGHT_CLASSES } from "@/lib/product-data";
 import { CATEGORIES, categoryName } from "@/lib/site";
 import { defaultTaxClass } from "@/lib/tax";
@@ -183,7 +184,7 @@ const fromProduct = (product: AdminProduct): FormState => ({
     minCases: String(tier.minCases),
     casePrice: toDollars(tier.casePrice),
   })),
-  weightLbs: String(product.weightLbs),
+  weightLbs: String(ozToLbs(product.weightOz)),
   l: String(product.dimensions.l),
   w: String(product.dimensions.w),
   h: String(product.dimensions.h),
@@ -843,11 +844,11 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     <input
                       id="pf-weight"
                       className="field"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       required
                       value={form.weightLbs}
-                      onChange={(event) => patchForm({ weightLbs: event.target.value.replace(/\D/g, "") })}
-                      placeholder="15"
+                      onChange={(event) => patchForm({ weightLbs: event.target.value.replace(/[^\d.]/g, "") })}
+                      placeholder="15.5"
                     />
                   </div>
                   {(

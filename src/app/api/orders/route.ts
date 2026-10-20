@@ -8,7 +8,7 @@ import { priceCart } from "@/lib/checkout";
 import { parseCheckoutRequest, type CheckoutRequestBody } from "@/lib/checkout-request";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
-import { createOrderRecord, sendOrderConfirmation, StockShortError } from "@/lib/orders";
+import { CouponUnavailableError, createOrderRecord, sendOrderConfirmation, StockShortError } from "@/lib/orders";
 import { ensureSeeded } from "@/lib/seed";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -148,6 +148,9 @@ export async function POST(request: Request) {
     } catch (error) {
       if (error instanceof StockShortError) {
         return Response.json({ error: `${error.productName} no longer has enough stock. Please update your cart.` }, { status: 409 });
+      }
+      if (error instanceof CouponUnavailableError) {
+        return Response.json({ error: error.message }, { status: 409 });
       }
       // Lost a race with an identical concurrent submit: return the order it created.
       const [raced] = await db

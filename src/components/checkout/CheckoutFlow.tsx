@@ -53,7 +53,7 @@ export function CheckoutFlow({
   user: SessionUser | null;
   savedAddresses: SavedAddress[];
 }) {
-  const { items, subtotal, clear, hydrated, removeItem } = useCart();
+  const { items, lines: cartLines, subtotal, clear, hydrated, removeItem } = useCart();
   const router = useRouter();
 
   const [step, setStep] = useState(1);
@@ -240,8 +240,29 @@ export function CheckoutFlow({
     );
   }
 
-  const localSubtotal = quote?.subtotal ?? subtotal;
-  const displayTotal = quote?.total ?? subtotal;
+  const localSubtotal = quote?.subtotal ?? subtotal ?? 0;
+  const displayTotal = quote?.total ?? subtotal ?? 0;
+  // The summary is drawn from the server's own lines — the quote once it exists, otherwise the
+  // priced cart — so a line never shows a price the server did not calculate (SEP-3, SEP-4).
+  const summaryLines = quote
+    ? quote.lines.map((line) => ({
+        productId: line.productId,
+        name: line.name,
+        image: line.image,
+        caseSize: line.caseSize,
+        cases: line.cases,
+        casePrice: line.casePrice as number | null,
+        lineTotal: line.lineTotal as number | null,
+      }))
+    : cartLines.map((line) => ({
+        productId: line.productId,
+        name: line.name,
+        image: line.image,
+        caseSize: line.caseSize,
+        cases: line.cases,
+        casePrice: line.casePrice,
+        lineTotal: line.lineTotal,
+      }));
 
   return (
     <div className="wrap py-8 lg:py-10">
@@ -693,27 +714,23 @@ export function CheckoutFlow({
             <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-4 py-3">
               <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Order summary</p>
               <p className="text-[11px] font-semibold text-ink/50">
-                {quote ? `${quote.cases} cases · ${quote.unitCount} units` : `${items.length} SKUs`}
+                {quote ? `${quote.cases} cases · ${quote.unitCount} units` : `${summaryLines.length} SKUs`}
               </p>
             </div>
             <ul className="max-h-[300px] divide-y divide-ink/8 overflow-y-auto">
-              {items.map((item) => (
-                <li key={item.productId} className="flex gap-3 px-4 py-3">
+              {summaryLines.map((line) => (
+                <li key={line.productId} className="flex gap-3 px-4 py-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt={item.name} className="h-12 w-12 rounded border border-ink/10 object-cover" />
+                  <img src={line.image} alt={line.name} className="h-12 w-12 rounded border border-ink/10 object-cover" />
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-[11.5px] font-semibold leading-snug">{item.name}</p>
+                    <p className="line-clamp-2 text-[11.5px] font-semibold leading-snug">{line.name}</p>
                     <p className="mt-0.5 text-[10px] text-ink/45">
-                      {item.cases} × {item.caseSize} units · {formatMoney(
-                        quote?.lines.find((line) => line.productId === item.productId)?.casePrice ?? item.casePrice,
-                      )}/case
+                      {line.cases} × {line.caseSize} units
+                      {line.casePrice === null ? "" : ` · ${formatMoney(line.casePrice)}/case`}
                     </p>
                   </div>
                   <p className="text-[11.5px] font-bold tabular-nums">
-                    {formatMoney(
-                      (quote?.lines.find((line) => line.productId === item.productId)?.casePrice ?? item.casePrice) *
-                        item.cases,
-                    )}
+                    {line.lineTotal === null ? "—" : formatMoney(line.lineTotal)}
                   </p>
                 </li>
               ))}
