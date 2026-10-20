@@ -109,7 +109,7 @@ export function WholesaleListsSection({
                     Trade accounts
                   </span>
                 ) : null}
-                <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-[9.5px] font-bold tracking-[0.08em] text-ink/55 uppercase">
+                <span className="rounded-full bg-ink/[0.06] px-2.5 py-1 text-[9.5px] font-bold tracking-[0.08em] text-ink/70 uppercase">
                   {list.format}
                 </span>
               </div>
@@ -118,26 +118,26 @@ export function WholesaleListsSection({
             <p className="mt-4 text-[10px] font-bold tracking-[0.16em] text-fern uppercase">{list.supplier}</p>
             <h3 className="mt-1 text-[16px] font-bold leading-snug">{list.title}</h3>
             {list.description ? (
-              <p className="mt-1.5 line-clamp-3 text-[12px] leading-relaxed text-ink/60">{list.description}</p>
+              <p className="mt-1.5 line-clamp-3 text-[12px] leading-relaxed text-ink/72">{list.description}</p>
             ) : null}
 
             <dl className="mt-3 grid grid-cols-3 gap-2 border-y border-ink/8 py-3 text-center">
               <div>
-                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">Rows</dt>
+                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">Rows</dt>
                 <dd className="mt-0.5 text-[13px] font-bold tabular-nums">{list.rowCount}</dd>
               </div>
               <div>
-                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">Scope</dt>
+                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">Scope</dt>
                 <dd className="mt-0.5 truncate text-[11.5px] font-bold" title={scopeLabel(list.category)}>
                   {list.category === "mixed" ? "All" : categoryName(list.category).split(" ")[0]}
                 </dd>
               </div>
               <div>
-                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">Size</dt>
+                <dt className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">Size</dt>
                 <dd className="mt-0.5 text-[11.5px] font-bold">{formatBytes(list.bytes)}</dd>
               </div>
             </dl>
-            <p className="mt-2 text-[10.5px] text-ink/40">
+            <p className="mt-2 text-[10.5px] text-ink/65">
               Updated{" "}
               {new Date(list.updatedAt).toLocaleDateString("en-US", {
                 month: "short",
@@ -151,7 +151,7 @@ export function WholesaleListsSection({
                 <p className="flex items-center gap-2 text-[11.5px] font-bold text-ink">
                   <Lock size={13} /> Approved trade accounts only
                 </p>
-                <p className="mt-1 text-[10.5px] leading-relaxed text-ink/60">
+                <p className="mt-1 text-[10.5px] leading-relaxed text-ink/72">
                   {signedIn
                     ? "Your account is not yet approved for wholesale pricing. Apply to unlock this list."
                     : "Sign in with an approved wholesale account to preview and download."}
@@ -209,7 +209,7 @@ export function WholesaleListsSection({
               <div className="min-w-0">
                 <p className="eyebrow">{active.supplier}</p>
                 <h3 className="mt-0.5 text-[16px] font-bold leading-snug">{active.title}</h3>
-                <p className="mt-0.5 text-[11px] text-ink/50">
+                <p className="mt-0.5 text-[11px] text-ink/68">
                   {active.rowCount} rows · {active.columns.length} columns · {scopeLabel(active.category)}
                 </p>
               </div>
@@ -223,7 +223,7 @@ export function WholesaleListsSection({
                 <button
                   onClick={() => setActiveId(null)}
                   aria-label="Close"
-                  className="rounded-full p-2 text-ink/60 hover:bg-ink/5 hover:text-ink"
+                  className="rounded-full p-2 text-ink/72 hover:bg-ink/5 hover:text-ink"
                 >
                   <X size={18} />
                 </button>
@@ -232,15 +232,15 @@ export function WholesaleListsSection({
 
             <div className="flex items-center justify-between gap-3 border-b border-ink/10 px-5 py-3">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
-                <input
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50" />
+                <input aria-label="Filter supplier lists"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search this list…"
                   className="w-[260px] rounded-full border border-ink/15 bg-[#fffdf8] py-2 pl-8 pr-3 text-[12px] focus:border-ink/40 focus:outline-none"
                 />
               </div>
-              <p className="text-[10.5px] text-ink/45">
+              <p className="text-[10.5px] text-ink/65">
                 {rows.length === active.preview.length
                   ? `Showing ${active.preview.length} of ${active.rowCount} rows`
                   : `${rows.length} match${rows.length === 1 ? "" : "es"} in the first ${active.preview.length} rows`}
@@ -249,11 +249,11 @@ export function WholesaleListsSection({
 
             <div className="overflow-auto">
               <table className="w-full min-w-[720px] text-left text-[12px]">
-                <thead className="sticky top-0 bg-[#f7f5ef] text-[9.5px] font-bold tracking-[0.12em] text-ink/50 uppercase">
+                <thead className="sticky top-0 bg-[#f7f5ef] text-[9.5px] font-bold tracking-[0.12em] text-ink/68 uppercase">
                   <tr className="border-b border-ink/10">
-                    <th className="px-4 py-3 text-ink/30">#</th>
+                    <th scope="col" className="px-4 py-3 text-ink/30">#</th>
                     {active.columns.map((column, index) => (
-                      <th key={`${column}-${index}`} className="px-3 py-3 whitespace-nowrap">
+                      <th scope="col" key={`${column}-${index}`} className="px-3 py-3 whitespace-nowrap">
                         {column}
                       </th>
                     ))}
@@ -275,7 +275,7 @@ export function WholesaleListsSection({
                   ))}
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={active.columns.length + 1} className="px-5 py-14 text-center text-[12px] text-ink/45">
+                      <td colSpan={active.columns.length + 1} className="px-5 py-14 text-center text-[12px] text-ink/65">
                         No rows match “{query}”.
                       </td>
                     </tr>
@@ -285,7 +285,7 @@ export function WholesaleListsSection({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 bg-parchment/50 px-5 py-3">
-              <p className="text-[10.5px] text-ink/50">
+              <p className="text-[10.5px] text-ink/68">
                 {active.rowCount > active.preview.length
                   ? `Preview is limited to the first ${active.preview.length} rows — download the file for all ${active.rowCount}.`
                   : "Complete list shown."}

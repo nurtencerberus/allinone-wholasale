@@ -116,7 +116,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             { label: "Cases in quarantine", value: quarantined },
           ].map((stat) => (
             <div key={stat.label} className="card p-4">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
               <p className={`display mt-1.5 text-[24px] leading-none ${stat.value ? "text-clay" : ""}`}>{stat.value}</p>
             </div>
           ))}
@@ -129,20 +129,20 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="card p-4" id="recall">
             <p className="text-[11px] font-bold tracking-[0.12em] uppercase">Recall lookup</p>
-            <p className="mt-1 text-[10.5px] text-ink/50">Which buyers received a lot — for a recall or a supplier notice.</p>
+            <p className="mt-1 text-[10.5px] text-ink/68">Which buyers received a lot — for a recall or a supplier notice.</p>
             <form className="mt-3 flex gap-2" action="/admin/inventory#recall">
-              <input name="lot" defaultValue={lookup} placeholder="Lot number" className="field max-w-[220px]" />
+              <input aria-label="Lot number to look up" name="lot" defaultValue={lookup} placeholder="Lot number" className="field max-w-[220px]" />
               <button className="btn btn-outline btn-sm" type="submit">Find orders</button>
             </form>
             {lookup ? (
               recallRows.length ? (
                 <table className="mt-3 w-full text-left text-[11px]">
-                  <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+                  <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
                     <tr>
-                      <th className="py-1.5">Order</th>
-                      <th>Buyer</th>
-                      <th>State</th>
-                      <th className="text-right">Cases</th>
+                      <th scope="col" className="py-1.5">Order</th>
+                      <th scope="col">Buyer</th>
+                      <th scope="col">State</th>
+                      <th scope="col" className="text-right">Cases</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,11 +150,11 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                       <tr key={`${row.orderNumber}-${row.sku}`} className="border-t border-ink/8">
                         <td className="py-1.5">
                           <Link className="font-semibold hover:underline" href={`/admin/orders/${row.orderNumber}`}>{row.orderNumber}</Link>
-                          <span className="block text-[9.5px] text-ink/45">{row.status} · {formatDateTime(row.createdAt)}</span>
+                          <span className="block text-[9.5px] text-ink/65">{row.status} · {formatDateTime(row.createdAt)}</span>
                         </td>
                         <td>
                           {row.company ?? row.customerName}
-                          <span className="block text-[9.5px] text-ink/45">{row.email}{row.phone ? ` · ${row.phone}` : ""}</span>
+                          <span className="block text-[9.5px] text-ink/65">{row.email}{row.phone ? ` · ${row.phone}` : ""}</span>
                         </td>
                         <td>{row.state}</td>
                         <td className="text-right tabular-nums">{row.cases}</td>
@@ -163,7 +163,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                   </tbody>
                 </table>
               ) : (
-                <p className="mt-3 text-[11px] text-ink/50">No open or shipped orders contain lot {lookup}.</p>
+                <p className="mt-3 text-[11px] text-ink/68">No open or shipped orders contain lot {lookup}.</p>
               )
             ) : null}
           </div>
@@ -178,13 +178,13 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
                       {sku} · {lotNumber ?? "—"} · <span className="capitalize">{movement.reason}</span>
                       {movement.bucket === "quarantine" ? " (quarantine)" : ""}
                     </p>
-                    <p className="text-[9.5px] text-ink/45">
+                    <p className="text-[9.5px] text-ink/65">
                       {formatDateTime(movement.createdAt)} · {actor ?? "system"}
                       {movement.refType ? ` · ${movement.refType} ${movement.refId}` : ""}
                       {movement.note ? ` · ${movement.note}` : ""}
                     </p>
                   </div>
-                  <span className={`font-bold tabular-nums ${movement.delta < 0 ? "text-clay" : movement.delta > 0 ? "text-fern" : "text-ink/40"}`}>
+                  <span className={`font-bold tabular-nums ${movement.delta < 0 ? "text-clay" : movement.delta > 0 ? "text-fern" : "text-ink/65"}`}>
                     {movement.delta > 0 ? "+" : ""}
                     {movement.delta}
                   </span>
@@ -193,7 +193,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             </ul>
           </div>
         </div>
-        <p className="mt-4 text-[10px] text-ink/40">Best-by dates shown as entered ({formatIsoDate(isoDate(new Date()))} today).</p>
+        <p className="mt-4 text-[10px] text-ink/65">Best-by dates shown as entered ({formatIsoDate(isoDate(new Date()))} today).</p>
       </div>
     </div>
   );

@@ -348,6 +348,13 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | DEV-2 | ✅ | `npm run db:migrate` koşucusu: `schema_migrations` defteri, sıra, checksum uyarısı, `--status` ve mevcut veritabanını devralmak için `--baseline`. Elle SQL yapıştırma bitti; CI koşucuyu temiz şema üzerinde doğruluyor |
 | DEV-3 | ✅ (vendor'sız) | `alertOps()` tek satır JSON log + 15 dakikada bir operasyona e-posta (webhook, kart capture, sipariş yazma, cron); `instrumentation.ts` → `onRequestError`; `/api/health` veritabanı düşünce 503. Sentry gibi bir servis isteniyorsa üzerine eklenebilir |
 
+#### Faz 3 durumu (20 Ekim 2026)
+
+| Kalem | Durum | Not |
+|---|---|---|
+| PRF-1 (katalog önbelleği) | ✅ | Vitrin sorguları Next data cache'inde (`src/lib/catalog-cache.ts`), satırlar önbellekte / HTML değil, her yazmada geçersiz kılınıyor |
+| UX-3 erişilebilirlik | 🟢 büyük kısmı | 33 etiketsiz form kontrolüne ad verildi, 92 `<th>`'ye `scope`, hata mesajlarına `role="alert"`; `:focus-visible` odak halkası, `prefers-reduced-motion`, içeriğe atlama bağlantısı ve `<main>` yer imi; sepet çekmecesi `role="dialog"` + odak tuzağı + odağı geri verme; kontrast: 413 metin sınıfı AA eşiğinin üstüne çekildi, `clay` koyulaştırıldı. Birim testi paleti, e2e sunulan HTML'i koruyor. **Kalan:** gerçek ekran okuyucu ve klavye turu (manuel), bazı dekoratif ikon kontrastları |
+
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 
 | Kalemler | Efor |

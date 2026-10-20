@@ -40,7 +40,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <AlertTriangle size={24} />
         </span>
         <h1 className="display mt-4 text-[30px]">Admin access required</h1>
-        <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/60">
+        <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/72">
           This portal is restricted to Ciputra trade operations staff. Ask an owner to grant your account a
           staff role.
         </p>
@@ -125,7 +125,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           ].map((stat) => (
             <Link key={stat.label} href={stat.label === "Registered accounts" ? "/admin/users" : "/admin/orders"} className="card block p-4 transition-colors hover:border-ink/25">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
                 <stat.icon size={15} className="text-fern" />
               </div>
               <p className={`display mt-2 text-[26px] leading-none ${stat.tone ?? ""}`}>{stat.value}</p>
@@ -138,7 +138,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <UserCog size={17} className="text-fern" />
             <div>
               <p className="text-[12px] font-bold">{wholesaleCount} wholesale accounts</p>
-              <p className="text-[10.5px] text-ink/50">
+              <p className="text-[10.5px] text-ink/68">
                 {unverifiedCount} awaiting email confirmation · manage pricing & tax exemption
               </p>
             </div>
@@ -147,7 +147,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Truck size={17} className="text-fern" />
             <div>
               <p className="text-[12px] font-bold">{openOrders} shipments in motion</p>
-              <p className="text-[10.5px] text-ink/50">
+              <p className="text-[10.5px] text-ink/68">
                 Enter tracking numbers and update fulfilment status
               </p>
             </div>
@@ -156,7 +156,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <Boxes size={17} className="text-fern" />
             <div>
               <p className="text-[12px] font-bold">{lowStock.length} SKUs below reorder point</p>
-              <p className="text-[10.5px] text-ink/50">At or below each product&apos;s reorder point</p>
+              <p className="text-[10.5px] text-ink/68">At or below each product&apos;s reorder point</p>
             </div>
           </Link>
         </div>
@@ -224,15 +224,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
               <Boxes size={13} /> Inventory watch
             </p>
-            <p className="mt-1 text-[10.5px] text-ink/45">At or below the reorder point · <Link href="/admin/inventory" className="underline">Inventory</Link></p>
+            <p className="mt-1 text-[10.5px] text-ink/65">At or below the reorder point · <Link href="/admin/inventory" className="underline">Inventory</Link></p>
             <ul className="mt-3 space-y-2">
               {lowStock.length === 0 ? (
-                <li className="text-[11px] text-ink/50">All SKUs above the reorder point.</li>
+                <li className="text-[11px] text-ink/68">All SKUs above the reorder point.</li>
               ) : (
                 lowStock.map((item) => (
                   <li key={item.slug} className="flex items-center justify-between border-b border-ink/8 pb-1.5 text-[11px] last:border-0">
                     <Link href={`/products/${item.slug}`} className="font-medium hover:underline">{item.name}</Link>
-                    <span className={`font-bold tabular-nums ${item.stock <= 5 ? "text-clay" : "text-ink/60"}`}>
+                    <span className={`font-bold tabular-nums ${item.stock <= 5 ? "text-clay" : "text-ink/72"}`}>
                       {item.stock} cases
                     </span>
                   </li>
@@ -245,7 +245,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
               <ShieldCheck size={13} /> Integration status
             </p>
-            <p className="mt-1 text-[10.5px] text-ink/45">
+            <p className="mt-1 text-[10.5px] text-ink/65">
               Production keys upgrade the demo fallbacks automatically.
             </p>
             <ul className="mt-3 space-y-2">
@@ -253,7 +253,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <li key={item.label} className="flex items-center justify-between border-b border-ink/8 pb-1.5 text-[11px] last:border-0">
                   <div>
                     <p className="font-medium">{item.label}</p>
-                    <p className="text-[9.5px] text-ink/40">{item.note}</p>
+                    <p className="text-[9.5px] text-ink/65">{item.note}</p>
                   </div>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
@@ -265,7 +265,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 </li>
               ))}
             </ul>
-            <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed text-ink/45">
+            <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed text-ink/65">
               <Percent size={11} className="mt-0.5" /> Account discount and tax exemption are written to the
               user record on approval and re-applied server-side on every quote.
             </p>

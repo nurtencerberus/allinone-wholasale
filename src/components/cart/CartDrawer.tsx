@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
@@ -11,6 +12,45 @@ import { SITE } from "@/lib/site";
 
 export function CartDrawer({ user }: { user: SessionUser | null }) {
   const { items, lines, isOpen, closeCart, setCases, removeItem, subtotal, units, hydrated, loading } = useCart();
+  const panel = useRef<HTMLElement | null>(null);
+  const opener = useRef<Element | null>(null);
+
+  // UX-3: a drawer is a modal dialog. Focus moves into it when it opens, stays inside while it
+  // is open (WCAG 2.1.2, no keyboard trap outside it) and returns to whatever opened it.
+  useEffect(() => {
+    if (!isOpen) return;
+    opener.current = document.activeElement;
+    const node = panel.current;
+    const focusable = () =>
+      Array.from<HTMLElement>(
+        node?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((element) => element.offsetParent !== null);
+
+    focusable()[0]?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      (opener.current as HTMLElement | null)?.focus?.();
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const wholesale = user?.accountTier === "wholesale";
@@ -25,10 +65,17 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
     <div className="fixed inset-0 z-50">
       <button
         aria-label="Close cart"
+        tabIndex={-1}
         onClick={closeCart}
         className="absolute inset-0 bg-ink/45 backdrop-blur-[2px] animate-fade"
       />
-      <aside className="animate-drawer absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col bg-cream shadow-2xl">
+      <aside
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Your order"
+        className="animate-drawer absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col bg-cream shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
           <div>
             <p className="eyebrow">Your order</p>
@@ -39,7 +86,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
           <button
             onClick={closeCart}
             aria-label="Close"
-            className="rounded-full p-2 text-ink/60 hover:bg-ink/5 hover:text-ink"
+            className="rounded-full p-2 text-ink/72 hover:bg-ink/5 hover:text-ink"
           >
             <X size={18} />
           </button>
@@ -49,7 +96,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
             <ShoppingBag size={28} className="text-ink/30" />
             <p className="text-[14px] font-semibold">Ordering is for approved trade accounts</p>
-            <p className="text-[12px] leading-relaxed text-ink/55">
+            <p className="text-[12px] leading-relaxed text-ink/70">
               {user
                 ? "Your cart unlocks once your wholesale application is approved."
                 : "Sign in to your trade account to see wholesale prices and build an order."}
@@ -80,7 +127,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
 
         <div className="flex-1 overflow-y-auto px-5">
           {lines.length === 0 && items.length > 0 ? (
-            <p className="py-10 text-center text-[12px] text-ink/50">Pricing your cart…</p>
+            <p className="py-10 text-center text-[12px] text-ink/68">Pricing your cart…</p>
           ) : items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
               <span className="rounded-full bg-parchment p-4 text-fern">
@@ -88,7 +135,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
               </span>
               <div>
                 <p className="display text-2xl">Your cart is empty</p>
-                <p className="mt-2 max-w-[260px] text-[12.5px] leading-relaxed text-ink/60">
+                <p className="mt-2 max-w-[260px] text-[12.5px] leading-relaxed text-ink/72">
                   Build a mixed pallet across supplements, pantry and home goods to consolidate freight.
                 </p>
               </div>
@@ -121,12 +168,12 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                       <button
                         onClick={() => removeItem(line.productId)}
                         aria-label={`Remove ${line.name}`}
-                        className="rounded p-1 text-ink/35 hover:text-clay"
+                        className="rounded p-1 text-ink/50 hover:text-clay"
                       >
                         <Trash2 size={13} />
                       </button>
                     </div>
-                    <p className="mt-0.5 text-[10.5px] font-medium tracking-wide text-ink/45 uppercase">
+                    <p className="mt-0.5 text-[10.5px] font-medium tracking-wide text-ink/65 uppercase">
                       {line.sku} · {line.caseSize} units / case
                     </p>
                     {line.problem ? (
@@ -137,7 +184,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                         <button
                           onClick={() => setCases(line.productId, line.cases - 1)}
                           aria-label="Decrease cases"
-                          className="px-2 py-1.5 text-ink/60 hover:text-ink disabled:opacity-30"
+                          className="px-2 py-1.5 text-ink/72 hover:text-ink disabled:opacity-30"
                           disabled={line.cases <= Math.max(1, line.minCases)}
                         >
                           <Minus size={12} />
@@ -148,20 +195,20 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                         <button
                           onClick={() => setCases(line.productId, line.cases + 1)}
                           aria-label="Increase cases"
-                          className="px-2 py-1.5 text-ink/60 hover:text-ink"
+                          className="px-2 py-1.5 text-ink/72 hover:text-ink"
                         >
                           <Plus size={12} />
                         </button>
                       </div>
                       <div className="text-right">
                         {line.casePrice === null ? (
-                          <p className="text-[11px] text-ink/45">Price on sign-in</p>
+                          <p className="text-[11px] text-ink/65">Price on sign-in</p>
                         ) : (
                           <div className={line.stale ? "opacity-40" : undefined}>
                             <p className="text-[13px] font-bold tabular-nums">
                               {formatMoney(line.lineTotal ?? line.casePrice * line.cases)}
                             </p>
-                            <p className="text-[10px] text-ink/45">{formatMoney(line.casePrice)} / case</p>
+                            <p className="text-[10px] text-ink/65">{formatMoney(line.casePrice)} / case</p>
                           </div>
                         )}
                       </div>
@@ -176,7 +223,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
         {lines.length > 0 ? (
           <div className="border-t border-ink/10 bg-parchment/50 px-5 py-4">
             <div className="mb-4">
-              <div className="flex items-center justify-between text-[11px] font-medium text-ink/60">
+              <div className="flex items-center justify-between text-[11px] font-medium text-ink/72">
                 <span className="flex items-center gap-1.5">
                   <Truck size={13} /> {remaining > 0 ? `${formatMoney(remaining)} to free freight` : "Free freight unlocked"}
                 </span>
@@ -196,7 +243,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                 {subtotal === null ? "—" : formatMoney(subtotal)}
               </span>
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-ink/50">
+            <p className="mt-1 text-[11px] leading-relaxed text-ink/68">
               Sales tax and dimensional freight are quoted from the delivery ZIP at checkout.
               {belowMinimum ? " Wholesale minimum $150." : ""}
             </p>
@@ -204,11 +251,11 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
             <Link href="/checkout" onClick={closeCart} className="btn btn-primary mt-4 w-full">
               Secure checkout
             </Link>
-            <div className="mt-3 flex items-center justify-between text-[10.5px] text-ink/45">
+            <div className="mt-3 flex items-center justify-between text-[10.5px] text-ink/65">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck size={12} /> Stripe tokenised · PCI-DSS
               </span>
-              <button onClick={closeCart} className="font-semibold text-ink/60 underline">
+              <button onClick={closeCart} className="font-semibold text-ink/72 underline">
                 Keep browsing
               </button>
             </div>

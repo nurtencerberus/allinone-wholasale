@@ -151,7 +151,7 @@ export function PriceListSection({
                 </span>
                 <span
                   className={`rounded-full px-2.5 py-1 text-[10px] font-bold tracking-[0.08em] uppercase ${
-                    index === 0 ? "bg-cream/12 text-cream/80" : "bg-ink/[0.06] text-ink/55"
+                    index === 0 ? "bg-cream/12 text-cream/80" : "bg-ink/[0.06] text-ink/70"
                   }`}
                 >
                   {countFor(list.scope)} SKUs
@@ -162,7 +162,7 @@ export function PriceListSection({
               </h3>
               <p
                 className={`mt-1.5 line-clamp-3 flex-1 text-[11.5px] leading-relaxed ${
-                  index === 0 ? "text-cream/60" : "text-ink/55"
+                  index === 0 ? "text-cream/60" : "text-ink/70"
                 }`}
               >
                 {list.blurb}
@@ -208,7 +208,7 @@ export function PriceListSection({
         {/* Files from public/downloads ------------------------------- */}
         {files.length ? (
           <div className="mt-8">
-            <p className="text-[10.5px] font-bold tracking-[0.18em] text-ink/45 uppercase">
+            <p className="text-[10.5px] font-bold tracking-[0.18em] text-ink/65 uppercase">
               Supplier files &amp; catalogs
             </p>
             <ul className="mt-3 grid gap-3 md:grid-cols-2">
@@ -224,7 +224,7 @@ export function PriceListSection({
                     <p className="truncate text-[13px] font-bold" title={file.name}>
                       {file.name}
                     </p>
-                    <p className="mt-0.5 text-[10.5px] text-ink/50">
+                    <p className="mt-0.5 text-[10.5px] text-ink/68">
                       {formatLabel(file.ext)} · {formatBytes(file.bytes)} · updated{" "}
                       {new Date(file.modifiedAt).toLocaleDateString("en-US", {
                         month: "short",
@@ -242,7 +242,7 @@ export function PriceListSection({
           </div>
         ) : null}
 
-        <p className="mt-6 text-[10.5px] leading-relaxed text-ink/45">
+        <p className="mt-6 text-[10.5px] leading-relaxed text-ink/65">
           Prices in USD per case, FOB Paterson NJ. Lists are regenerated from live inventory on every
           download. Approved trade accounts see contract pricing in{" "}
           <Link href="/quick-order" className="underline">
@@ -284,7 +284,7 @@ export function PriceListSection({
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="rounded-full p-2 text-ink/60 hover:bg-ink/5 hover:text-ink"
+                  className="rounded-full p-2 text-ink/72 hover:bg-ink/5 hover:text-ink"
                 >
                   <X size={18} />
                 </button>
@@ -301,7 +301,7 @@ export function PriceListSection({
                       className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
                         scope === entry.key
                           ? "border-ink bg-ink text-cream"
-                          : "border-ink/15 text-ink/60 hover:border-ink/40"
+                          : "border-ink/15 text-ink/72 hover:border-ink/40"
                       }`}
                     >
                       {entry.shortName} ({countFor(entry.key)})
@@ -310,8 +310,8 @@ export function PriceListSection({
                 )}
               </div>
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
-                <input
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50" />
+                <input aria-label="Filter the price list"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search item, SKU or brand…"
@@ -322,19 +322,19 @@ export function PriceListSection({
 
             <div className="overflow-auto">
               <table className="w-full min-w-[860px] text-left text-[12px]">
-                <thead className="sticky top-0 bg-[#f7f5ef] text-[9.5px] font-bold tracking-[0.12em] text-ink/50 uppercase">
+                <thead className="sticky top-0 bg-[#f7f5ef] text-[9.5px] font-bold tracking-[0.12em] text-ink/68 uppercase">
                   <tr className="border-b border-ink/10">
-                    <th className="px-5 py-3">SKU</th>
-                    <th className="px-3 py-3">Product</th>
-                    <th className="px-3 py-3">Department</th>
-                    <th className="px-3 py-3">Pack</th>
-                    <th className="px-3 py-3 text-right">Case</th>
-                    <th className="px-3 py-3 text-right">2+</th>
-                    <th className="px-3 py-3 text-right">5+</th>
-                    <th className="px-3 py-3 text-right">10+</th>
-                    <th className="px-3 py-3 text-right">MSRP</th>
-                    <th className="px-3 py-3 text-right">Margin</th>
-                    <th className="px-5 py-3 text-right">Stock</th>
+                    <th scope="col" className="px-5 py-3">SKU</th>
+                    <th scope="col" className="px-3 py-3">Product</th>
+                    <th scope="col" className="px-3 py-3">Department</th>
+                    <th scope="col" className="px-3 py-3">Pack</th>
+                    <th scope="col" className="px-3 py-3 text-right">Case</th>
+                    <th scope="col" className="px-3 py-3 text-right">2+</th>
+                    <th scope="col" className="px-3 py-3 text-right">5+</th>
+                    <th scope="col" className="px-3 py-3 text-right">10+</th>
+                    <th scope="col" className="px-3 py-3 text-right">MSRP</th>
+                    <th scope="col" className="px-3 py-3 text-right">Margin</th>
+                    <th scope="col" className="px-5 py-3 text-right">Stock</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -358,19 +358,19 @@ export function PriceListSection({
                           >
                             {product.name}
                           </Link>
-                          <p className="text-[10px] text-ink/40">{product.brand}</p>
+                          <p className="text-[10px] text-ink/65">{product.brand}</p>
                         </td>
-                        <td className="px-3 py-2.5 text-ink/60">{categoryName(product.category)}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap text-ink/60">
+                        <td className="px-3 py-2.5 text-ink/72">{categoryName(product.category)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap text-ink/72">
                           {product.caseSize} / case
                         </td>
                         <td className="px-3 py-2.5 text-right font-bold tabular-nums">
                           {formatMoney(product.casePrice)}
                         </td>
-                        <td className="px-3 py-2.5 text-right text-ink/60 tabular-nums">{formatMoney(tier(2))}</td>
-                        <td className="px-3 py-2.5 text-right text-ink/60 tabular-nums">{formatMoney(tier(5))}</td>
-                        <td className="px-3 py-2.5 text-right text-ink/60 tabular-nums">{formatMoney(tier(10))}</td>
-                        <td className="px-3 py-2.5 text-right text-ink/60 tabular-nums">
+                        <td className="px-3 py-2.5 text-right text-ink/72 tabular-nums">{formatMoney(tier(2))}</td>
+                        <td className="px-3 py-2.5 text-right text-ink/72 tabular-nums">{formatMoney(tier(5))}</td>
+                        <td className="px-3 py-2.5 text-right text-ink/72 tabular-nums">{formatMoney(tier(10))}</td>
+                        <td className="px-3 py-2.5 text-right text-ink/72 tabular-nums">
                           {formatMoney(product.msrpUnit)}
                         </td>
                         <td className="px-3 py-2.5 text-right">
@@ -380,7 +380,7 @@ export function PriceListSection({
                         </td>
                         <td
                           className={`px-5 py-2.5 text-right font-semibold tabular-nums ${
-                            product.stock <= 10 ? "text-clay" : "text-ink/60"
+                            product.stock <= 10 ? "text-clay" : "text-ink/72"
                           }`}
                         >
                           {product.stock}
@@ -390,7 +390,7 @@ export function PriceListSection({
                   })}
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-5 py-14 text-center text-[12px] text-ink/45">
+                      <td colSpan={11} className="px-5 py-14 text-center text-[12px] text-ink/65">
                         No SKUs match “{query}”.
                       </td>
                     </tr>
@@ -400,7 +400,7 @@ export function PriceListSection({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 bg-parchment/50 px-5 py-3">
-              <p className="text-[10.5px] text-ink/50">
+              <p className="text-[10.5px] text-ink/68">
                 USD per case, FOB Paterson NJ · 2+/5+/10+ are volume-tier case prices.
               </p>
               <Link href="/quick-order" onClick={() => setOpen(false)} className="btn btn-primary btn-sm">

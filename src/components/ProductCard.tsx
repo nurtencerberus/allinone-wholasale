@@ -49,7 +49,7 @@ export function ProductCard({ product, index }: { product: CardProduct; index?: 
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-bold tracking-[0.16em] text-fern uppercase">{product.brand}</p>
-          <span className="text-[10px] font-semibold tracking-[0.06em] text-ink/40 uppercase">{product.sku}</span>
+          <span className="text-[10px] font-semibold tracking-[0.06em] text-ink/65 uppercase">{product.sku}</span>
         </div>
 
         <Link href={`/products/${product.slug}`} className="mt-1.5 block">
@@ -57,12 +57,12 @@ export function ProductCard({ product, index }: { product: CardProduct; index?: 
             {product.name}
           </h3>
         </Link>
-        <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-ink/55">{product.tagline}</p>
+        <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-ink/70">{product.tagline}</p>
 
         <div className="mt-auto pt-4">
           {casePrice === null ? (
             <>
-              <p className="text-[10.5px] text-ink/50">
+              <p className="text-[10.5px] text-ink/68">
                 MSRP {formatMoney(product.msrpUnit)} / unit · min {product.minCases} case{product.minCases === 1 ? "" : "s"}
               </p>
               <Link
@@ -78,9 +78,9 @@ export function ProductCard({ product, index }: { product: CardProduct; index?: 
                 <div>
                   <p className="text-[17px] font-bold leading-none tabular-nums">
                     {formatMoney(casePrice)}
-                    <span className="ml-1 text-[10.5px] font-medium text-ink/45">/ case</span>
+                    <span className="ml-1 text-[10.5px] font-medium text-ink/65">/ case</span>
                   </p>
-                  <p className="mt-1 text-[10.5px] text-ink/50">
+                  <p className="mt-1 text-[10.5px] text-ink/68">
                     {formatMoney(unitPriceOf(casePrice, product.caseSize))} / unit · MSRP {formatMoney(product.msrpUnit)}
                   </p>
                 </div>

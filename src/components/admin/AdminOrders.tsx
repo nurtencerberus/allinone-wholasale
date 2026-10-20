@@ -25,7 +25,7 @@ export type AdminOrder = {
 
 const PAYMENT_TONE: Record<string, string> = {
   paid: "bg-fern/15 text-fern",
-  paid_demo: "bg-ink/10 text-ink/55",
+  paid_demo: "bg-ink/10 text-ink/70",
   net30_invoice: "bg-gold/25 text-[#7a5a1f]",
   awaiting_payment: "bg-clay/15 text-clay",
   refund_pending: "bg-clay/15 text-clay",
@@ -48,19 +48,19 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
         <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase">
           <Truck size={13} /> Orders
         </p>
-        <span className="text-[10.5px] text-ink/45">{orders.length} orders</span>
+        <span className="text-[10.5px] text-ink/65">{orders.length} orders</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-left text-[11px]">
-          <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+          <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
             <tr className="border-b border-ink/8">
-              <th className="px-4 py-2.5">Order / buyer</th>
-              <th className="px-2 py-2.5">Placed</th>
-              <th className="px-2 py-2.5 text-right">Total</th>
-              <th className="px-2 py-2.5">Status</th>
-              <th className="px-2 py-2.5">Payment</th>
-              <th className="px-2 py-2.5">Tracking</th>
-              <th className="px-4 py-2.5" />
+              <th scope="col" className="px-4 py-2.5">Order / buyer</th>
+              <th scope="col" className="px-2 py-2.5">Placed</th>
+              <th scope="col" className="px-2 py-2.5 text-right">Total</th>
+              <th scope="col" className="px-2 py-2.5">Status</th>
+              <th scope="col" className="px-2 py-2.5">Payment</th>
+              <th scope="col" className="px-2 py-2.5">Tracking</th>
+              <th scope="col" className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -70,17 +70,17 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
                   <Link href={`/admin/orders/${order.orderNumber}`} className="font-bold hover:underline">
                     {order.orderNumber}
                   </Link>
-                  <p className="text-[10px] text-ink/50">
+                  <p className="text-[10px] text-ink/68">
                     {order.customerName}
                     {order.company ? ` · ${order.company}` : ""}
                   </p>
-                  <p className="text-[9.5px] text-ink/35">
+                  <p className="text-[9.5px] text-ink/50">
                     {order.paymentMethod.toUpperCase()}
                     {order.poNumber ? ` · PO ${order.poNumber}` : ""}
                     {order.taxExempt ? " · tax exempt" : ""}
                   </p>
                 </td>
-                <td className="px-2 py-3 text-ink/55">{formatDate(order.createdAt)}</td>
+                <td className="px-2 py-3 text-ink/70">{formatDate(order.createdAt)}</td>
                 <td className="px-2 py-3 text-right font-bold tabular-nums">{formatMoney(order.total)}</td>
                 <td className="px-2 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${STATUS_TONE[order.status] ?? ""}`}>
@@ -88,7 +88,7 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
                   </span>
                 </td>
                 <td className="px-2 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${PAYMENT_TONE[order.paymentStatus] ?? "bg-ink/8 text-ink/60"}`}>
+                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${PAYMENT_TONE[order.paymentStatus] ?? "bg-ink/8 text-ink/72"}`}>
                     {paymentLabel(order.paymentStatus)}
                   </span>
                 </td>
@@ -103,7 +103,7 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
                       ) : null}
                     </span>
                   ) : (
-                    <span className="text-ink/35">—</span>
+                    <span className="text-ink/50">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -115,7 +115,7 @@ export function AdminOrders({ orders }: { orders: AdminOrder[] }) {
             ))}
             {orders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-[11.5px] text-ink/45">
+                <td colSpan={7} className="px-4 py-10 text-center text-[11.5px] text-ink/65">
                   No orders yet.
                 </td>
               </tr>

@@ -223,7 +223,7 @@ export function QuickOrderPanel({
             className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
               department === "all"
                 ? "border-ink bg-ink text-cream"
-                : "border-ink/15 text-ink/60 hover:border-ink/40"
+                : "border-ink/15 text-ink/72 hover:border-ink/40"
             }`}
           >
             All ({skus.length})
@@ -235,7 +235,7 @@ export function QuickOrderPanel({
               className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                 department === category.key
                   ? "border-ink bg-ink text-cream"
-                  : "border-ink/15 text-ink/60 hover:border-ink/40"
+                  : "border-ink/15 text-ink/72 hover:border-ink/40"
               }`}
             >
               {category.shortName} ({skus.filter((sku) => sku.category === category.key).length})
@@ -245,8 +245,8 @@ export function QuickOrderPanel({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
-            <input
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50" />
+            <input aria-label="Filter SKUs"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search item, SKU or brand…"
@@ -262,7 +262,7 @@ export function QuickOrderPanel({
             {uploading ? <Loader2 size={13} className="animate-spin" /> : <FileUp size={13} />}
             Upload XLS / CSV
           </button>
-          <input
+          <input aria-label="Order sheet file (.xlsx, .xls or .csv)"
             ref={fileInput}
             type="file"
             accept=".xlsx,.xls,.csv,.tsv,.txt"
@@ -288,11 +288,11 @@ export function QuickOrderPanel({
 
       {pasteOpen ? (
         <div className="mt-3 rounded-xl border border-ink/12 bg-[#fffdf8] p-4">
-          <p className="text-[11px] text-ink/55">
+          <p className="text-[11px] text-ink/70">
             One line per SKU: <code className="rounded bg-parchment px-1">SKU cases</code> — comma, “x” or
             semicolon separators also work. Quantities fill the table below.
           </p>
-          <textarea
+          <textarea aria-label="Paste SKUs and case quantities"
             value={raw}
             onChange={(event) => setRaw(event.target.value)}
             placeholder={"MSC-VIT-090 4\nMSC-OM3-120 2\nMSC-PAN-OO1L 6"}
@@ -365,15 +365,15 @@ export function QuickOrderPanel({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1020px] text-left">
             <thead>
-              <tr className="border-b border-ink/10 bg-[#f7f5ef] text-[10px] font-bold tracking-[0.14em] text-ink/55 uppercase">
-                <th className="px-5 py-3.5">Item &amp; SKU</th>
-                <th className="px-3 py-3.5">Department</th>
-                <th className="px-3 py-3.5">Pack size</th>
-                <th className="px-3 py-3.5">Case weight</th>
-                <th className="px-3 py-3.5">Case price</th>
-                <th className="px-3 py-3.5">In stock</th>
-                <th className="px-3 py-3.5 text-center">Order case qty</th>
-                <th className="px-5 py-3.5 text-right">Line total</th>
+              <tr className="border-b border-ink/10 bg-[#f7f5ef] text-[10px] font-bold tracking-[0.14em] text-ink/70 uppercase">
+                <th scope="col" className="px-5 py-3.5">Item &amp; SKU</th>
+                <th scope="col" className="px-3 py-3.5">Department</th>
+                <th scope="col" className="px-3 py-3.5">Pack size</th>
+                <th scope="col" className="px-3 py-3.5">Case weight</th>
+                <th scope="col" className="px-3 py-3.5">Case price</th>
+                <th scope="col" className="px-3 py-3.5">In stock</th>
+                <th scope="col" className="px-3 py-3.5 text-center">Order case qty</th>
+                <th scope="col" className="px-5 py-3.5 text-right">Line total</th>
               </tr>
             </thead>
             <tbody>
@@ -411,7 +411,7 @@ export function QuickOrderPanel({
                           >
                             {sku.name}
                           </Link>
-                          <p className="mt-0.5 text-[11.5px] text-ink/50">{sku.brand}</p>
+                          <p className="mt-0.5 text-[11.5px] text-ink/68">{sku.brand}</p>
                         </div>
                       </div>
                     </td>
@@ -433,7 +433,7 @@ export function QuickOrderPanel({
                           Volume tier · was {formatMoney(base)}
                         </p>
                       ) : nextTier ? (
-                        <p className="text-[10.5px] text-ink/40">
+                        <p className="text-[10.5px] text-ink/65">
                           {nextTier.minCases}+ cases: {formatMoney(
                             discountPct ? Math.round(nextTier.casePrice * (1 - discountPct / 100)) : nextTier.casePrice,
                           )}
@@ -454,7 +454,7 @@ export function QuickOrderPanel({
                           onClick={() => setCases(sku, count - 1)}
                           disabled={count === 0}
                           aria-label={`Decrease ${sku.name}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-ink/60 hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-ink/72 hover:bg-ink/5 hover:text-ink disabled:opacity-30"
                         >
                           <Minus size={14} />
                         </button>
@@ -473,7 +473,7 @@ export function QuickOrderPanel({
                           onClick={() => setCases(sku, count + 1)}
                           disabled={count >= sku.stock}
                           aria-label={`Increase ${sku.name}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-ink/60 hover:bg-ink/5 hover:text-ink disabled:opacity-30"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-ink/72 hover:bg-ink/5 hover:text-ink disabled:opacity-30"
                         >
                           <Plus size={14} />
                         </button>
@@ -487,7 +487,7 @@ export function QuickOrderPanel({
               })}
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-16 text-center text-[12.5px] text-ink/45">
+                  <td colSpan={8} className="px-5 py-16 text-center text-[12.5px] text-ink/65">
                     No SKUs match “{query}”.{" "}
                     <button
                       className="font-bold underline"
@@ -506,7 +506,7 @@ export function QuickOrderPanel({
         </div>
       </div>
 
-      <p className="mt-3 text-[10.5px] leading-relaxed text-ink/45">
+      <p className="mt-3 text-[10.5px] leading-relaxed text-ink/65">
         {wholesale
           ? `Trade pricing active — your ${discountPct}% contract discount is included in the prices above. `
           : "Catalog case pricing shown. "}

@@ -80,7 +80,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
               key={entry}
               onClick={() => setTab(entry)}
               className={`rounded-full px-2.5 py-1 text-[10px] font-bold capitalize ${
-                tab === entry ? "bg-ink text-cream" : "bg-white text-ink/55 hover:text-ink"
+                tab === entry ? "bg-ink text-cream" : "bg-white text-ink/70 hover:text-ink"
               }`}
             >
               {entry}
@@ -92,7 +92,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
       {tab === "export" ? (
         <div className="p-5">
           <h2 className="display text-[22px] leading-tight">Move this catalog to another project</h2>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink/72">
             Downloads the full catalog as JSON — {productCount} SKUs with case pricing, volume tiers,
             carton dimensions, weights, imagery paths, features and specs. Money fields are integer
             cents. Edit the file and import it back, or use it to seed another storefront.
@@ -101,7 +101,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
             <Download size={13} /> Download catalog JSON
           </a>
           <div className="mt-4 rounded-lg border border-ink/10 bg-parchment/30 px-3.5 py-3">
-            <p className="text-[10px] font-bold tracking-[0.12em] text-ink/45 uppercase">
+            <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">
               Also available
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -117,7 +117,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
       ) : (
         <div className="p-5">
           <h2 className="display text-[22px] leading-tight">Import products from another project</h2>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-ink/60">
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink/72">
             Paste JSON or load a file. Rows are matched on <strong>SKU</strong>: existing products are
             updated (their link and stock stay as they are), new ones are created with optional opening stock as
             their first lot. Every row is checked like the product form — if any row fails, nothing is imported. Accepts <code className="rounded bg-parchment px-1">name</code>,{" "}
@@ -127,7 +127,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
             are in dollars instead of cents.
           </p>
 
-          <textarea
+          <textarea aria-label="Catalog JSON"
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder={SAMPLE}
@@ -161,7 +161,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
           </div>
 
           {error ? (
-            <p className="mt-3 flex items-start gap-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">
+            <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">
               <TriangleAlert size={13} className="mt-0.5 shrink-0" /> {error}
             </p>
           ) : null}
@@ -178,7 +178,7 @@ export function CatalogTransfer({ productCount }: { productCount: number }) {
               <p className="flex items-center gap-1.5 text-[11px] font-semibold text-fern">
                 <Check size={13} /> {result.created.length} created · {result.updated.length} updated
               </p>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-[10.5px] text-ink/60">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[10.5px] text-ink/72">
                 {result.created.length ? (
                   <p>
                     <span className="font-bold text-ink">Created:</span> {result.created.join(", ")}

@@ -28,13 +28,13 @@ export default async function ApplyPage() {
     <div>
       <section className="border-b border-ink/10 bg-parchment/40">
         <div className="wrap py-10">
-          <Link href="/wholesale" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/50 hover:text-ink">
+          <Link href="/wholesale" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/68 hover:text-ink">
             <ArrowLeft size={13} /> Wholesale program
           </Link>
           <h1 className="display mt-3 max-w-2xl text-[34px] leading-tight sm:text-[44px]">
             Trade application
           </h1>
-          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink/60">
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink/72">
             Four short sections. A trade specialist verifies your EIN and resale documentation —
             most applications are decided within one business day. Wholesale pricing and ordering
             unlock once your account is approved.
@@ -75,7 +75,7 @@ export default async function ApplyPage() {
                   <step.icon size={14} className="mt-0.5 shrink-0 text-fern" />
                   <div>
                     <p className="text-[11.5px] font-bold">{step.title}</p>
-                    <p className="text-[10.5px] leading-relaxed text-ink/50">{step.body}</p>
+                    <p className="text-[10.5px] leading-relaxed text-ink/68">{step.body}</p>
                   </div>
                 </div>
               ))}

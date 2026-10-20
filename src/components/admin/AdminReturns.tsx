@@ -72,7 +72,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="font-mono text-[13px] font-bold">{entry.rmaNumber}</p>
-          <p className="text-[11px] text-ink/55">
+          <p className="text-[11px] text-ink/70">
             <Link href={`/admin/orders/${entry.orderNumber}`} className="font-semibold hover:underline">{entry.orderNumber}</Link> ·{" "}
             {entry.buyer} · {formatDate(entry.createdAt)} · {entry.reason.replace(/_/g, " ")}
           </p>
@@ -120,7 +120,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
                     </select>
                   </div>
                 ) : item.condition ? (
-                  <span className="text-[11px] text-ink/60">{item.condition} → {item.disposition}</span>
+                  <span className="text-[11px] text-ink/72">{item.condition} → {item.disposition}</span>
                 ) : null}
               </td>
             </tr>
@@ -128,12 +128,12 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
         </tbody>
       </table>
 
-      {error ? <p className="mt-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {entry.status === "requested" && canHandle ? (
           <>
-            <input className="field max-w-[320px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note to the buyer (required to reject)" />
+            <input aria-label="Note for the buyer" className="field max-w-[320px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Note to the buyer (required to reject)" />
             <button type="button" disabled={busy} className="btn btn-primary btn-sm" onClick={() => act({ action: "approve", note })}>
               {busy ? <Loader2 size={12} className="animate-spin" /> : null} Approve
             </button>
@@ -160,10 +160,10 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
               <button type="button" disabled={busy} className="btn btn-primary btn-sm" onClick={() => act({ action: "refund", includeShipping: shipping })}>
                 {busy ? <Loader2 size={12} className="animate-spin" /> : null} Refund {formatMoney(shipping ? entry.preview.withShipping : entry.preview.without)}
               </button>
-              <span className="text-[10.5px] text-ink/45">incl. {formatMoney(entry.preview.tax)} sales tax</span>
+              <span className="text-[10.5px] text-ink/65">incl. {formatMoney(entry.preview.tax)} sales tax</span>
             </>
           ) : (
-            <span className="text-[11px] text-ink/55">Awaiting refund by accounting.</span>
+            <span className="text-[11px] text-ink/70">Awaiting refund by accounting.</span>
           )
         ) : null}
         {entry.status === "refunded" ? (
@@ -171,7 +171,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
             {formatMoney(entry.refunded)} refunded{entry.refundRef ? ` · ${entry.refundRef}` : ""}
           </span>
         ) : null}
-        {entry.adminNote && entry.status !== "requested" ? <span className="text-[11px] text-ink/55">Note: {entry.adminNote}</span> : null}
+        {entry.adminNote && entry.status !== "requested" ? <span className="text-[11px] text-ink/70">Note: {entry.adminNote}</span> : null}
       </div>
     </article>
   );
@@ -179,7 +179,7 @@ function ReturnCard({ entry, canHandle, canRefund }: { entry: AdminReturn; canHa
 
 export function AdminReturns({ returns, canHandle, canRefund }: { returns: AdminReturn[]; canHandle: boolean; canRefund: boolean }) {
   if (!returns.length) {
-    return <p className="rounded-xl border border-dashed border-ink/20 py-14 text-center text-[12px] text-ink/45">No return requests yet.</p>;
+    return <p className="rounded-xl border border-dashed border-ink/20 py-14 text-center text-[12px] text-ink/65">No return requests yet.</p>;
   }
   return (
     <div className="space-y-3">

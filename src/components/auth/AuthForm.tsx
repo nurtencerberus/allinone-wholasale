@@ -227,7 +227,7 @@ export function AuthForm({
     <div className="w-full max-w-[420px]">
       <p className="eyebrow">{copy.eyebrow}</p>
       <h1 className="display mt-2 text-[34px] leading-tight">{copy.title}</h1>
-      <p className="mt-2 text-[12.5px] leading-relaxed text-ink/60">{copy.sub}</p>
+      <p className="mt-2 text-[12.5px] leading-relaxed text-ink/72">{copy.sub}</p>
 
       {success ? (
         <div className="mt-5 rounded-lg border border-fern/30 bg-fern/8 p-4">
@@ -236,7 +236,7 @@ export function AuthForm({
           </p>
           {devLink ? (
             <div className="mt-3 rounded-md border border-gold/40 bg-gold/10 p-3">
-              <p className="text-[10px] font-bold tracking-wide text-ink/60 uppercase">
+              <p className="text-[10px] font-bold tracking-wide text-ink/72 uppercase">
                 Development delivery (no Resend key)
               </p>
               <a href={devLink} className="mt-1 block break-all text-[10.5px] font-medium text-ink underline">
@@ -256,7 +256,7 @@ export function AuthForm({
       ) : null}
 
       {error ? (
-        <p className="mt-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
+        <p role="alert" className="mt-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
           {error}
         </p>
       ) : null}
@@ -277,7 +277,7 @@ export function AuthForm({
               onChange={(event) => setCode(event.target.value)}
               placeholder="123456"
             />
-            <p className="mt-1.5 text-[11px] text-ink/50">
+            <p className="mt-1.5 text-[11px] text-ink/68">
               Enter the 6-digit code from your authenticator app, or one of your recovery codes.
             </p>
           </div>
@@ -377,7 +377,7 @@ export function AuthForm({
 
       {mode === "login" && showDemo ? (
         <div className="mt-4 rounded-lg border border-dashed border-ink/20 bg-parchment/40 p-3">
-          <p className="text-[10px] font-bold tracking-[0.12em] text-ink/45 uppercase">
+          <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">
             Demo accounts · click a row to sign in instantly
           </p>
           <div className="mt-2 space-y-1.5">
@@ -407,7 +407,7 @@ export function AuthForm({
         </div>
       ) : null}
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-ink/50">
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-ink/68">
         {mode !== "login" ? (
           <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold underline">Already have an account?</Link>
         ) : null}

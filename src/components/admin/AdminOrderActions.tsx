@@ -61,7 +61,7 @@ export function AdminOrderActions({
   return (
     <div className="space-y-4 lg:sticky lg:top-28">
       {message ? <p className="rounded-md border border-fern/30 bg-fern/10 px-3 py-2 text-[11.5px] font-medium text-fern">{message}</p> : null}
-      {error ? <p className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
 
       {canFulfil && (transitions.length || status === "picking" || status === "shipped") ? (
         <div className="card space-y-3 p-4">
@@ -160,7 +160,7 @@ export function AdminOrderActions({
           }}
         >
           <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Internal note</p>
-          <textarea className="field min-h-[70px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Not visible to the buyer" />
+          <textarea aria-label="Internal note" className="field min-h-[70px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Not visible to the buyer" />
           <button type="submit" disabled={busy || !note.trim()} className="btn btn-outline btn-sm">Add note</button>
         </form>
       ) : null}

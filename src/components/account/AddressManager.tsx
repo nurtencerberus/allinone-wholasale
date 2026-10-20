@@ -77,7 +77,7 @@ export function AddressManager({ initial }: { initial: AddressRow[] }) {
           <div className="card flex flex-col items-center gap-2 p-8 text-center">
             <MapPin size={24} className="text-ink/25" />
             <p className="text-[12.5px] font-bold">No saved addresses</p>
-            <p className="text-[11px] text-ink/50">Add a receiving dock to speed up LTL scheduling.</p>
+            <p className="text-[11px] text-ink/68">Add a receiving dock to speed up LTL scheduling.</p>
           </div>
         ) : (
           list.map((entry) => (
@@ -87,7 +87,7 @@ export function AddressManager({ initial }: { initial: AddressRow[] }) {
                   {entry.label}
                   {entry.isDefault ? <span className="ml-1.5 text-[9px] font-semibold text-fern">DEFAULT</span> : null}
                 </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-ink/60">
+                <p className="mt-1 text-[11px] leading-relaxed text-ink/72">
                   {entry.name}
                   {entry.company ? ` · ${entry.company}` : ""}
                   <br />
@@ -115,7 +115,7 @@ export function AddressManager({ initial }: { initial: AddressRow[] }) {
           <Plus size={14} /> Add a receiving address
         </p>
         {error ? (
-          <p className="mt-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">{error}</p>
+          <p role="alert" className="mt-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">{error}</p>
         ) : null}
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
@@ -219,7 +219,7 @@ export function AddressManager({ initial }: { initial: AddressRow[] }) {
               onChange={(event) => setValues({ ...values, phone: event.target.value })}
             />
           </div>
-          <label className="flex items-center gap-2 text-[11px] text-ink/60 sm:col-span-2">
+          <label className="flex items-center gap-2 text-[11px] text-ink/72 sm:col-span-2">
             <input
               type="checkbox"
               checked={values.isDefault}

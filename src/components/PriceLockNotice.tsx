@@ -10,7 +10,7 @@ export function PriceLockNotice({ user, next }: { user: SessionUser | null; next
         <Lock size={22} />
       </span>
       <h1 className="display mt-4 text-[30px]">For approved trade accounts</h1>
-      <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink/60">
+      <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink/72">
         {user
           ? "Wholesale pricing and ordering unlock once your trade application is approved. Most applications are decided within one business day."
           : "Sign in to your trade account to see wholesale pricing and place orders, or apply with your EIN and resale certificate."}

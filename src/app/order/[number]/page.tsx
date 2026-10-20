@@ -211,20 +211,20 @@ export default async function OrderPage({
       <section className="card mt-5 p-5 sm:p-6">
         <div className="grid gap-5 border-b border-ink/10 pb-5 sm:grid-cols-3">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Carrier &amp; service</p>
+            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Carrier &amp; service</p>
             <p className="mt-1 text-[14px] font-bold">{order.shippingCarrier}</p>
-            <p className="text-[11.5px] text-ink/55">{order.shippingService}</p>
+            <p className="text-[11.5px] text-ink/70">{order.shippingService}</p>
           </div>
           <div>
-            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Payment</p>
+            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Payment</p>
             <p className="mt-1 text-[14px] font-bold">{payment.headline}</p>
-            <p className="text-[11.5px] text-ink/55">
+            <p className="text-[11.5px] text-ink/70">
               {METHOD_LABEL[order.paymentMethod] ?? "Credit card"}
               {order.poNumber ? ` · PO ${order.poNumber}` : ""}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Tracking number</p>
+            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Tracking number</p>
             {order.trackingNumber ? (
               <div className="mt-1 flex items-center gap-1">
                 <code className="rounded-md bg-ink/[0.06] px-2.5 py-1.5 font-mono text-[12.5px] font-bold">
@@ -233,7 +233,7 @@ export default async function OrderPage({
                 <CopyButton value={order.trackingNumber} label="Copy tracking number" />
               </div>
             ) : (
-              <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-ink/50">
+              <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-ink/68">
                 <Clock size={13} /> Added when the carrier scans the shipment
               </p>
             )}
@@ -274,14 +274,14 @@ export default async function OrderPage({
                         ? "bg-fern text-cream"
                         : current
                           ? "bg-ink text-cream ring-4 ring-ink/10"
-                          : "bg-ink/[0.07] text-ink/40"
+                          : "bg-ink/[0.07] text-ink/65"
                     }`}
                   >
                     {complete ? <Check size={15} /> : index + 1}
                   </span>
                   <span
                     className={`mt-2 text-[11px] font-semibold sm:text-[12px] ${
-                      complete || current ? "text-ink" : "text-ink/40"
+                      complete || current ? "text-ink" : "text-ink/65"
                     }`}
                   >
                     {step.label}
@@ -300,7 +300,7 @@ export default async function OrderPage({
               <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase">
                 <Package size={13} /> Order manifest ({items.length})
               </p>
-              <p className="text-[10.5px] text-ink/45">
+              <p className="text-[10.5px] text-ink/65">
                 {items.reduce((sum, item) => sum + item.cases, 0)} cases · {totalUnits} units
               </p>
             </div>
@@ -321,12 +321,12 @@ export default async function OrderPage({
                         <p className="text-[10px] font-bold tracking-[0.14em] text-fern uppercase">{product.brand}</p>
                       ) : null}
                       <p className="text-[13.5px] font-semibold leading-snug">{item.name}</p>
-                      <p className="mt-0.5 text-[10.5px] text-ink/45">
+                      <p className="mt-0.5 text-[10.5px] text-ink/65">
                         {item.sku} · {item.cases} case{item.cases === 1 ? "" : "s"} × {item.unitsPerCase} units ·{" "}
                         {formatMoney(item.unitPrice)} / unit
                       </p>
                       {lotsByItem.get(item.id)?.length ? (
-                        <p className="mt-0.5 font-mono text-[10px] text-ink/50">
+                        <p className="mt-0.5 font-mono text-[10px] text-ink/68">
                           {lotsByItem
                             .get(item.id)!
                             .map((lot) => `Lot ${lot.lotNumber}${lot.expiresOn ? ` · best by ${formatIsoDate(lot.expiresOn)}` : ""} (${lot.cases})`)
@@ -353,7 +353,7 @@ export default async function OrderPage({
                     <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink/8 pb-2 last:border-0">
                       <span>
                         <span className="font-mono font-bold">{entry.rmaNumber}</span> · {RETURN_STATUS[entry.status] ?? entry.status}
-                        {entry.adminNote ? <span className="block text-[11px] text-ink/55">{entry.adminNote}</span> : null}
+                        {entry.adminNote ? <span className="block text-[11px] text-ink/70">{entry.adminNote}</span> : null}
                       </span>
                       {entry.status === "refunded" ? (
                         <span className="font-semibold tabular-nums text-fern">
@@ -372,7 +372,7 @@ export default async function OrderPage({
                     lines={returnable.map((line) => ({ id: line.id, name: line.name, sku: line.sku, returnable: line.returnable }))}
                   />
                 ) : owner && eligibility.reason ? (
-                  <p className="text-[11.5px] text-ink/55">{eligibility.reason} Contact the trade desk for help.</p>
+                  <p className="text-[11.5px] text-ink/70">{eligibility.reason} Contact the trade desk for help.</p>
                 ) : null}
               </div>
             </section>
@@ -387,7 +387,7 @@ export default async function OrderPage({
                     <p className="font-semibold capitalize">
                       {event.type === "status" || event.type === "created" ? event.toValue : event.type === "return" ? `Return ${event.toValue ?? ""}` : event.type === "refund" ? "Refund" : event.type === "payment" ? paymentLabel(event.toValue ?? "") : event.type}
                     </p>
-                    <p className="text-[10.5px] text-ink/50">
+                    <p className="text-[10.5px] text-ink/68">
                       {formatDateTime(event.createdAt)}
                       {event.message ? ` · ${event.message}` : ""}
                     </p>
@@ -435,7 +435,7 @@ export default async function OrderPage({
             <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Financial breakdown</p>
             <dl className="mt-3 space-y-2 text-[12px]">
               <div className="flex justify-between">
-                <dt className="text-ink/55">Catalog subtotal</dt>
+                <dt className="text-ink/70">Catalog subtotal</dt>
                 <dd className="font-semibold tabular-nums">{formatMoney(order.subtotal)}</dd>
               </div>
               {order.accountDiscount > 0 ? (
@@ -451,13 +451,13 @@ export default async function OrderPage({
                 </div>
               ) : null}
               <div className="flex justify-between">
-                <dt className="text-ink/55">Freight</dt>
+                <dt className="text-ink/70">Freight</dt>
                 <dd className="font-semibold tabular-nums">
                   {order.shippingCost === 0 ? "Waived" : formatMoney(order.shippingCost)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink/55">
+                <dt className="text-ink/70">
                   Sales tax{" "}
                   {order.taxExempt
                     ? "(resale exempt)"
@@ -490,7 +490,7 @@ export default async function OrderPage({
               <MapPin size={13} /> Delivery destination
             </p>
             <p className="mt-3 text-[13px] font-bold">{order.customerName}</p>
-            {order.company ? <p className="text-[12px] text-ink/60">{order.company}</p> : null}
+            {order.company ? <p className="text-[12px] text-ink/72">{order.company}</p> : null}
             <p className="mt-1 text-[12px] leading-relaxed text-ink/65">
               {order.shippingAddress.line1}
               {order.shippingAddress.line2 ? (
@@ -504,13 +504,13 @@ export default async function OrderPage({
               <br />
               {order.shippingAddress.country}
             </p>
-            {order.phone ? <p className="mt-2 text-[11px] text-ink/50">Freight contact: {order.phone}</p> : null}
+            {order.phone ? <p className="mt-2 text-[11px] text-ink/68">Freight contact: {order.phone}</p> : null}
             {order.notes ? (
-              <p className="mt-2 rounded-md bg-parchment/60 px-2.5 py-2 text-[10.5px] leading-relaxed text-ink/60">
+              <p className="mt-2 rounded-md bg-parchment/60 px-2.5 py-2 text-[10.5px] leading-relaxed text-ink/72">
                 {order.notes}
               </p>
             ) : null}
-            <p className="mt-3 flex items-center gap-1.5 border-t border-ink/8 pt-3 text-[10.5px] text-ink/45">
+            <p className="mt-3 flex items-center gap-1.5 border-t border-ink/8 pt-3 text-[10.5px] text-ink/65">
               <Truck size={12} /> {order.shippingCarrier} · {order.shippingService}
             </p>
           </section>

@@ -215,7 +215,7 @@ export default async function HomePage() {
               <span className="chip border-clay/30 bg-clay/10 text-clay">
                 <span className="h-1.5 w-1.5 rounded-full bg-clay" /> B2B only · USA
               </span>
-              <span className="text-[11px] font-medium tracking-wide text-ink/50">
+              <span className="text-[11px] font-medium tracking-wide text-ink/68">
                 Shipping from {SITE.city}, {SITE.state} · {SITE.zip}
               </span>
             </div>
@@ -248,7 +248,7 @@ export default async function HomePage() {
               {PROOF.map((item) => (
                 <div key={item.label}>
                   <p className="font-display text-[26px] leading-none">{item.value}</p>
-                  <p className="mt-1.5 text-[10.5px] font-medium leading-tight tracking-wide text-ink/50 uppercase">
+                  <p className="mt-1.5 text-[10.5px] font-medium leading-tight tracking-wide text-ink/68 uppercase">
                     {item.label}
                   </p>
                 </div>
@@ -315,7 +315,7 @@ export default async function HomePage() {
       {/* Certification strip (demo only) ----------------------------- */}
       {demo ? (
       <div className="border-b border-ink/10 bg-parchment/60">
-        <div className="wrap flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-4 text-[10px] font-bold tracking-[0.18em] text-ink/45 uppercase">
+        <div className="wrap flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-4 text-[10px] font-bold tracking-[0.18em] text-ink/65 uppercase">
           <span>NSF Certified</span>
           <span className="text-ink/20">◆</span>
           <span>cGMP facilities</span>
@@ -428,7 +428,7 @@ export default async function HomePage() {
                 </span>
                 <div>
                   <p className="text-[12.5px] font-bold">Buying for a shop, gym or hotel?</p>
-                  <p className="mt-1 text-[11.5px] leading-relaxed text-ink/60">
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-ink/72">
                     Trade applications are reviewed by a human on our trade team — most are approved within one
                     business day.
                   </p>
@@ -449,7 +449,7 @@ export default async function HomePage() {
                   <prop.icon size={17} />
                 </span>
                 <h3 className="mt-3.5 text-[13.5px] font-bold leading-snug">{prop.title}</h3>
-                <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/60">{prop.body}</p>
+                <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/72">{prop.body}</p>
               </div>
             ))}
           </div>
@@ -479,7 +479,7 @@ export default async function HomePage() {
                 Program details
               </Link>
             </div>
-            <p className="mt-4 text-[11px] text-cream/40">
+            <p className="mt-4 text-[11px] text-cream/50">
               No membership fee · No volume commitment · EIN or state seller&apos;s permit required
             </p>
           </div>
@@ -535,7 +535,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-5 py-3.5">
               <div>
                 <p className="text-[12.5px] font-bold">{sample?.name ?? "Daily Foundations Multivitamin"}</p>
-                <p className="text-[10px] font-medium tracking-wider text-ink/45 uppercase">
+                <p className="text-[10px] font-medium tracking-wider text-ink/65 uppercase">
                   {sample?.sku ?? "MSC-VIT-090"} · {sample?.caseSize ?? 12} units / case
                 </p>
               </div>
@@ -543,11 +543,11 @@ export default async function HomePage() {
             </div>
             <table className="w-full text-left text-[12px]">
               <thead>
-                <tr className="border-b border-ink/8 text-[9.5px] font-bold tracking-[0.14em] text-ink/45 uppercase">
-                  <th className="px-5 py-2.5">Quantity</th>
-                  <th className="px-3 py-2.5">Case price</th>
-                  <th className="px-3 py-2.5">Per unit</th>
-                  <th className="px-5 py-2.5 text-right">Retail margin</th>
+                <tr className="border-b border-ink/8 text-[9.5px] font-bold tracking-[0.14em] text-ink/65 uppercase">
+                  <th scope="col" className="px-5 py-2.5">Quantity</th>
+                  <th scope="col" className="px-3 py-2.5">Case price</th>
+                  <th scope="col" className="px-3 py-2.5">Per unit</th>
+                  <th scope="col" className="px-5 py-2.5 text-right">Retail margin</th>
                 </tr>
               </thead>
               <tbody>
@@ -564,7 +564,7 @@ export default async function HomePage() {
                         {tier.minCases === 1 ? "1 case" : `${tier.minCases}+ cases`}
                       </td>
                       <td className="px-3 py-3 tabular-nums">{formatMoney(tier.casePrice)}</td>
-                      <td className="px-3 py-3 text-ink/55 tabular-nums">
+                      <td className="px-3 py-3 text-ink/70 tabular-nums">
                         {formatMoney(Math.round(tier.casePrice / size))}
                       </td>
                       <td className="px-5 py-3 text-right">
@@ -604,7 +604,7 @@ export default async function HomePage() {
                 ))}
               </div>
               <span className="text-[11.5px] font-bold">4.8 / 5</span>
-              <span className="text-[11px] text-ink/45">· 1,412 verified reviews</span>
+              <span className="text-[11px] text-ink/65">· 1,412 verified reviews</span>
             </div>
           </div>
           <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -645,7 +645,7 @@ export default async function HomePage() {
                 </blockquote>
                 <figcaption className="mt-4 border-t border-ink/8 pt-3">
                   <p className="text-[12px] font-bold">{testimonial.name}</p>
-                  <p className="text-[10.5px] text-ink/50">{testimonial.company}</p>
+                  <p className="text-[10.5px] text-ink/68">{testimonial.company}</p>
                   <p className="mt-1.5 inline-flex rounded-full bg-fern/10 px-2 py-0.5 text-[10px] font-bold text-fern">
                     {testimonial.stat}
                   </p>
@@ -665,7 +665,7 @@ export default async function HomePage() {
             <h2 className="display mt-2 text-[32px] leading-tight sm:text-[38px]">
               Everything a new buyer asks us.
             </h2>
-            <p className="mt-4 text-[13px] leading-relaxed text-ink/60">
+            <p className="mt-4 text-[13px] leading-relaxed text-ink/72">
               Still unsure? The trade desk answers within one business hour,{" "}
               {new Date().getHours() < 17 ? "Monday to Friday" : "next business morning"}.
             </p>
@@ -680,7 +680,7 @@ export default async function HomePage() {
                   <span className="text-[13.5px] font-bold leading-snug">{item.q}</span>
                   <ChevronDown
                     size={17}
-                    className="mt-0.5 shrink-0 text-ink/40 transition-transform group-open:rotate-180"
+                    className="mt-0.5 shrink-0 text-ink/65 transition-transform group-open:rotate-180"
                   />
                 </summary>
                 <p className="mt-2.5 max-w-[640px] text-[12.5px] leading-relaxed text-ink/65">{item.a}</p>

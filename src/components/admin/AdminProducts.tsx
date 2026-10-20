@@ -272,7 +272,7 @@ function Section({ step, title, hint, children }: { step: number; title: string;
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[10px] text-cream">{step}</span>
         {title}
       </legend>
-      {hint ? <p className="mt-1 text-[10.5px] leading-relaxed text-ink/50">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-[10.5px] leading-relaxed text-ink/68">{hint}</p> : null}
       <div className="mt-3">{children}</div>
     </fieldset>
   );
@@ -526,7 +526,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
               key={key}
               onClick={() => setStatus(key)}
               className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
-                status === key ? "border-ink bg-ink text-cream" : "border-ink/15 text-ink/60 hover:border-ink/40"
+                status === key ? "border-ink bg-ink text-cream" : "border-ink/15 text-ink/72 hover:border-ink/40"
               }`}
             >
               {label}
@@ -548,8 +548,8 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
-            <input
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/50" />
+            <input aria-label="Search products"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search name, SKU, brand…"
@@ -568,7 +568,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
         </p>
       ) : null}
       {error && !form ? (
-        <p className="mt-3 flex items-start gap-2 rounded-lg border border-clay/30 bg-clay/10 px-4 py-3 text-[12px] font-medium text-clay">
+        <p role="alert" className="mt-3 flex items-start gap-2 rounded-lg border border-clay/30 bg-clay/10 px-4 py-3 text-[12px] font-medium text-clay">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {error}
         </p>
       ) : null}
@@ -581,7 +581,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
               <p className="text-[11px] font-bold tracking-[0.14em] uppercase">
                 {form.id ? "Edit product" : "New product"}
               </p>
-              <p className="mt-0.5 text-[10.5px] text-ink/45">
+              <p className="mt-0.5 text-[10.5px] text-ink/65">
                 {form.id
                   ? "Changes go live the moment you save."
                   : "Fill the required fields — everything else gets a sensible default."}
@@ -591,7 +591,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
               type="button"
               onClick={() => setForm(null)}
               aria-label="Close editor"
-              className="rounded-full p-2 text-ink/50 hover:bg-ink/5 hover:text-ink"
+              className="rounded-full p-2 text-ink/68 hover:bg-ink/5 hover:text-ink"
             >
               <X size={17} />
             </button>
@@ -654,7 +654,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       <option value="supplement">Dietary supplement with Supplement Facts label (NJ exempt)</option>
                       <option value="candy">Candy or soft drink (taxable)</option>
                     </select>
-                    <p id="pf-tax-class-note" className="mt-1 text-[10px] text-ink/45">
+                    <p id="pf-tax-class-note" className="mt-1 text-[10px] text-ink/65">
                       Confirm each class with your accountant. Bars or drinks without a Supplement Facts label are not supplements.
                     </p>
                   </div>
@@ -767,7 +767,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
 
                 <div className="mt-4 rounded-lg border border-ink/10 bg-parchment/30 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[10.5px] font-bold tracking-[0.12em] text-ink/50 uppercase">Volume tiers</p>
+                    <p className="text-[10.5px] font-bold tracking-[0.12em] text-ink/68 uppercase">Volume tiers</p>
                     <div className="flex gap-2">
                       <button type="button" onClick={suggestTiers} className="btn btn-outline btn-sm">
                         Suggest 5 / 10 / 16% tiers
@@ -784,7 +784,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     </div>
                   </div>
                   {form.tiers.length === 0 ? (
-                    <p className="mt-2 text-[11px] text-ink/45">No volume discounts — every case is the list price.</p>
+                    <p className="mt-2 text-[11px] text-ink/65">No volume discounts — every case is the list price.</p>
                   ) : (
                     <div className="mt-3 space-y-2">
                       {form.tiers.map((tier, index) => (
@@ -803,7 +803,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                             }
                             placeholder="Cases"
                           />
-                          <span className="text-[11px] text-ink/40">+ cases at $</span>
+                          <span className="text-[11px] text-ink/65">+ cases at $</span>
                           <input
                             className="field w-[130px]"
                             inputMode="decimal"
@@ -822,7 +822,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                             type="button"
                             onClick={() => patchForm({ tiers: form.tiers.filter((_, rowIndex) => rowIndex !== index) })}
                             aria-label="Remove tier"
-                            className="rounded p-2 text-ink/35 hover:bg-clay/10 hover:text-clay"
+                            className="rounded p-2 text-ink/50 hover:bg-clay/10 hover:text-clay"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1113,13 +1113,13 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       type="button"
                       onClick={() => fileInput.current?.click()}
                       disabled={uploading}
-                      className="flex h-[92px] w-[92px] flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-ink/20 text-ink/45 hover:border-ink/40 hover:text-ink/70"
+                      className="flex h-[92px] w-[92px] flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-ink/20 text-ink/65 hover:border-ink/40 hover:text-ink/70"
                     >
                       {uploading ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
                       <span className="text-[10px] font-bold">{uploading ? "Uploading" : "Add photos"}</span>
                     </button>
                   ) : null}
-                  <input
+                  <input aria-label="Product photos to upload"
                     ref={fileInput}
                     type="file"
                     multiple
@@ -1129,7 +1129,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                   />
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <input
+                  <input aria-label="Image URL"
                     className="field"
                     value={imageUrl}
                     onChange={(event) => setImageUrl(event.target.value)}
@@ -1152,7 +1152,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                   </button>
                 </div>
                 {form.images.length === 0 ? (
-                  <p className="mt-2 text-[10.5px] text-ink/45">
+                  <p className="mt-2 text-[10.5px] text-ink/65">
                     No photo? The department’s default image is used until you add one.
                   </p>
                 ) : null}
@@ -1179,7 +1179,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       onChange={(event) => patchForm({ specsText: event.target.value })}
                       placeholder={"Label: value, one per line\nShelf life: 24 months\nCertifications: NSF, Non-GMO"}
                     />
-                    <p className="mt-1 text-[10px] text-ink/40">Left blank, units / MSRP / weight specs are generated.</p>
+                    <p className="mt-1 text-[10px] text-ink/65">Left blank, units / MSRP / weight specs are generated.</p>
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-5">
@@ -1208,7 +1208,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
             {/* Live summary ---------------------------------------- */}
             <aside className="space-y-3 lg:sticky lg:top-28 lg:self-start">
               <div className="rounded-xl border border-ink/10 bg-parchment/40 p-4">
-                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/45 uppercase">Live summary</p>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Live summary</p>
                 <dl className="mt-3 space-y-2.5 text-[12px]">
                   {[
                     ["Cost per unit", metrics?.unitCost != null ? formatMoney(metrics.unitCost) : "—"],
@@ -1222,7 +1222,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     ["Billable per case", metrics?.billable != null ? `${metrics.billable.toFixed(1)} lb` : "—"],
                   ].map(([label, value]) => (
                     <div key={label} className="flex items-baseline justify-between gap-3 border-b border-ink/8 pb-2 last:border-0 last:pb-0">
-                      <dt className="text-ink/50">{label}</dt>
+                      <dt className="text-ink/68">{label}</dt>
                       <dd className="font-bold tabular-nums">{value}</dd>
                     </div>
                   ))}
@@ -1262,15 +1262,15 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
       <div className="card mt-4 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-[11.5px]">
-            <thead className="bg-parchment/50 text-[9.5px] font-bold tracking-[0.1em] text-ink/45 uppercase">
+            <thead className="bg-parchment/50 text-[9.5px] font-bold tracking-[0.1em] text-ink/65 uppercase">
               <tr className="border-b border-ink/10">
-                <th className="px-4 py-3">Product</th>
-                <th className="px-2 py-3">Department</th>
-                <th className="px-2 py-3 text-right">Case</th>
-                <th className="px-2 py-3">Pack</th>
-                <th className="px-2 py-3">Stock</th>
-                <th className="px-2 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th scope="col" className="px-4 py-3">Product</th>
+                <th scope="col" className="px-2 py-3">Department</th>
+                <th scope="col" className="px-2 py-3 text-right">Case</th>
+                <th scope="col" className="px-2 py-3">Pack</th>
+                <th scope="col" className="px-2 py-3">Stock</th>
+                <th scope="col" className="px-2 py-3">Status</th>
+                <th scope="col" className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1289,16 +1289,16 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                           {product.name}
                         </p>
                         <p className="font-mono text-[10px] font-bold text-fern">{product.sku}</p>
-                        <p className="text-[10px] text-ink/40">{product.brand}</p>
+                        <p className="text-[10px] text-ink/65">{product.brand}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-2 py-3 text-ink/60">{categoryName(product.category)}</td>
+                  <td className="px-2 py-3 text-ink/72">{categoryName(product.category)}</td>
                   <td className="px-2 py-3 text-right">
                     <p className="font-bold tabular-nums">{formatMoney(product.casePrice)}</p>
-                    <p className="text-[9.5px] text-ink/40">{formatMoney(Math.round(product.casePrice / product.caseSize))}/unit</p>
+                    <p className="text-[9.5px] text-ink/65">{formatMoney(Math.round(product.casePrice / product.caseSize))}/unit</p>
                   </td>
-                  <td className="px-2 py-3 whitespace-nowrap text-ink/60">{product.caseSize} / case</td>
+                  <td className="px-2 py-3 whitespace-nowrap text-ink/72">{product.caseSize} / case</td>
                   <td className="px-2 py-3">
                     <Link
                       href="/admin/inventory"
@@ -1307,13 +1307,13 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                     >
                       {product.stock}
                     </Link>
-                    <p className="text-[9.5px] text-ink/40">reorder at {product.reorderPoint}</p>
+                    <p className="text-[9.5px] text-ink/65">reorder at {product.reorderPoint}</p>
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span
                         className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
-                          product.active ? "bg-fern/15 text-fern" : "bg-ink/10 text-ink/50"
+                          product.active ? "bg-fern/15 text-fern" : "bg-ink/10 text-ink/68"
                         }`}
                       >
                         {product.active ? "Live" : "Archived"}
@@ -1343,7 +1343,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       <button
                         type="button"
                         onClick={() => openEditor({ ...fromProduct(product), id: null, sku: "", gtin: "", caseGtin: "", updatedAt: null, name: `${product.name} (copy)`, active: false })}
-                        className="rounded-full border border-ink/15 p-2 text-ink/55 hover:border-ink/40 hover:text-ink"
+                        className="rounded-full border border-ink/15 p-2 text-ink/70 hover:border-ink/40 hover:text-ink"
                         title="Duplicate as a new product"
                         aria-label={`Duplicate ${product.name}`}
                       >
@@ -1353,7 +1353,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                         type="button"
                         onClick={() => quickPatch(product, { active: !product.active })}
                         disabled={rowBusy === product.id}
-                        className="rounded-full border border-ink/15 p-2 text-ink/55 hover:border-ink/40 hover:text-ink"
+                        className="rounded-full border border-ink/15 p-2 text-ink/70 hover:border-ink/40 hover:text-ink"
                         title={product.active ? "Archive (hide from store)" : "Restore to the store"}
                         aria-label={product.active ? `Archive ${product.name}` : `Restore ${product.name}`}
                       >
@@ -1368,7 +1368,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       <Link
                         href={`/products/${product.slug}`}
                         target="_blank"
-                        className="rounded-full border border-ink/15 p-2 text-ink/55 hover:border-ink/40 hover:text-ink"
+                        className="rounded-full border border-ink/15 p-2 text-ink/70 hover:border-ink/40 hover:text-ink"
                         title="View product page"
                         aria-label={`View ${product.name}`}
                       >
@@ -1390,7 +1390,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
               ))}
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-14 text-center text-[12px] text-ink/45">
+                  <td colSpan={7} className="px-5 py-14 text-center text-[12px] text-ink/65">
                     No products match these filters.
                   </td>
                 </tr>
@@ -1398,7 +1398,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
             </tbody>
           </table>
         </div>
-        <p className="border-t border-ink/10 bg-parchment/30 px-4 py-2.5 text-[10px] text-ink/45">
+        <p className="border-t border-ink/10 bg-parchment/30 px-4 py-2.5 text-[10px] text-ink/65">
           Stock is managed by lot on the Inventory screen. Archived products disappear from the store,
           search, sitemap and order sheets but stay in your order history.
         </p>

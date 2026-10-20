@@ -35,12 +35,12 @@ export function LegalPage({ title, intro, children }: { title: string; intro: st
       </nav>
       <article className="max-w-3xl">
         <h1 className="display text-[34px] leading-tight sm:text-[42px]">{title}</h1>
-        <p className="mt-2 text-[11px] text-ink/45">Last updated {POLICIES_UPDATED}</p>
+        <p className="mt-2 text-[11px] text-ink/65">Last updated {POLICIES_UPDATED}</p>
         <p className="mt-4 text-[13.5px] leading-relaxed text-ink/70">{intro}</p>
         <div className="legal mt-6 space-y-6 text-[13px] leading-relaxed text-ink/75 [&_h2]:display [&_h2]:text-[21px] [&_h2]:text-ink [&_li]:ml-5 [&_li]:list-disc [&_p+p]:mt-2 [&_ul]:mt-2 [&_ul]:space-y-1">
           {children}
         </div>
-        <p className="mt-10 border-t border-ink/10 pt-4 text-[12px] text-ink/55">
+        <p className="mt-10 border-t border-ink/10 pt-4 text-[12px] text-ink/70">
           Questions: <a className="underline" href={`mailto:${SITE.email}`}>{SITE.email}</a> · {SITE.phone} · {SITE.address}
         </p>
       </article>

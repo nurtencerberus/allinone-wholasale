@@ -11,7 +11,7 @@ export default function NotFound() {
       <h1 className="display mt-2 text-[36px] leading-tight sm:text-[44px]">
         That aisle does not exist.
       </h1>
-      <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/60">
+      <p className="mt-2 max-w-md text-[12.5px] leading-relaxed text-ink/72">
         The page or SKU you were looking for has moved. The catalog, trade program and quick order
         panel are all one click away.
       </p>

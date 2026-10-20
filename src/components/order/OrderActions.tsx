@@ -70,7 +70,7 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
         }
       }}
       aria-label={label}
-      className="no-print rounded-md p-1.5 text-ink/45 hover:bg-ink/5 hover:text-ink"
+      className="no-print rounded-md p-1.5 text-ink/65 hover:bg-ink/5 hover:text-ink"
     >
       {copied ? <Check size={14} className="text-fern" /> : <Copy size={14} />}
     </button>

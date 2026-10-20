@@ -53,7 +53,7 @@ function InnerForm({
       <div className="rounded-lg border border-ink/12 bg-white p-4">
         <PaymentElement options={{ layout: "tabs" }} />
       </div>
-      <p className="flex items-start gap-2 text-[10.5px] leading-relaxed text-ink/50">
+      <p className="flex items-start gap-2 text-[10.5px] leading-relaxed text-ink/68">
         <Lock size={12} className="mt-0.5 shrink-0" />
         Card details are entered inside Stripe-hosted iframes and tokenised before they reach our
         servers. Ciputra never receives, logs or stores a card number — SAQ-A scope.

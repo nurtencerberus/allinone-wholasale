@@ -67,7 +67,7 @@ export default async function AdminProductsPage() {
           ].map((stat) => (
             <div key={stat.label} className="card flex items-center justify-between p-4">
               <div>
-                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
                 <p className="display mt-1.5 text-[26px] leading-none">{stat.value}</p>
               </div>
               <stat.icon size={18} className="text-fern" />

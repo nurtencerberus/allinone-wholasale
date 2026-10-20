@@ -38,11 +38,11 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         <div className="wrap flex h-9 items-center justify-between text-[10.5px] font-medium tracking-[0.14em] uppercase">
           <div className="flex items-center gap-3 sm:gap-5">
             <span className="text-cream">B2B wholesale · USA</span>
-            <span className="hidden text-cream/40 sm:inline">|</span>
+            <span className="hidden text-cream/50 sm:inline">|</span>
             <span className="hidden sm:inline">
               Free ground freight over {formatMoney(SITE.freeFreightThreshold)} · zones 1–{SITE.freeFreightMaxZone}
             </span>
-            <span className="hidden text-cream/40 md:inline">|</span>
+            <span className="hidden text-cream/50 md:inline">|</span>
             <span className="hidden md:inline">Net 30 for approved retailers</span>
           </div>
           <a href={`tel:${SITE.phoneHref}`} className="hidden text-cream/80 hover:text-cream sm:inline">
@@ -127,12 +127,12 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
           <div className="border-t border-ink/10 bg-cream animate-fade">
             <form onSubmit={submitSearch} className="wrap flex items-center gap-3 py-4">
               <Search size={18} className="text-fern" />
-              <input
+              <input aria-label="Search the catalog"
                 autoFocus
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search SKUs, formulas, pantry staples…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-ink/40"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-ink/65"
               />
               <button type="submit" className="btn btn-primary btn-sm">
                 Search

@@ -53,7 +53,7 @@ export function TwoFactorSetup({
         <p className="flex items-center gap-2 text-[13px] font-bold text-fern">
           <ShieldCheck size={16} /> Save your recovery codes
         </p>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-ink/60">
+        <p className="mt-1.5 text-[12px] leading-relaxed text-ink/72">
           Each code signs you in once if you lose your phone. They are shown only now — store them in a password
           manager or print them.
         </p>
@@ -84,7 +84,7 @@ export function TwoFactorSetup({
   return (
     <div className="card p-5">
       {error ? (
-        <p className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p>
+        <p role="alert" className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p>
       ) : null}
 
       {enabled ? (
@@ -114,7 +114,7 @@ export function TwoFactorSetup({
               </button>
             </div>
             {mustStayOn ? (
-              <p className="text-[11px] text-ink/50">Staff accounts cannot turn two-factor sign-in off. An owner can reset it from the admin users screen.</p>
+              <p className="text-[11px] text-ink/68">Staff accounts cannot turn two-factor sign-in off. An owner can reset it from the admin users screen.</p>
             ) : (
               <div className="border-t border-ink/10 pt-3">
                 <label className="label" htmlFor="tf-password">Password, to turn it off</label>
@@ -148,7 +148,7 @@ export function TwoFactorSetup({
               role="img"
               dangerouslySetInnerHTML={{ __html: setup.qrSvg }}
             />
-            <div className="min-w-0 flex-1 text-[11.5px] text-ink/60">
+            <div className="min-w-0 flex-1 text-[11.5px] text-ink/72">
               <p>Can&apos;t scan? Enter this key manually (time-based):</p>
               <p className="mt-1 font-mono text-[13px] break-all text-ink" data-testid="totp-secret">{setup.secret}</p>
             </div>

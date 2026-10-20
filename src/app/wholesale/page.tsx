@@ -141,7 +141,7 @@ export default function WholesalePage() {
               </span>
               <div>
                 <p className="text-[13px] font-bold">The order sheet travels with your PO</p>
-                <p className="mt-1 max-w-xl text-[11.5px] leading-relaxed text-ink/60">
+                <p className="mt-1 max-w-xl text-[11.5px] leading-relaxed text-ink/72">
                   Download the wholesale price list as an Excel workbook or CSV — SKUs, case tiers, MSRP,
                   carton dimensions and stock. Fill the quantity column, upload it back at{" "}
                   <Link href="/quick-order" className="font-bold underline">/quick-order</Link>, and we
@@ -181,7 +181,7 @@ export default function WholesalePage() {
                 <step.icon size={17} />
               </span>
               <h2 className="mt-3 text-[13.5px] font-bold">{step.title}</h2>
-              <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/60">{step.body}</p>
+              <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/72">{step.body}</p>
             </div>
           ))}
         </div>
@@ -222,10 +222,10 @@ export default function WholesalePage() {
                   <term.icon size={16} />
                 </span>
                 <h3 className="mt-3 text-[13.5px] font-bold">{term.title}</h3>
-                <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/60">{term.body}</p>
+                <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink/72">{term.body}</p>
                 <ul className="mt-3 space-y-1.5 border-t border-ink/8 pt-2.5">
                   {term.points.map((point) => (
-                    <li key={point} className="flex items-start gap-1.5 text-[10.5px] text-ink/55">
+                    <li key={point} className="flex items-start gap-1.5 text-[10.5px] text-ink/70">
                       <Check size={11} className="mt-0.5 shrink-0 text-fern" /> {point}
                     </li>
                   ))}
@@ -274,7 +274,7 @@ export default function WholesalePage() {
                   </span>
                   <div>
                     <p className="text-[12px] font-bold">{item.title}</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-ink/55">{item.body}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-ink/70">{item.body}</p>
                   </div>
                 </div>
               ))}
@@ -294,7 +294,7 @@ export default function WholesalePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[12.5px] font-bold">{example.label}</p>
-                      <p className="mt-0.5 text-[10.5px] text-ink/50">
+                      <p className="mt-0.5 text-[10.5px] text-ink/68">
                         {example.weight} · billable {example.billable}
                       </p>
                     </div>
@@ -305,7 +305,7 @@ export default function WholesalePage() {
                       </p>
                     </div>
                   </div>
-                  <p className="mt-1.5 text-[10px] text-ink/40">{example.zone} · transit 2–6 business days</p>
+                  <p className="mt-1.5 text-[10px] text-ink/65">{example.zone} · transit 2–6 business days</p>
                 </div>
               ))}
             </div>
@@ -342,7 +342,7 @@ export default function WholesalePage() {
                 <div key={row.state} className="rounded-lg border border-cream/15 bg-cream/[0.04] px-3.5 py-2.5">
                   <p className="text-[11.5px] font-bold text-cream">{row.state}</p>
                   <p className="text-[14px] font-semibold text-gold tabular-nums">{row.rate}</p>
-                  <p className="text-[9.5px] text-cream/45">{row.note}</p>
+                  <p className="text-[9.5px] text-cream/50">{row.note}</p>
                 </div>
               ))}
             </div>
@@ -397,7 +397,7 @@ export default function WholesalePage() {
             </div>
             <div className="mt-5 flex items-start gap-2.5 rounded-lg border border-ink/12 bg-parchment/40 p-4">
               <Clock size={15} className="mt-0.5 shrink-0 text-fern" />
-              <p className="text-[11px] leading-relaxed text-ink/60">
+              <p className="text-[11px] leading-relaxed text-ink/72">
                 Wholesale prices and ordering are for approved trade accounts. Create a login, confirm your
                 email and apply — most applications are decided within one business day.
               </p>
@@ -414,7 +414,7 @@ export default function WholesalePage() {
             <Link href="/wholesale/apply" className="btn btn-light mt-5 w-full">
               Start application <ArrowRight size={15} />
             </Link>
-            <p className="mt-3 text-center text-[10px] text-cream/45">
+            <p className="mt-3 text-center text-[10px] text-cream/50">
               Already approved? <Link href="/login" className="underline">Sign in to your trade portal</Link>
             </p>
           </div>

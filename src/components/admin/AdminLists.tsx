@@ -95,7 +95,7 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
         <p className="flex items-center gap-2 text-[12px] font-bold">
           <Upload size={14} /> Publish a supplier list
         </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-ink/55">
+        <p className="mt-1 text-[11px] leading-relaxed text-ink/70">
           Upload the .xlsx / .xls / .csv you received from a wholesaler. It appears in the homepage
           “Wholesale lists” section, downloadable in both Excel and CSV.
         </p>
@@ -107,13 +107,13 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
             file ? "border-fern bg-fern/5" : "border-ink/18 bg-parchment/25 hover:border-ink/35"
           }`}
         >
-          <FileSpreadsheet size={20} className={file ? "text-fern" : "text-ink/40"} />
+          <FileSpreadsheet size={20} className={file ? "text-fern" : "text-ink/65"} />
           <span className="text-[12px] font-bold">{file ? file.name : "Choose file"}</span>
-          <span className="text-[10.5px] text-ink/45">
+          <span className="text-[10.5px] text-ink/65">
             {file ? formatBytes(file.size) : ".xlsx · .xls · .csv — up to 4 MB"}
           </span>
         </button>
-        <input
+        <input aria-label="Supplier list file"
           ref={input}
           type="file"
           accept=".xlsx,.xls,.csv,.tsv,.txt"
@@ -190,7 +190,7 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
         </div>
 
         {error ? (
-          <p className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">{error}</p>
+          <p role="alert" className="mt-3 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11px] text-clay">{error}</p>
         ) : null}
         {message ? (
           <p className="mt-3 flex items-start gap-1.5 rounded-md border border-fern/30 bg-fern/8 px-3 py-2 text-[11px] font-medium text-fern">
@@ -201,7 +201,7 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
         <button type="submit" disabled={busy} className="btn btn-primary mt-4 w-full">
           {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />} Upload &amp; publish
         </button>
-        <p className="mt-2 text-[10px] leading-relaxed text-ink/40">
+        <p className="mt-2 text-[10px] leading-relaxed text-ink/65">
           Supplier pricing can be sensitive — choose “Trade accounts only” to hide the preview and download
           from anonymous visitors.
         </p>
@@ -210,14 +210,14 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-4 py-3">
           <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Published lists</p>
-          <span className="text-[10.5px] text-ink/45">{lists.length} total</span>
+          <span className="text-[10.5px] text-ink/65">{lists.length} total</span>
         </div>
 
         {lists.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
             <FileSpreadsheet size={26} className="text-ink/25" />
             <p className="text-[12.5px] font-bold">No lists yet</p>
-            <p className="max-w-xs text-[11px] text-ink/50">
+            <p className="max-w-xs text-[11px] text-ink/68">
               Upload your first supplier file — it goes live on the homepage immediately.
             </p>
           </div>
@@ -229,18 +229,18 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold tracking-[0.14em] text-fern uppercase">{list.supplier}</p>
                     <p className="mt-0.5 text-[13px] font-bold leading-snug">{list.title}</p>
-                    <p className="mt-0.5 text-[10.5px] text-ink/45">
+                    <p className="mt-0.5 text-[10.5px] text-ink/65">
                       {list.filename} · {list.format.toUpperCase()} · {formatBytes(list.bytes)} · {list.rowCount} rows ·{" "}
                       {list.category === "mixed" ? "All departments" : categoryName(list.category)}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-ink/35">
+                    <p className="mt-0.5 text-[10px] text-ink/50">
                       Updated {formatDate(list.updatedAt)} · {list.downloads} download{list.downloads === 1 ? "" : "s"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span
                       className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase ${
-                        list.published ? "bg-fern/15 text-fern" : "bg-ink/10 text-ink/50"
+                        list.published ? "bg-fern/15 text-fern" : "bg-ink/10 text-ink/68"
                       }`}
                     >
                       {list.published ? "Live" : "Hidden"}
@@ -255,6 +255,7 @@ export function AdminLists({ lists }: { lists: AdminListRow[] }) {
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <select
+                    aria-label={`Audience for ${list.title}`}
                     value={list.audience}
                     disabled={rowBusy === list.id}
                     onChange={(event) => patch(list.id, { audience: event.target.value })}

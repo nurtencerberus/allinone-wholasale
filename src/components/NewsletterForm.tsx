@@ -23,13 +23,13 @@ export function NewsletterForm() {
       }}
       className="flex items-center gap-2 border-b border-cream/30 pb-2"
     >
-      <input
+      <input aria-label="Email address"
         type="email"
         required
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         placeholder="Buyer email address"
-        className="w-full bg-transparent text-sm text-cream placeholder:text-cream/45 focus:outline-none"
+        className="w-full bg-transparent text-sm text-cream placeholder:text-cream/50 focus:outline-none"
       />
       <button
         type="submit"

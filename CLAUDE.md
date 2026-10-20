@@ -220,6 +220,13 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
 - `getSessionUser()` React `cache()` ile sarılıdır: aynı istek içinde layout, sayfa ve iç bileşenler çağırsa da
   oturum sorgusu bir kez çalışır. E-posta şablonlarına giren her kullanıcı/ürün metni
   `escapeHtml()` ile, JSON-LD `jsonLdHtml()` ile kaçırılmalı.
+- **Erişilebilirlik (UX-3, WCAG 2.1 AA):** her form kontrolünün bir adı olmalı (`<label htmlFor>` ya da
+  `aria-label`), her `<th>` `scope` taşımalı, her görselde `alt` olmalı, sayfa başına tek `<h1>`. Odak halkası
+  `globals.css`'te `:focus-visible` ile global; `prefers-reduced-motion` animasyonları kapatır; `.skip-link`
+  içeriğe atlar (`<main id="main-content">`). Metin renkleri: cream üstünde **en az `text-ink/65`**, ink üstünde
+  **en az `text-cream/50`** (daha açığı AA'nın 4.5:1 eşiğini geçmez); `tests/unit/contrast.test.ts` paleti ve bu
+  tonları doğrular, `tests/e2e/a11y.mjs` sunulan HTML'i. Odak yakalayan her bileşen (sepet çekmecesi) `role="dialog"`
+  + `aria-modal` olmalı ve kapanınca odağı geri vermelidir.
 - Politika sayfaları `src/app/legal/*` (`LegalPage`): kod kuralları (vergi, teslimat, ödeme, iade) değişirse metni de
   güncelleyin.
 - Vergi kaydı: sipariş `tax_source`, `taxable_amount`, `shipping_taxable/tax`, `exemption_cert`; aylık rapor

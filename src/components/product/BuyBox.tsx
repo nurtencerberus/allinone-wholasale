@@ -56,21 +56,21 @@ export function BuyBox({
       <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/40 uppercase">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">
               Trade case price
             </p>
             <p className="display mt-1 text-[32px] leading-none">
               {formatMoney(accountPrice)}
-              <span className="ml-1.5 font-sans text-[11px] font-medium text-ink/50">/ case</span>
+              <span className="ml-1.5 font-sans text-[11px] font-medium text-ink/68">/ case</span>
             </p>
-            <p className="mt-1.5 text-[11.5px] text-ink/55">
+            <p className="mt-1.5 text-[11.5px] text-ink/70">
               {formatMoney(unitPriceOf(accountPrice, product.caseSize))} per unit ·{" "}
               {product.caseSize} units per case
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">MSRP case</p>
-            <p className="mt-1 text-[15px] font-semibold text-ink/60 line-through tabular-nums">
+            <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">MSRP case</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink/72 line-through tabular-nums">
               {formatMoney(msrpCase)}
             </p>
             <span className="mt-1 inline-flex rounded-full bg-fern/10 px-2 py-0.5 text-[10.5px] font-bold text-fern">
@@ -85,7 +85,7 @@ export function BuyBox({
             {taxExempt ? " · resale tax exemption on file" : ""}
           </div>
         ) : (
-          <div className="mt-3 rounded-lg bg-parchment px-3 py-2 text-[10.5px] text-ink/60">
+          <div className="mt-3 rounded-lg bg-parchment px-3 py-2 text-[10.5px] text-ink/72">
             Catalog case price shown.{" "}
             <Link href="/wholesale/apply" className="font-bold underline">
               Approved accounts
@@ -99,20 +99,20 @@ export function BuyBox({
             <button
               onClick={() => setCases((value) => Math.max(product.minCases, value - 1))}
               aria-label="Decrease cases"
-              className="px-3 py-2.5 text-ink/60 hover:text-ink"
+              className="px-3 py-2.5 text-ink/72 hover:text-ink"
             >
               <Minus size={14} />
             </button>
             <div className="min-w-12 text-center">
               <p className="text-[14px] font-bold leading-none tabular-nums">{cases}</p>
-              <p className="mt-0.5 text-[8.5px] font-semibold tracking-wide text-ink/40 uppercase">
+              <p className="mt-0.5 text-[8.5px] font-semibold tracking-wide text-ink/65 uppercase">
                 cases
               </p>
             </div>
             <button
               onClick={() => setCases((value) => value + 1)}
               aria-label="Increase cases"
-              className="px-3 py-2.5 text-ink/60 hover:text-ink"
+              className="px-3 py-2.5 text-ink/72 hover:text-ink"
             >
               <Plus size={14} />
             </button>
@@ -163,12 +163,12 @@ export function BuyBox({
             {
               icon: Truck,
               text: `Dimensional freight quoted at checkout · ${ozToLbs(product.weightOz)} lb carton`,
-              tone: "text-ink/60",
+              tone: "text-ink/72",
             },
             {
               icon: ShieldCheck,
               text: "Card data tokenised by Stripe Elements · we never store PANs",
-              tone: "text-ink/60",
+              tone: "text-ink/72",
             },
           ].map((item) => (
             <p key={item.text} className={`flex items-start gap-2 text-[11px] leading-relaxed ${item.tone}`}>
@@ -180,7 +180,7 @@ export function BuyBox({
 
       <div className="mt-4 overflow-hidden rounded-xl border border-ink/12">
         <div className="flex items-center justify-between bg-parchment/60 px-4 py-2.5">
-          <p className="text-[10px] font-bold tracking-[0.14em] text-ink/55 uppercase">Volume ladder</p>
+          <p className="text-[10px] font-bold tracking-[0.14em] text-ink/70 uppercase">Volume ladder</p>
           <Link
             href="/quick-order"
             className="flex items-center gap-1 text-[10.5px] font-bold text-fern hover:underline"
@@ -209,7 +209,7 @@ export function BuyBox({
                     <td className="px-2 py-2.5 text-right tabular-nums">
                       {formatMoney(entry.casePrice)}
                     </td>
-                    <td className="px-4 py-2.5 text-right text-ink/45 tabular-nums">
+                    <td className="px-4 py-2.5 text-right text-ink/65 tabular-nums">
                       {formatMoney(unitPriceOf(entry.casePrice, product.caseSize))}/unit
                     </td>
                   </tr>
