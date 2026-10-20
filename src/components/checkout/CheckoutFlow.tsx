@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -720,8 +721,7 @@ export function CheckoutFlow({
             <ul className="max-h-[300px] divide-y divide-ink/8 overflow-y-auto">
               {summaryLines.map((line) => (
                 <li key={line.productId} className="flex gap-3 px-4 py-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={line.image} alt={line.name} className="h-12 w-12 rounded border border-ink/10 object-cover" />
+                  <Image src={line.image} alt={line.name} width={48} height={48} className="h-12 w-12 rounded border border-ink/10 object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[11.5px] font-semibold leading-snug">{line.name}</p>
                     <p className="mt-0.5 text-[10px] text-ink/45">

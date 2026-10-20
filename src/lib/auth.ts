@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq, gt } from "drizzle-orm";
@@ -47,7 +48,13 @@ export function toSessionUser(user: User): SessionUser {
   };
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+/**
+ * The signed-in user, looked up once per request (PRF-3). The layout, the page and any nested
+ * server component all ask for it; React's cache() turns those into a single query. It is keyed
+ * on the request, so a sign-in or sign-out later in the same request is not affected — those
+ * routes set the cookie and answer, they do not read the session again afterwards.
+ */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -61,7 +68,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   const user = rows[0]?.user;
   return user ? toSessionUser(user) : null;
-}
+});
 
 export async function createSession(userId: number): Promise<void> {
   const store = await cookies();

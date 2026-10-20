@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { CartProvider } from "@/components/cart/CartProvider";
@@ -10,6 +11,18 @@ import { ensureSeeded } from "@/lib/seed";
 import { jsonLdHtml, SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Fonts are downloaded at build time and served from our own origin (PRF-2): no render-blocking
+ * request to Google, no visitor IP handed to a third party, and no font host in the CSP.
+ */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
+});
+const manrope = Manrope({ subsets: ["latin"], display: "swap", variable: "--font-manrope" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.domain),
@@ -91,14 +104,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   };
 
   return (
-    <html lang="en-US">
+    <html lang="en-US" className={`${fraunces.variable} ${manrope.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Manrope:wght@300..800&display=swap"
-          rel="stylesheet"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={jsonLdHtml(organizationJsonLd)}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Lock, Plus } from "lucide-react";
@@ -20,13 +21,13 @@ export function ProductCard({ product, index }: { product: CardProduct; index?: 
       className="group relative flex flex-col overflow-hidden rounded-xl border border-ink/10 bg-[#fffdf8] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-24px_rgba(20,36,28,0.45)]"
       style={index !== undefined ? { animationDelay: `${Math.min(index, 8) * 45}ms` } : undefined}
     >
-      <Link href={`/products/${product.slug}`} className="relative block overflow-hidden bg-parchment">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <Link href={`/products/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-parchment">
+        <Image
           src={product.image}
           alt={product.name}
-          className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-          loading="lazy"
+          fill
+          sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
         <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
           {product.badges.slice(0, 2).map((badge) => (

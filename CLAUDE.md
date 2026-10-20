@@ -189,7 +189,16 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
 - Sepet istemci tarafında `CartProvider` + `localStorage`; sunucuya yalnızca `{ productId, cases }[]` gider.
 - DB bağlantı havuzu `src/db/index.ts`: serverless için küçük (`DATABASE_POOL_MAX`, varsayılan 5), Neon'da
   **pooled** (`-pooler`) bağlantı dizesi + `sslmode=require`. Stripe/pg kullanan route'lar `runtime = "nodejs"`.
-- Güvenlik başlıkları `next.config.ts`'te tanımlı. E-posta şablonlarına giren her kullanıcı/ürün metni
+- Güvenlik başlıkları `next.config.ts`'te tanımlı; **CSP** de orada (`default-src 'self'`, Stripe için
+  `js.stripe.com` / `*.stripe.network`, görseller için `images.pexels.com`). Script'lerde `'unsafe-inline'` var
+  çünkü App Router satır içi bootstrap script'i basıyor ve nonce üretecek middleware yok — yeni bir dış kaynak
+  eklerseniz CSP'yi de güncelleyin, yoksa tarayıcı engeller.
+- Fontlar `next/font/google` ile **derleme zamanında indirilip kendi origin'imizden** servis edilir
+  (`src/app/layout.tsx` → `--font-fraunces` / `--font-manrope`, `globals.css` bunları okur). Google'a istek yok.
+- Görseller `next/image` ile servis edilir (`next.config.ts` → AVIF/WebP, `images.pexels.com` izinli). Yeni bir
+  uzak görsel kaynağı eklerseniz `remotePatterns` ve CSP `img-src` birlikte güncellenir.
+- `getSessionUser()` React `cache()` ile sarılıdır: aynı istek içinde layout, sayfa ve iç bileşenler çağırsa da
+  oturum sorgusu bir kez çalışır. E-posta şablonlarına giren her kullanıcı/ürün metni
   `escapeHtml()` ile, JSON-LD `jsonLdHtml()` ile kaçırılmalı.
 - Politika sayfaları `src/app/legal/*` (`LegalPage`): kod kuralları (vergi, teslimat, ödeme, iade) değişirse metni de
   güncelleyin.

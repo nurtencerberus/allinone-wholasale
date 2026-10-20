@@ -340,7 +340,11 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | KRG-8 | ✅ | Uydurma taahhütler kalktı: matris fiyatları ve transit süreleri "estimate", LTL satırı gerçek taşıyıcı adı taşımıyor ve class/NMFC'nin booking'de doğrulanacağını söylüyor |
 | KRG-3 | 🟡 kısmi | Yanıltıcı "Ciputra Freight (LTL) · class 100" etiketi dürüstleştirildi; gerçek LTL fiyatı (freight_class/NMFC/palet alanları, ek hizmetler) taşıyıcı hesabı gelince |
 | KRG-2, KRG-5 (adres doğrulama) | ⏸ Ertelendi | Gerçek parsel/LTL hesabı (EasyPost, LTL aracısı) yok; koli başına parcel gönderimi ve adres doğrulama hesap açılınca |
-| SEP-7, PRF-1…3, DEV-2/3/5 | ❌ Açık | Faz 2'nin kalanı |
+| PRF-2 | ✅ | Fontlar `next/font` ile self-host (Google'a istek yok, render engellemiyor, lint uyarısı kalktı); katalog/sepet/ödeme görselleri `next/image` (AVIF/WebP, boyutlandırma). Admin önizlemeleri ve değişken oranlı Facts paneli bilinçli olarak `<img>` kaldı |
+| PRF-3 | ✅ | Eksik indeksler (migration 0007): doğrulama/sıfırlama jetonu, `orders.email`, `orders.created_at`, `products(active, featured)`, `sessions.expires_at`, `rate_limits.reset_at`. Ürün sayfasındaki çift sorgu ve istek başına tekrarlanan oturum sorgusu React `cache()` ile teke indi |
+| DEV-5 | ✅ | CSP eklendi: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`; Stripe ve görsel kaynakları açıkça izinli. Script'lerde `'unsafe-inline'` kaldı (nonce için middleware gerekir — Faz 3) |
+| PRF-1 | 🟡 kısmi | İstek başına oturum sorgusu teke indi. Sayfa önbelleği **yapılmadı**: katalog HTML'i fiyat kilidine göre değişiyor, dolayısıyla paylaşımlı önbellek misafire toptan fiyat sızdırabilir. Doğru çözüm PPR/`cacheComponents` ile kilitli ve kilitsiz varyantı ayırmak — ayrı bir iş olarak planlanmalı |
+| SEP-7, DEV-2/3 | ❌ Açık | Faz 2'nin kalanı |
 
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 

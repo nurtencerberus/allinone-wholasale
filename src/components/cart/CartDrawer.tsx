@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
@@ -100,10 +101,11 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
               {lines.map((line) => (
                 <li key={line.productId} className="flex gap-3 py-4">
                   <Link href={`/products/${line.slug}`} onClick={closeCart} className="shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={line.image}
                       alt={line.name}
+                      width={76}
+                      height={76}
                       className="h-[76px] w-[76px] rounded-lg border border-ink/10 object-cover"
                     />
                   </Link>

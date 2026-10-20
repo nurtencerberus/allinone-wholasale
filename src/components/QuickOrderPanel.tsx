@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -393,12 +394,12 @@ export function QuickOrderPanel({
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-4">
                         <Link href={`/products/${sku.slug}`} className="shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={sku.image}
                             alt={sku.name}
+                            width={60}
+                            height={60}
                             className="h-[60px] w-[60px] rounded-lg border border-ink/10 object-cover"
-                            loading="lazy"
                           />
                         </Link>
                         <div className="min-w-0">

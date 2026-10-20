@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
@@ -308,10 +309,11 @@ export default async function OrderPage({
                 const product = item.productId ? byId.get(item.productId) : undefined;
                 return (
                   <li key={item.id} className="flex items-center gap-4 px-5 py-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={item.image}
                       alt={item.name}
+                      width={64}
+                      height={64}
                       className="h-16 w-16 shrink-0 rounded-lg border border-ink/10 object-cover"
                     />
                     <div className="min-w-0 flex-1">
