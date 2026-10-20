@@ -258,3 +258,4 @@ CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonuc
 | `0008_server_cart.sql` | Sunucu sepeti deploy'undan önce | `carts` ve `cart_items` tabloları. Olmadan yeni kod sepet senkronunda hata verir (misafir sepeti etkilenmez) |
 | `0009_account_prices.sql` | Sözleşmeli fiyat deploy'undan önce | `account_prices` tablosu. Olmadan yeni kod teklif ve sipariş fiyatlamasında hata verir |
 | `0010_quote_requests.sql` | RFQ deploy'undan önce | `quote_requests` ve `quote_items` tabloları. Olmadan teklif ekranları ve gecelik cron hata verir |
+| `0011_company_accounts.sql` | Firma hesabı deploy'undan önce | `companies`, `company_invites` ve `company_id` sütunları. **Mevcut hesaplar birleştirilmez** — herkes bugünkü gibi tek kişilik devam eder, firma hesabı `/account/team`'den kurulur |

@@ -24,6 +24,56 @@ export type Dimensions = { l: number; w: number; h: number };
 export type Certification = { name: string; documentUrl: string | null };
 export type PriceTier = { minCases: number; casePrice: number };
 
+/**
+ * UX-7: a company account. Several people buy for the same business, share its trade terms,
+ * its agreed prices and its order history.
+ *
+ * The commercial terms live here as the canonical value and are **copied onto each member's
+ * user row** whenever they change (`syncCompanyTerms`). That keeps pricing, the session and the
+ * admin screens reading one field in one place, as they always have, instead of rewriting every
+ * caller to resolve a company first — and a member who leaves keeps working on their own terms.
+ */
+export const companies = pgTable(
+  "companies",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    accountTier: text("account_tier").notNull().default("retail"),
+    wholesaleDiscountPct: integer("wholesale_discount_pct").notNull().default(0),
+    taxExempt: boolean("tax_exempt").notNull().default(false),
+    taxExemptState: text("tax_exempt_state"),
+    taxExemptCertType: text("tax_exempt_cert_type"),
+    taxExemptCertNumber: text("tax_exempt_cert_number"),
+    taxExemptExpires: timestamp("tax_exempt_expires", { withTimezone: true }),
+    ein: text("ein"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("companies_name_idx").on(table.name)],
+);
+
+/** An invitation to join a company. Only the digest of the token is stored, like every token. */
+export const companyInvites = pgTable(
+  "company_invites",
+  {
+    id: serial("id").primaryKey(),
+    companyId: integer("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    companyRole: text("company_role").notNull().default("buyer"), // owner | buyer | viewer
+    tokenDigest: text("token_digest").notNull(),
+    invitedBy: integer("invited_by").references(() => users.id, { onDelete: "set null" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("company_invites_token_unique").on(table.tokenDigest),
+    index("company_invites_company_idx").on(table.companyId),
+  ],
+);
+
 export const users = pgTable(
   "users",
   {
@@ -50,6 +100,10 @@ export const users = pgTable(
     taxExemptCertNumber: text("tax_exempt_cert_number"),
     taxExemptExpires: timestamp("tax_exempt_expires", { withTimezone: true }),
     ein: text("ein"),
+    /** The company this person buys for (UX-7); null for a single-person account. */
+    companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
+    /** owner = manages members and terms, buyer = can order, viewer = read-only. */
+    companyRole: text("company_role"),
     // TOTP two-factor (required for staff). The pending secret is replaced on confirmation.
     totpSecret: text("totp_secret"),
     totpPendingSecret: text("totp_pending_secret"),
@@ -362,6 +416,8 @@ export const accountPrices = pgTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /** Set when the price belongs to the whole company rather than one buyer (UX-7). */
+    companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }),
     productId: integer("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -445,6 +501,8 @@ export const orders = pgTable(
     id: serial("id").primaryKey(),
     orderNumber: text("order_number").notNull(),
     userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    /** The company the order was placed for, so colleagues can see it (UX-7). */
+    companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
     email: text("email").notNull(),
     customerName: text("customer_name").notNull(),
     company: text("company"),
@@ -588,6 +646,8 @@ export const quoteRequests = pgTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /** The company the request was made for, when the buyer belongs to one (UX-7). */
+    companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }),
     // requested | quoted | accepted | declined | expired | withdrawn
     status: text("status").notNull().default("requested"),
     customerNote: text("customer_note"),
@@ -759,6 +819,8 @@ export const rateLimits = pgTable(
 export type AccountPrice = typeof accountPrices.$inferSelect;
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type QuoteItem = typeof quoteItems.$inferSelect;
+export type Company = typeof companies.$inferSelect;
+export type CompanyInvite = typeof companyInvites.$inferSelect;
 export type Cart = typeof carts.$inferSelect;
 export type CartRow = typeof cartItems.$inferSelect;
 export type WholesaleList = typeof wholesaleLists.$inferSelect;

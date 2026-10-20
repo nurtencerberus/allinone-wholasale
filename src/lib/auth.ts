@@ -19,6 +19,9 @@ export type SessionUser = {
   name: string;
   email: string;
   company: string | null;
+  /** Company account membership (UX-7); null for a single-person account. */
+  companyId: number | null;
+  companyRole: string | null;
   role: string;
   accountTier: string;
   wholesaleDiscountPct: number;
@@ -36,6 +39,8 @@ export function toSessionUser(user: User): SessionUser {
     name: user.name,
     email: user.email,
     company: user.company,
+    companyId: user.companyId,
+    companyRole: user.companyRole,
     role: user.role,
     accountTier: user.accountTier,
     wholesaleDiscountPct: user.wholesaleDiscountPct,

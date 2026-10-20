@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, or, sql } from "drizzle-orm";
-import { ArrowRight, BadgeCheck, Boxes, ClipboardList, FileText, MapPin, Package, Percent, Plus, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Boxes, Building2, ClipboardList, FileText, MapPin, Package, Percent, Plus, ShieldCheck, Truck } from "lucide-react";
 import { db } from "@/db";
 import { addresses, orders, wholesaleApplications } from "@/db/schema";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
@@ -26,10 +26,12 @@ export default async function AccountPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/account");
 
-  // Guest orders are matched by e-mail only once the account has proved it owns that address.
-  const ownOrders = user.emailVerified
-    ? or(eq(orders.userId, user.id), eq(orders.email, user.email))
+  // Guest orders are matched by e-mail only once the account has proved it owns that address;
+  // a member of a company account also sees what colleagues ordered for it (UX-7).
+  const mine = user.emailVerified
+    ? or(eq(orders.userId, user.id), eq(orders.email, user.email))!
     : eq(orders.userId, user.id);
+  const ownOrders = user.companyId ? or(mine, eq(orders.companyId, user.companyId)) : mine;
 
   const [orderRows, addressRows, applicationRows] = await Promise.all([
     db
@@ -177,6 +179,22 @@ export default async function AccountPage() {
                 </table>
               </div>
             )}
+          </div>
+
+          <div className="mt-4 card p-4">
+            <div className="flex items-center justify-between">
+              <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
+                <Building2 size={13} /> {user.company ? user.company : "Company account"}
+              </p>
+              <Link href="/account/team" className="text-[10.5px] font-bold text-fern hover:underline">
+                {user.companyId ? "Manage team" : "Set up"}
+              </Link>
+            </div>
+            <p className="mt-2 text-[11.5px] text-ink/68">
+              {user.companyId
+                ? "Colleagues on this account buy on the same terms and see the same orders, quotes and agreed prices."
+                : "Let colleagues order on the same terms and see the same history."}
+            </p>
           </div>
 
           {canSeePrices(user) ? (

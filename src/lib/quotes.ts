@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { pgConstraint } from "@/db/errors";
 import { accountPrices, products, quoteItems, quoteRequests, users, type QuoteRequest } from "@/db/schema";
@@ -81,11 +81,19 @@ export async function createQuoteRequest(input: {
   const wanted = lines.filter((line) => live.has(line.productId));
   if (!wanted.length) throw new QuoteError("None of those products are available any more.");
 
-  // One open request at a time keeps the desk's queue honest and stops double submissions.
+  // One open request per account keeps the desk's queue honest and stops double submissions;
+  // for a company account that means one across the whole team (UX-7).
   const [open] = await db
     .select({ id: quoteRequests.id, reference: quoteRequests.reference })
     .from(quoteRequests)
-    .where(and(eq(quoteRequests.userId, input.user.id), inArray(quoteRequests.status, ["requested", "quoted"])))
+    .where(
+      and(
+        input.user.companyId
+          ? or(eq(quoteRequests.companyId, input.user.companyId), eq(quoteRequests.userId, input.user.id))
+          : eq(quoteRequests.userId, input.user.id),
+        inArray(quoteRequests.status, ["requested", "quoted"]),
+      ),
+    )
     .limit(1);
   if (open) {
     throw new QuoteError(`You already have an open request (${open.reference}). Withdraw it before asking for another.`, 409);
@@ -100,6 +108,7 @@ export async function createQuoteRequest(input: {
           .values({
             reference,
             userId: input.user.id,
+            companyId: input.user.companyId ?? null,
             customerNote: input.note?.trim().slice(0, 1000) || null,
           })
           .returning({ id: quoteRequests.id, reference: quoteRequests.reference });
@@ -181,7 +190,7 @@ export async function sendQuote(input: {
  */
 export async function acceptQuote(quoteId: number, user: SessionUser, request?: Request): Promise<QuoteRequest> {
   const quote = await loadQuote(quoteId);
-  if (quote.userId !== user.id) throw new QuoteError("That quote belongs to another account.", 403);
+  if (!ownsQuote(quote, user)) throw new QuoteError("That quote belongs to another account.", 403);
   if (!canTransition(quote.status, "accepted")) throw new QuoteError(`This quote is ${quote.status}.`, 409);
   if (quote.expiresAt && quote.expiresAt <= new Date()) throw new QuoteError("This quote has expired. Ask for a new one.", 409);
 
@@ -192,6 +201,7 @@ export async function acceptQuote(quoteId: number, user: SessionUser, request?: 
     for (const item of items) {
       const values = {
         userId: quote.userId,
+        companyId: quote.companyId,
         productId: item.productId,
         casePrice: item.casePrice!,
         // The price was quoted for this quantity, so it starts there.
@@ -233,7 +243,7 @@ export async function setQuoteStatus(input: {
   request?: Request;
 }): Promise<QuoteRequest> {
   const quote = await loadQuote(input.quoteId);
-  if (input.user && quote.userId !== input.user.id) throw new QuoteError("That quote belongs to another account.", 403);
+  if (input.user && !ownsQuote(quote, input.user)) throw new QuoteError("That quote belongs to another account.", 403);
   if (!canTransition(quote.status, input.to)) {
     throw new QuoteError(`A ${quote.status} request cannot be ${input.to}.`, 409);
   }
@@ -261,6 +271,12 @@ export async function setQuoteStatus(input: {
   });
 }
 
+/** The buyer who asked, or a colleague on the same company account (UX-7). */
+export function ownsQuote(quote: QuoteRequest, user: SessionUser): boolean {
+  if (quote.userId === user.id) return true;
+  return Boolean(user.companyId && quote.companyId && quote.companyId === user.companyId);
+}
+
 export async function loadQuote(quoteId: number): Promise<QuoteRequest> {
   const [quote] = await db.select().from(quoteRequests).where(eq(quoteRequests.id, quoteId)).limit(1);
   if (!quote) throw new QuoteError("Quote not found.", 404);
@@ -268,12 +284,18 @@ export async function loadQuote(quoteId: number): Promise<QuoteRequest> {
 }
 
 /** Quotes with their lines, newest first. Without `userId` it is the whole desk queue. */
-export async function listQuotes(userId?: number): Promise<QuoteView[]> {
+export async function listQuotes(scope?: { id: number; companyId?: number | null }): Promise<QuoteView[]> {
   const rows = await db
     .select({ quote: quoteRequests, account: users })
     .from(quoteRequests)
     .innerJoin(users, eq(users.id, quoteRequests.userId))
-    .where(userId ? eq(quoteRequests.userId, userId) : undefined)
+    .where(
+      scope
+        ? scope.companyId
+          ? or(eq(quoteRequests.companyId, scope.companyId), eq(quoteRequests.userId, scope.id))
+          : eq(quoteRequests.userId, scope.id)
+        : undefined,
+    )
     .orderBy(desc(quoteRequests.createdAt))
     .limit(200);
   if (!rows.length) return [];

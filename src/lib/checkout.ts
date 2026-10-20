@@ -168,7 +168,7 @@ export async function priceCart(input: {
 
   const byId = new Map(rows.map((row) => [row.id, row]));
   const user = input.user ?? null;
-  const contracts = await contractPricesFor(user?.id, rows.map((row) => row.id));
+  const contracts = await contractPricesFor(user, rows.map((row) => row.id));
   const wholesaleActive = user?.accountTier === "wholesale";
   const discountPct = wholesaleActive ? Math.min(Math.max(user?.wholesaleDiscountPct ?? 0, 0), 40) : 0;
 

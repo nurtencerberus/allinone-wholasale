@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getSessionUser();
   if (!canSeePrices(user)) return Response.json({ error: PRICE_LOCKED_MESSAGE }, { status: 403 });
-  return Response.json({ ok: true, quotes: await listQuotes(user.id) });
+  return Response.json({ ok: true, quotes: await listQuotes(user) });
 }
 
 export async function POST(request: Request) {
