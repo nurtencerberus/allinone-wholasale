@@ -2,7 +2,7 @@ import Link from "next/link";
 import { desc, eq, inArray } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/db";
-import { orderItems, orders, products, returnItems, returnRequests } from "@/db/schema";
+import { orderItems, orders, returnItems, returnRequests } from "@/db/schema";
 import { requireStaffPage } from "@/lib/auth";
 import { hasPermission } from "@/lib/staff";
 import { computeReturnRefund, RETURN_WINDOW_DAYS } from "@/lib/order-admin";
@@ -25,10 +25,11 @@ export default async function ReturnsPage() {
   const ids = rows.map((row) => row.rma.id);
   const items = ids.length
     ? await db
-        .select({ item: returnItems, line: orderItems, taxClass: products.taxClass })
+        // Tax class comes from the order line, not the product: receiveReturn enforces the class
+        // frozen on the order, so reading today's product would offer a restock the server refuses.
+        .select({ item: returnItems, line: orderItems })
         .from(returnItems)
         .innerJoin(orderItems, eq(orderItems.id, returnItems.orderItemId))
-        .leftJoin(products, eq(products.id, orderItems.productId))
         .where(inArray(returnItems.returnId, ids))
     : [];
 
@@ -60,7 +61,7 @@ export default async function ReturnsPage() {
             cases: entry.item.cases,
             condition: entry.item.condition,
             disposition: entry.item.disposition,
-            perishable: (entry.taxClass ?? "general") !== "general",
+            perishable: entry.line.taxClass !== "general",
           })),
       };
     }),

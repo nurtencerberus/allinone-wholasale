@@ -209,9 +209,19 @@ check("adjustment needs a note", r.status === 400);
 r = await admin.post("/api/admin/inventory", { action: "adjust", lotId: late.id, delta: -1, reason: "damage", note: "Crushed carton" });
 check("adjustment is a delta with a reason", r.status === 200 && (await stockOf(prod.id)) === 17);
 r = await admin.post("/api/admin/inventory", { action: "receive", productId: prod.id, lotNumber: "L-SHORT", expiresOn: days(30), cases: 5 });
-check("short-dated lot received", r.status === 200 && (await stockOf(prod.id)) === 22);
+const shortLot = (await lotsOf(prod.id)).find((lot) => lot.lot_number === "L-SHORT");
+check(
+  "short-dated goods are received but never sellable",
+  r.status === 200 && shortLot?.status === "expired" && shortLot.qty_on_hand === 5 && (await stockOf(prod.id)) === 17,
+  `${r.text} · ${shortLot?.status} · ${await stockOf(prod.id)}`,
+);
+// A lot that was on sale when its best-by came inside the window is pulled by the nightly cron.
+r = await admin.post("/api/admin/inventory", { action: "receive", productId: prod.id, lotNumber: "L-PULL", expiresOn: days(100), cases: 5 });
+check("long-dated lot is on sale", r.status === 200 && (await stockOf(prod.id)) === 22, r.text);
+await q("update product_lots set expires_on = current_date + 30 where product_id = $1 and lot_number = 'L-PULL'", [prod.id]);
 let cron = await (await fetch(`${process.env.BASE ?? "http://localhost:3000"}/api/cron/maintenance`, { headers: { authorization: "Bearer testcronsecret" } })).json();
-check("cron pulls lots inside the best-by window", cron.lotsPulled.includes("L-SHORT") && (await stockOf(prod.id)) === 17, JSON.stringify(cron.lotsPulled));
+check("cron pulls lots inside the best-by window", cron.lotsPulled.includes("L-PULL") && (await stockOf(prod.id)) === 17, JSON.stringify(cron.lotsPulled));
+check("a lot the cron could not pull is reported, not thrown", cron.ok === true && (cron.lotsPullFailed ?? []).length === 0, JSON.stringify(cron.lotsPullFailed));
 check("stock matches the lots everywhere", Array.isArray(cron.stockDrift) && cron.stockDrift.length === 0, JSON.stringify(cron.stockDrift));
 
 // --- E. Order lifecycle ------------------------------------------------------------------------
@@ -249,6 +259,20 @@ r = await buyer.post(`/api/orders/${a.order.order_number}/returns`, { items: [{ 
 check("cannot return more than was bought", r.status === 400, r.text);
 r = await guest.post(`/api/orders/${a.order.order_number}/returns`, { items: [{ orderItemId: line.id, cases: 1 }], reason: "damaged" });
 check("returns need the buyer's sign-in", r.status === 401);
+// The same line twice used to pass the cap once per entry and be refunded once per entry.
+r = await buyer.post(`/api/orders/${a.order.order_number}/returns`, {
+  items: [{ orderItemId: line.id, cases: line.cases }, { orderItemId: line.id, cases: line.cases }],
+  reason: "damaged",
+});
+check("a line repeated in one request is counted once", r.status === 400, r.text);
+r = await buyer.post(`/api/orders/${a.order.order_number}/returns`, {
+  items: [{ orderItemId: line.id, cases: 1 }, { orderItemId: line.id, cases: 1 }],
+  reason: "damaged",
+  note: "Duplicate lines merge",
+});
+const merged = r.json?.rmaNumber ? await q("select cases from return_items where return_id = (select id from return_requests where rma_number=$1)", [r.json.rmaNumber]) : [];
+check("repeated lines merge into one return line", r.status === 200 && merged.length === 1 && merged[0].cases === 2, `${r.text} ${JSON.stringify(merged)}`);
+if (r.json?.rmaNumber) await admin.req("PATCH", `/api/admin/returns/${(await q("select id from return_requests where rma_number=$1", [r.json.rmaNumber]))[0].id}`, { action: "reject", note: "e2e cleanup" });
 r = await buyer.post(`/api/orders/${a.order.order_number}/returns`, { items: [{ orderItemId: line.id, cases: 3 }], reason: "damaged", note: "Two cartons crushed" });
 check("return requested", r.status === 200 && /^RMA-\d{6}$/.test(r.json.rmaNumber), r.text);
 const [rma] = await q("select id from return_requests where rma_number=$1", [r.json.rmaNumber]);

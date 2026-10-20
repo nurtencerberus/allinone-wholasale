@@ -236,3 +236,4 @@ lotuna dönüşmesi) yapmaz.
 |---|---|---|
 | `0001_faz0.sql` | Faz 0 deploy'undan önce | Uygulandı (19 Ekim 2026) |
 | `0002_faz1.sql` | Faz 1 deploy'undan **hemen** önce | Mevcut stok `<SKU>-OPENING` lotuna taşınır (best-by boş — `/admin/inventory`'de girin). Migration ile deploy arasında sipariş gelirse cron `stockDrift` raporlar |
+| `0003_return_items_unique.sql` | İade düzeltmeleriyle aynı deploy'da | Aynı sipariş satırını iki kez içeren iade satırlarını tek satıra toplar, sonra `return_items(return_id, order_item_id)` için tekil indeks ekler |
