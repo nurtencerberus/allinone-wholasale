@@ -2,6 +2,7 @@ import { like } from "drizzle-orm";
 import { db } from "@/db";
 import { productConflictMessage } from "@/db/errors";
 import { products } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { requireStaff, staffDenied } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { InventoryError, receiveLot } from "@/lib/inventory";
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    revalidateCatalog();
     return Response.json({
       ok: true,
       product: created,

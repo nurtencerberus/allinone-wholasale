@@ -43,4 +43,14 @@ check("approved buyer can quote", r.status === 200, String(r.status));
 r = await anon.get(`/products/${p.slug}`);
 check("product JSON-LD has no Offer/price", !/"@type":"Offer"/.test(r.text) && !/"price":"/.test(r.text));
 check("meta description has no price", !/<meta name="description" content="[^"]*\$\d/.test(r.text));
+// --- catalogue cache (PRF-1) ------------------------------------------------------------------
+// Rows are cached, rendered HTML is not: the very same catalogue must stay priceless for a guest
+// and priced for a trade account, however many times it has been served from the cache.
+r = await anon.get("/shop");
+check("the cached catalogue stays price-locked for a guest", !r.text.includes(money(p.case_price)), "a guest saw a price on /shop");
+r = await buyer.get("/shop");
+check("the same cached catalogue shows prices to a trade account", r.text.includes(money(p.case_price)));
+r = await anon.get("/shop");
+check("still price-locked on a second, certainly cached read", !r.text.includes(money(p.case_price)));
+
 await done();

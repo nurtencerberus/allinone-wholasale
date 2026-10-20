@@ -2,6 +2,7 @@ import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { productConflictMessage } from "@/db/errors";
 import { inventoryMovements, productImages, products } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { requireStaff, staffDenied } from "@/lib/auth";
 import { diffFields, recordAudit } from "@/lib/audit";
 import { validateProductInput } from "@/lib/product-input";
@@ -81,6 +82,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             { status: 409 },
           );
         }
+        revalidateCatalog();
         return Response.json({ ok: true, updatedAt: saved.updatedAt.toISOString(), message: `“${result.values.name}” updated.` });
       } catch (error) {
         const conflict = productConflictMessage(error, result.values);
@@ -101,6 +103,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const diff = diffFields(current as unknown as Record<string, unknown>, patch as Record<string, unknown>);
       await recordAudit(tx, { actor: admin, action: "product.toggle", entityType: "product", entityId: id, ...diff, request });
     });
+    revalidateCatalog();
     return Response.json({ ok: true, message: "Saved." });
   } catch (error) {
     console.error("[admin-product-update]", error);
@@ -169,6 +172,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       return deleted;
     });
     if (!result) return Response.json({ error: "Product not found." }, { status: 404 });
+    revalidateCatalog();
     return Response.json({ ok: true, message: `“${result.name}” deleted.` });
   } catch (error) {
     console.error("[admin-product-delete]", error);

@@ -5,6 +5,7 @@ import { Download, FileSpreadsheet, Lock, PackageSearch, SlidersHorizontal, X } 
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { ProductCard } from "@/components/ProductCard";
+import { cachedCategoryCounts, shopList } from "@/lib/catalog-cache";
 import { CATEGORIES } from "@/lib/site";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { toCardProduct } from "@/lib/catalog-view";
@@ -111,16 +112,28 @@ export default async function ShopPage({
   let list: (typeof products.$inferSelect)[] = [];
   let counts: { category: string; count: number }[] = [];
   try {
-    list = await db
-      .select()
-      .from(products)
-      .where(filters.length ? and(...filters) : undefined)
-      .orderBy(...orderBy);
-    counts = await db
-      .select({ category: products.category, count: sql<number>`count(*)::int` })
-      .from(products)
-      .where(eq(products.active, true))
-      .groupBy(products.category);
+    // Without a search term the grid comes from the shared data cache (PRF-1); a search runs
+    // against the database so visitor input cannot fill the cache with one entry per query.
+    [list, counts] = await Promise.all([
+      q
+        ? db
+            .select()
+            .from(products)
+            .where(filters.length ? and(...filters) : undefined)
+            .orderBy(...orderBy)
+        : shopList(
+            {
+              category: category ?? null,
+              min: band?.min ?? null,
+              max: band?.max ?? null,
+              inStockOnly,
+              sort,
+              activeOnly: true,
+            },
+            null,
+          ),
+      cachedCategoryCounts(),
+    ]);
   } catch (error) {
     console.error("[shop] catalog unavailable", error);
   }

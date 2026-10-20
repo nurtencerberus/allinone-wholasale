@@ -163,6 +163,11 @@ check("import with one bad row → 422, nothing written", r.status === 422 && r.
 r = await admin.post("/api/admin/catalog", { products: [{ ...base, gtin: GTIN, stock: 999, ratingX10: 50 }] });
 check("re-import of an existing SKU updates it and ignores stock and ratings", r.status === 200 && r.json.updated.includes(sku) && (await stockOf(prod.id)) === 20 && r.json.warnings.length >= 2, r.text.slice(0, 200));
 
+// A product written through the admin API must appear in the catalogue at once: the data cache
+// is dropped on every admin write, so nothing waits for the 60-second expiry (PRF-1).
+let shopPage = await buyer.get("/shop");
+check("a newly imported product is in the catalogue immediately", shopPage.status === 200 && shopPage.text.includes(prod.slug), "new SKU missing from /shop");
+
 const page = await buyer.get(`/products/${prod.slug}`);
 check("product page hides cost and supplier from trade buyers", page.status === 200 && !page.text.includes("SecretSupplierCo") && !page.text.includes("costPrice") && !page.text.includes("7771"));
 check("trade buyer sees the Amazon comparison link and compliance panel", page.text.includes("amazon.com/dp/B0E2E12345") && page.text.includes("Contains:") && page.text.includes("P65Warnings"));
