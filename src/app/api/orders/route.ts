@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { checkoutSessions, orders } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser, PRICE_LOCKED_MESSAGE } from "@/lib/auth";
 import { finalizeCardCheckout, stripeClient } from "@/lib/card-checkout";
 import { priceCart } from "@/lib/checkout";
@@ -166,6 +167,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    // Stock moved, so the catalogue rows in the data cache are out of date.
+    revalidateCatalog();
     // The cart became an order: the stored copy must not follow the buyer to the next device.
     await clearCart(user.id).catch((error) => console.error("[orders] cart clear", error));
     await sendOrderConfirmation(order, payload.contact, priced.total);

@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { productConflictMessage } from "@/db/errors";
 import { products } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { requireStaff, staffDenied } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { normalizeCatalogPayload, serializeCatalog } from "@/lib/catalog-import";
@@ -142,6 +143,8 @@ export async function POST(request: Request) {
       if (conflict) return Response.json({ error: conflict, errors: [conflict], warnings, written: false }, { status: 409 });
       throw error;
     }
+
+    revalidateCatalog();
 
     return Response.json({ ok: true, written: true, created, updated, failed: [], errors: [], warnings });
   } catch (error) {

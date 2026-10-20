@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { productLots, products } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { requireStaff, staffDenied } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import {
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       // Cases on a lot that is not "available" are on file but not for sale — say so, or the
       // receipt reads like stock the storefront will never show.
       const sellable = lot.status === "available";
+      revalidateCatalog();
       return Response.json({
         ok: true,
         lot,
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
         });
         return row;
       });
+      revalidateCatalog();
       return Response.json({ ok: true, lot, message: `Lot ${lot.lotNumber} adjusted by ${delta > 0 ? "+" : ""}${delta}.` });
     }
 
@@ -126,6 +129,7 @@ export async function POST(request: Request) {
         });
         return row;
       });
+      revalidateCatalog();
       return Response.json({ ok: true, lot, message: `Lot ${lot.lotNumber} is now ${lot.status}.` });
     }
 
@@ -137,6 +141,7 @@ export async function POST(request: Request) {
         await recordAudit(tx, { actor, action: "inventory.expiry", entityType: "inventory", entityId: row.id, after: { lot: row.lotNumber, expiresOn }, request });
         return row;
       });
+      revalidateCatalog();
       return Response.json({ ok: true, lot, message: `Lot ${lot.lotNumber} best-by set to ${expiresOn}.` });
     }
 

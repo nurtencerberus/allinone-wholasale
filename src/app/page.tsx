@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   ArrowRight,
   BadgeCheck,
@@ -23,6 +23,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { PriceListSection, type PriceListProduct } from "@/components/PriceListSection";
 import { WholesaleListsSection, type WholesaleListCard } from "@/components/WholesaleListsSection";
 import { wholesaleLists } from "@/db/schema";
+import { cachedActiveCatalog, cachedFeatured } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { toCardProduct } from "@/lib/catalog-view";
 import { listStaticDownloads } from "@/lib/downloads";
@@ -123,23 +124,12 @@ export default async function HomePage() {
   const showPrices = canSeePrices(viewer);
 
   let featured: (typeof products.$inferSelect)[] = [];
+  let catalog: (typeof products.$inferSelect)[] = [];
   let priceList: PriceListProduct[] = [];
   try {
-    featured = await db
-      .select()
-      .from(products)
-      .where(and(eq(products.featured, true), eq(products.active, true)))
-      // Newest featured products first, so a freshly added SKU actually appears.
-      .orderBy(desc(products.createdAt), desc(products.id))
-      .limit(4);
-    if (featured.length === 0) {
-      featured = await db.select().from(products).where(eq(products.active, true)).limit(4);
-    }
-    const catalog = await db
-      .select()
-      .from(products)
-      .where(eq(products.active, true))
-      .orderBy(asc(products.category), asc(products.name));
+    // Newest featured products first, so a freshly added SKU actually appears. Both lists come
+    // from the shared data cache (PRF-1); prices are still gated per viewer below.
+    [featured, catalog] = await Promise.all([cachedFeatured(4), cachedActiveCatalog()]);
     priceList = (showPrices ? catalog : []).map((product) => ({
       sku: product.sku,
       name: product.name,

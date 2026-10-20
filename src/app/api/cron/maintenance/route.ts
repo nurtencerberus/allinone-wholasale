@@ -1,6 +1,7 @@
 import { and, eq, lt, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { loginChallenges, orders, products, rateLimits, sessions } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { sweepStaleCheckouts } from "@/lib/card-checkout";
 import { alertOps, describeError } from "@/lib/alerts";
 import { abandonedCarts, markCartReminded } from "@/lib/cart-store";
@@ -122,6 +123,8 @@ async function runMaintenance(report: Record<string, unknown>) {
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;
 
+  // Lots pulled, orders cancelled and stock returned: the catalogue rows must be re-read.
+  revalidateCatalog();
   console.log(JSON.stringify({ at: new Date().toISOString(), level: "info", alert: "cron-maintenance", ...report }));
   return Response.json({ ok: true, ...report });
 }

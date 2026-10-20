@@ -1,13 +1,14 @@
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { and, desc, eq, gt, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { AlertTriangle, Boxes, CalendarCheck, ExternalLink, FileCheck2, Lock, MapPin, Package, Ruler, Star, Truck } from "lucide-react";
 import { db } from "@/db";
 import { productLots, products, reviews } from "@/db/schema";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
+import { cachedProductBySlug, cachedRelated } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/staff";
 import { toCardProduct } from "@/lib/catalog-view";
@@ -21,10 +22,7 @@ import { ozToLbs } from "@/lib/weight";
  * One row per request: generateMetadata and the page itself both need the product, and React's
  * cache() keeps that a single query instead of two (PRF-3).
  */
-const productBySlug = cache(async (slug: string) => {
-  const [product] = await db.select().from(products).where(eq(products.slug, slug)).limit(1);
-  return product ?? null;
-});
+const productBySlug = cache(async (slug: string) => cachedProductBySlug(slug));
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -56,17 +54,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const [productReviews, related, user, nextLot] = await Promise.all([
     db.select().from(reviews).where(eq(reviews.productId, product.id)).orderBy(desc(reviews.createdAt)),
-    db
-      .select()
-      .from(products)
-      .where(
-        and(
-          eq(products.category, product.category),
-          ne(products.id, product.id),
-          eq(products.active, true),
-        ),
-      )
-      .limit(3),
+    cachedRelated(product.category, product.id, 3),
     getSessionUser(),
     // The lot an order would ship from next (FEFO), for the "best by" promise.
     db

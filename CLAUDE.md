@@ -193,6 +193,12 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
 - Vercel istek gövdesi sınırı 4,5 MB → tüm yüklemeler **4 MB** ile sınırlı.
 
 ### Sunucu / istemci yapısı
+- **Katalog önbelleği (PRF-1):** vitrin sorguları `src/lib/catalog-cache.ts` üzerinden Next data cache'inde
+  (`cachedFeatured`, `cachedActiveCatalog`, `cachedCategoryCounts`, `shopList`, `cachedProductBySlug`,
+  `cachedRelated`; 60 sn TTL + `catalog` etiketi). **Önbellekte yalnızca ürün satırları vardır, render edilmiş
+  HTML değil** — fiyat kilidi izleyiciye göre değiştiği için paylaşımlı HTML önbelleği fiyat sızdırırdı. Ürün,
+  katalog içe aktarma, stok ve sipariş yazan her yol `revalidateCatalog()` çağırır; yeni bir yazma yolu eklerseniz
+  siz de çağırın. Serbest metin aramaları önbelleğe alınmaz (ziyaretçi girdisi anahtar şişirir).
 - Sayfalar Server Component; veritabanına doğrudan Drizzle ile erişir. Kök `layout.tsx` `force-dynamic`
   (oturuma bağlı başlık), dolayısıyla statik prerender beklenmez.
 - Etkileşimli parçalar `src/components/**` altında `"use client"` bileşenleri ve `/api/**` route'larına `fetch` eder.

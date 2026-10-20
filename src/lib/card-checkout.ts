@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { checkoutSessions, orders, users, type CheckoutPayload } from "@/db/schema";
+import { revalidateCatalog } from "@/lib/catalog-cache";
 import { canSeePrices, toSessionUser } from "@/lib/auth";
 import { alertOps, describeError } from "@/lib/alerts";
 import { clearCart } from "@/lib/cart-store";
@@ -196,6 +197,7 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
     .update(checkoutSessions)
     .set({ status: "ordered", orderId: order.id, updatedAt: new Date() })
     .where(eq(checkoutSessions.id, session.id));
+  revalidateCatalog();
   await clearCart(user.id).catch((error) => console.error("[card-checkout] cart clear", error));
   await sendOrderConfirmation(order, payload.contact, priced.total);
 

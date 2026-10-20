@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
-import { asc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { products } from "@/db/schema";
 import { QuickOrderPanel } from "@/components/QuickOrderPanel";
 import { PriceLockNotice } from "@/components/PriceLockNotice";
+import { cachedActiveCatalog } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { ozToLbs } from "@/lib/weight";
 
@@ -18,13 +16,7 @@ export const metadata = {
 export default async function QuickOrderPage() {
   const user = await getSessionUser();
   if (!canSeePrices(user)) return <PriceLockNotice user={user} next="/quick-order" />;
-  const [catalog] = await Promise.all([
-    db
-      .select()
-      .from(products)
-      .where(eq(products.active, true))
-      .orderBy(asc(products.category), asc(products.name)),
-  ]);
+  const catalog = await cachedActiveCatalog();
 
   const wholesale = user?.accountTier === "wholesale";
   const discountPct = wholesale ? (user?.wholesaleDiscountPct ?? 0) : 0;

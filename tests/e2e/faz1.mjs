@@ -132,6 +132,10 @@ const base = {
 };
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN_BAD });
 check("invalid GTIN check digit → 422", r.status === 422 && /GS1/.test(r.json.error), r.text);
+// PRF-1: warm the cached catalogue, then create a product — the admin write must drop the cache
+// so the new SKU is in the grid on the very next read, not after the 60-second expiry.
+const warmed = await buyer.get("/shop");
+check("catalogue grid renders", warmed.status === 200);
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, msrpUnit: 100 });
 check("MSRP below the wholesale unit price → 422", r.status === 422, r.text);
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, openingStock: 20 });
@@ -139,6 +143,12 @@ check("supplement opening stock without best-by → 422", r.status === 422, r.te
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, openingStock: 20, openingLot: "L-LATE", openingExpiresOn: days(300) });
 check("product created with opening lot", r.status === 200, r.text);
 const [prod] = await q("select * from products where sku=$1", [sku]);
+const afterCreate = await buyer.get("/shop");
+check(
+  "an admin write drops the cached catalogue, so the new SKU is in the grid at once",
+  afterCreate.status === 200 && afterCreate.text.includes(prod.slug),
+  "new SKU missing from /shop right after it was created",
+);
 let lots = await lotsOf(prod.id);
 check("opening lot and stock agree", prod.stock === 20 && lots.length === 1 && lots[0].lot_number === "L-LATE" && lots[0].qty_on_hand === 20);
 check("ledger has the opening movement", (await q("select reason, delta from inventory_movements where product_id=$1", [prod.id]))[0]?.delta === 20);
