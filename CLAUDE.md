@@ -113,6 +113,12 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
   ve tarih penceresi vardır; dışındaysa normal fiyatlandırmaya düşer. `PricedLine.priceSource` =
   catalog | tier | contract. Vitrinde BuyBox ve hızlı sipariş aynı kuralı uygular ama **gösterim amaçlıdır** —
   bağlayıcı olan `priceCart()`. Fiyat kullanıcıya özel olduğu için katalog önbelleğine girmez.
+- **RFQ (UX-7):** `quote_requests` + `quote_items` (`src/lib/quotes.ts`; istemciye giden tip ve sabitler
+  `src/lib/quotes-view.ts` — sunucu modülünü istemci bileşenine import etmeyin). Durum makinesi
+  `QUOTE_TRANSITIONS`: requested → quoted → accepted/declined; karar verilmiş teklif yeniden açılmaz.
+  Teklif fiyat içerdiği için **yalnızca `canSeePrices` hesaplar** isteyebilir; hesap başına tek açık talep.
+  Kabul, satırları `account_prices`'a yazar (teklif edilen adet `min_cases`, teklifin süresi `expires_at`),
+  yani sonraki siparişler kendiliğinden o fiyattan geçer. Süresi geçen teklifleri cron `expireQuotes()` kapatır.
 - **Tek fiyat kaynağı `priceCart()`** (`src/lib/checkout.ts`): kademe fiyatı → toptan hesap indirimi (en fazla %40) →
   kupon (satırlara `allocateDiscount` ile dağıtılır) → adres kontrolü → kargo (`quoteShipping`) → vergi (`quoteTax`).
   Sorunları sessizce düzeltmez, **`blockers`** listesi döner (asgari koli/tutar, stok, >999 koli, teslimat bölgesi,

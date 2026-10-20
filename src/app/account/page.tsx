@@ -1,21 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { and, desc, eq, or, sql } from "drizzle-orm";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Boxes,
-  ClipboardList,
-  MapPin,
-  Package,
-  Percent,
-  Plus,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
+import { ArrowRight, BadgeCheck, Boxes, ClipboardList, FileText, MapPin, Package, Percent, Plus, ShieldCheck, Truck } from "lucide-react";
 import { db } from "@/db";
 import { addresses, orders, wholesaleApplications } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { isStaffRole } from "@/lib/staff";
 import { AccountActions } from "@/components/account/AccountActions";
 import { formatDate, formatMoney, formatRate } from "@/lib/money";
@@ -189,6 +178,23 @@ export default async function AccountPage() {
               </div>
             )}
           </div>
+
+          {canSeePrices(user) ? (
+            <div className="mt-4 card p-4">
+              <div className="flex items-center justify-between">
+                <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] uppercase">
+                  <FileText size={13} /> Quotes
+                </p>
+                <Link href="/account/quotes" className="text-[10.5px] font-bold text-fern hover:underline">
+                  Open
+                </Link>
+              </div>
+              <p className="mt-2 text-[11.5px] text-ink/68">
+                Ask the trade desk to price the quantities you actually buy. Accepted prices apply to your orders
+                until the quote expires.
+              </p>
+            </div>
+          ) : null}
 
           <div className="mt-4 card p-4">
             <div className="flex items-center justify-between">

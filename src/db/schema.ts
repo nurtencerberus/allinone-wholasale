@@ -575,6 +575,56 @@ export const orderEvents = pgTable(
 );
 
 /** Return authorisations (RMA). 14 days from delivery; opened food/supplements are quarantined. */
+/**
+ * UX-7: a request for quote. A trade buyer asks for a price on specific quantities, the trade
+ * desk prices each line and gives the quote a deadline, and accepting it writes the agreed
+ * prices into `account_prices` so every later order picks them up on its own.
+ */
+export const quoteRequests = pgTable(
+  "quote_requests",
+  {
+    id: serial("id").primaryKey(),
+    reference: text("reference").notNull(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // requested | quoted | accepted | declined | expired | withdrawn
+    status: text("status").notNull().default("requested"),
+    customerNote: text("customer_note"),
+    adminNote: text("admin_note"),
+    /** How long the quoted prices stand; also what the accepted account prices inherit. */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    quotedBy: integer("quoted_by").references(() => users.id, { onDelete: "set null" }),
+    quotedAt: timestamp("quoted_at", { withTimezone: true }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("quote_requests_reference_unique").on(table.reference),
+    index("quote_requests_user_idx").on(table.userId, table.createdAt),
+    index("quote_requests_status_idx").on(table.status),
+  ],
+);
+
+export const quoteItems = pgTable(
+  "quote_items",
+  {
+    id: serial("id").primaryKey(),
+    quoteId: integer("quote_id")
+      .notNull()
+      .references(() => quoteRequests.id, { onDelete: "cascade" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    cases: integer("cases").notNull(),
+    /** Null until the desk prices the line; in cents per case. */
+    casePrice: integer("case_price"),
+    note: text("note"),
+  },
+  (table) => [uniqueIndex("quote_items_product_unique").on(table.quoteId, table.productId)],
+);
+
 export const returnRequests = pgTable(
   "return_requests",
   {
@@ -707,6 +757,8 @@ export const rateLimits = pgTable(
 );
 
 export type AccountPrice = typeof accountPrices.$inferSelect;
+export type QuoteRequest = typeof quoteRequests.$inferSelect;
+export type QuoteItem = typeof quoteItems.$inferSelect;
 export type Cart = typeof carts.$inferSelect;
 export type CartRow = typeof cartItems.$inferSelect;
 export type WholesaleList = typeof wholesaleLists.$inferSelect;
