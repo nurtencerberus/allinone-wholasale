@@ -8,6 +8,7 @@ import { priceCart } from "@/lib/checkout";
 import { parseCheckoutRequest, type CheckoutRequestBody } from "@/lib/checkout-request";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
+import { alertOps, describeError } from "@/lib/alerts";
 import { clearCart } from "@/lib/cart-store";
 import { CouponUnavailableError, createOrderRecord, sendOrderConfirmation, StockShortError } from "@/lib/orders";
 import { ensureSeeded } from "@/lib/seed";
@@ -179,7 +180,12 @@ export async function POST(request: Request) {
       paymentStatus,
     });
   } catch (error) {
-    console.error("[orders]", error);
+    await alertOps({
+      key: "order-endpoint-failed",
+      subject: "An order could not be placed",
+      message: "The order endpoint failed unexpectedly. No card was charged, but the buyer saw an error.",
+      context: { error: describeError(error) },
+    });
     return Response.json({ error: "Order submission failed. Nothing was charged; please try again." }, { status: 500 });
   }
 }

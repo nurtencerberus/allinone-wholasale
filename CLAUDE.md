@@ -26,6 +26,8 @@ npm run typecheck                        # tsc --noEmit
 
 ```bash
 npm run db:export        # db/schema.sql'i yeniden üretir (boş veritabanı kurulumu; CI senkron olduğunu kontrol eder)
+npm run db:migrate:status   # dolu veritabanında ne uygulanmış / ne bekliyor (DATABASE_URL gerekir)
+npm run db:migrate -- --yes # bekleyen migration'ları sırayla uygular ve schema_migrations'a yazar
 # + db/migrations/NNNN_*.sql: mevcut (Neon) veritabanı için artımlı, tekrar çalıştırılabilir SQL (IF NOT EXISTS,
 #   FK adları Drizzle'ınkiyle aynı: <tablo>_<sütun>_<hedef>_<sütun>_fk). CI, main şeması + migration'lar ile
 #   db/schema.sql'i tests/schema-signature.sql ile karşılaştırır.
@@ -158,6 +160,14 @@ doğru izni seçin ve değişikliği `recordAudit()` (`src/lib/audit.ts`) ile ka
 Sıfırlama/doğrulama jetonları da yalnızca `digestToken()` özeti olarak saklanır ve tek `UPDATE … RETURNING` ile tüketilir.
 E-posta linkleri `appOrigin()`'den (`src/lib/site.ts`) üretilir, istek Host'undan değil. `?next=` → `safeNextPath()`.
 E-posta doğrulanmamış kullanıcı sipariş veremez. Canlıda ilk admin SQL ile atanır (DEPLOYMENT.md §3.3).
+
+### Hata kaydı ve alarm (DEV-3)
+`src/lib/alerts.ts` → `alertOps({ key, subject, message, context })`: olayı **tek satır JSON** olarak loglar
+(Vercel log aramasında ve drain'de filtrelenebilir) ve aynı `key` için 15 dakikada bir kez operasyona e-posta atar
+(`rate_limits` üzerinden, örnekler arası paylaşımlı). Para yollarında kullanılır: Stripe webhook hatası, kart
+capture/sipariş yazma hatası, `/api/orders` beklenmedik 500'ü, gecelik cron'un düşmesi. `src/instrumentation.ts`
+→ `onRequestError` yakalanmayan her hatayı aynı biçimde loglar ve ödeme/sipariş yollarındaysa alarma çevirir.
+`GET /api/health` veritabanına erişemezse **503** döner (uptime izleme buna bakmalı).
 
 ### Hız sınırlama
 `src/lib/rate-limit.ts` → `consumeRateLimit(scope, key, limit, windowSeconds)`; Postgres `rate_limits` tablosunda

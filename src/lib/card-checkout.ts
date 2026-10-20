@@ -3,6 +3,7 @@ import { and, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { checkoutSessions, orders, users, type CheckoutPayload } from "@/db/schema";
 import { canSeePrices, toSessionUser } from "@/lib/auth";
+import { alertOps, describeError } from "@/lib/alerts";
 import { clearCart } from "@/lib/cart-store";
 import { priceCart } from "@/lib/checkout";
 import {
@@ -165,7 +166,12 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
     if (error instanceof CouponUnavailableError) {
       return fail(409, `${error.message} No charge was made — please check out again.`, releasable);
     }
-    console.error("[card-checkout] order insert failed", paymentIntentId, error);
+    await alertOps({
+      key: "card-order-insert-failed",
+      subject: "Card order could not be written",
+      message: "A card payment was authorised but the order could not be recorded. The authorisation is being released; no money was taken.",
+      context: { paymentIntent: paymentIntentId, error: describeError(error) },
+    });
     return fail(500, "We could not record your order. No charge was made — please try again.", releasable);
   }
 
@@ -173,7 +179,12 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
     try {
       await stripe.paymentIntents.capture(paymentIntentId, undefined, { idempotencyKey: `capture:${paymentIntentId}` });
     } catch (error) {
-      console.error("[card-checkout] capture failed", paymentIntentId, error);
+      await alertOps({
+        key: "card-capture-failed",
+        subject: "Card capture failed after the order was written",
+        message: "The order was created and then the capture failed; it has been cancelled and the stock returned. Check Stripe for a stray authorisation.",
+        context: { paymentIntent: paymentIntentId, order: order.orderNumber, error: describeError(error) },
+      });
       await cancelOrderAndRestock(order.id, "card capture failed");
       await db.update(orders).set({ paymentStatus: "capture_failed" }).where(eq(orders.id, order.id));
       return fail(402, "Your card could not be charged. The order was not placed.", true);

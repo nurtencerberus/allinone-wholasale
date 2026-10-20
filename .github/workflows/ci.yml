@@ -56,6 +56,11 @@ jobs:
           psql postgresql://postgres@localhost:5432/fresh -v ON_ERROR_STOP=1 -q -f db/schema.sql
           diff <(psql "$UPGRADE" -q -f tests/schema-signature.sql) <(psql postgresql://postgres@localhost:5432/fresh -q -f tests/schema-signature.sql)
       - run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -q -f db/schema.sql
+      - name: Migration runner records a fresh schema as up to date
+        run: |
+          npm run db:migrate -- --baseline
+          npm run db:migrate:status | tail -1 | grep -q "0 pending"
+          npm run db:migrate | grep -q "Nothing to do"
       - run: npm run build
       - name: Start fake Stripe and the app
         env:

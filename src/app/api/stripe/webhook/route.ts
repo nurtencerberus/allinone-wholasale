@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { checkoutSessions } from "@/db/schema";
+import { alertOps, describeError } from "@/lib/alerts";
 import { finalizeCardCheckout, stripeClient } from "@/lib/card-checkout";
 
 export const runtime = "nodejs";
@@ -49,7 +50,13 @@ export async function POST(request: Request) {
     }
     return Response.json({ received: true });
   } catch (error) {
-    console.error("[stripe-webhook]", event.type, error);
+    // Money is in flight: log it as a structured alert and tell the trade desk once.
+    await alertOps({
+      key: `stripe-webhook:${event.type}`,
+      subject: `Stripe webhook failed (${event.type})`,
+      message: "A Stripe webhook could not be handled. Stripe will retry, but the payment may need checking by hand.",
+      context: { event: event.type, eventId: event.id, error: describeError(error) },
+    });
     // 500 makes Stripe retry with backoff.
     return Response.json({ error: "Handler failed." }, { status: 500 });
   }
