@@ -135,8 +135,10 @@ export const cachedRelated = dataCache(
  */
 export function revalidateCatalog(): void {
   try {
-    // "max" expires every entry carrying the tag, however fresh it is (Next 16 signature).
-    revalidateTag(CATALOG_TAG, "max");
+    // `{ expire: 0 }` makes the tagged entries unusable from this moment. A named profile such
+    // as "max" would only mark them stale and keep serving the old rows while refreshing in the
+    // background — an admin save has to show up at once, not on the next read but one.
+    revalidateTag(CATALOG_TAG, { expire: 0 });
   } catch (error) {
     console.error(JSON.stringify({ at: new Date().toISOString(), level: "warn", alert: "catalog-revalidate", message: String(error) }));
   }

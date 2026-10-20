@@ -132,6 +132,10 @@ const base = {
 };
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN_BAD });
 check("invalid GTIN check digit → 422", r.status === 422 && /GS1/.test(r.json.error), r.text);
+// PRF-1: warm the cached catalogue, then create a product — the admin write must drop the cache
+// so the new SKU is in the grid on the very next read, not after the 60-second expiry.
+const warmed = await buyer.get("/shop");
+check("catalogue grid renders", warmed.status === 200);
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, msrpUnit: 100 });
 check("MSRP below the wholesale unit price → 422", r.status === 422, r.text);
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, openingStock: 20 });
@@ -139,6 +143,12 @@ check("supplement opening stock without best-by → 422", r.status === 422, r.te
 r = await admin.post("/api/admin/products", { ...base, gtin: GTIN, openingStock: 20, openingLot: "L-LATE", openingExpiresOn: days(300) });
 check("product created with opening lot", r.status === 200, r.text);
 const [prod] = await q("select * from products where sku=$1", [sku]);
+const afterCreate = await buyer.get("/shop");
+check(
+  "an admin write drops the cached catalogue, so the new SKU is in the grid at once",
+  afterCreate.status === 200 && afterCreate.text.includes(prod.slug),
+  "new SKU missing from /shop right after it was created",
+);
 let lots = await lotsOf(prod.id);
 check("opening lot and stock agree", prod.stock === 20 && lots.length === 1 && lots[0].lot_number === "L-LATE" && lots[0].qty_on_hand === 20);
 check("ledger has the opening movement", (await q("select reason, delta from inventory_movements where product_id=$1", [prod.id]))[0]?.delta === 20);
@@ -162,11 +172,6 @@ r = await admin.post("/api/admin/catalog", { products: [
 check("import with one bad row → 422, nothing written", r.status === 422 && r.json.written === false && (await q("select count(*)::int c from products"))[0].c === productsBefore, r.text.slice(0, 200));
 r = await admin.post("/api/admin/catalog", { products: [{ ...base, gtin: GTIN, stock: 999, ratingX10: 50 }] });
 check("re-import of an existing SKU updates it and ignores stock and ratings", r.status === 200 && r.json.updated.includes(sku) && (await stockOf(prod.id)) === 20 && r.json.warnings.length >= 2, r.text.slice(0, 200));
-
-// A product written through the admin API must appear in the catalogue at once: the data cache
-// is dropped on every admin write, so nothing waits for the 60-second expiry (PRF-1).
-let shopPage = await buyer.get("/shop");
-check("a newly imported product is in the catalogue immediately", shopPage.status === 200 && shopPage.text.includes(prod.slug), "new SKU missing from /shop");
 
 const page = await buyer.get(`/products/${prod.slug}`);
 check("product page hides cost and supplier from trade buyers", page.status === 200 && !page.text.includes("SecretSupplierCo") && !page.text.includes("costPrice") && !page.text.includes("7771"));
