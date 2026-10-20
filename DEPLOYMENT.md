@@ -227,10 +227,24 @@ Bunlar benim yazdığım yer tutuculardır; işletmenizin gerçek politikası ol
 - `npm run db:export` → `db/schema.sql` (yalnızca **boş** veritabanı kurulumu için).
 - `db/migrations/NNNN_*.sql` → dolu (Neon) veritabanı için, tekrar çalıştırılabilir artımlı SQL.
 
-Dolu veritabanına migration'ları sırayla Neon **SQL Editor**'de çalıştırın (zaten uygulanmış olanı tekrar
-çalıştırmak zararsızdır). CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonucu verdiğini
-her PR'da kontrol eder. `drizzle-kit push` kullanmayın: veri taşıma adımlarını (ör. Faz 1'de mevcut stoğun açılış
-lotuna dönüşmesi) yapmaz.
+Migration'ları **elle yapıştırmayın**; koşucu sırayı ve hangisinin uygulandığını kendisi takip eder
+(`schema_migrations` tablosu — koşucu yoksa oluşturur, `db/schema.sql`'in parçası değildir):
+
+```bash
+export DATABASE_URL="postgresql://…"        # Neon connection string (direct endpoint tercih edin)
+npm run db:migrate:status                   # ne uygulanmış, ne bekliyor
+npm run db:migrate -- --yes                 # bekleyenleri sırayla uygula (--yes: uzak veritabanı onayı)
+```
+
+- Her dosya kendi transaction'ındadır; biri patlarsa kayda geçmez ve koşucu orada durur.
+- Uygulanmış bir dosya sonradan değiştirilirse koşucu checksum uyuşmazlığını uyarı olarak basar.
+- **Zaten elle uygulanmış** bir veritabanını koşucuya devretmek için bir kez
+  `npm run db:migrate -- --baseline --yes`: bekleyen dosyaları *çalıştırmadan* uygulanmış olarak işaretler.
+- Deploy sırası önemliyse (ör. `0005` deploy öncesi, `0006` sonrası) tablodaki "Ne zaman" sütununa uyun.
+
+CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonucu verdiğini ve koşucunun temiz bir
+şemayı doğru raporladığını her PR'da kontrol eder. `drizzle-kit push` kullanmayın: veri taşıma adımlarını
+(ör. Faz 1'de mevcut stoğun açılış lotuna dönüşmesi) yapmaz.
 
 | Migration | Ne zaman | Not |
 |---|---|---|

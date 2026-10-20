@@ -2,6 +2,7 @@ import { and, eq, lt, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { loginChallenges, orders, products, rateLimits, sessions } from "@/db/schema";
 import { sweepStaleCheckouts } from "@/lib/card-checkout";
+import { alertOps, describeError } from "@/lib/alerts";
 import { abandonedCarts, markCartReminded } from "@/lib/cart-store";
 import { abandonedCartTemplate, escapeHtml, sendEmail } from "@/lib/email";
 import { pullExpiringLots, stockDrift } from "@/lib/inventory";
@@ -26,6 +27,20 @@ export async function GET(request: Request) {
   }
 
   const report: Record<string, unknown> = {};
+  try {
+    return await runMaintenance(report);
+  } catch (error) {
+    await alertOps({
+      key: "cron-maintenance-failed",
+      subject: "Nightly maintenance failed",
+      message: "The daily job stopped before it finished. Unpaid orders, expiring lots and cleanup may not have run.",
+      context: { done: Object.keys(report).join(", ") || "nothing", error: describeError(error) },
+    });
+    return Response.json({ ok: false, error: "Maintenance failed.", ...report }, { status: 500 });
+  }
+}
+
+async function runMaintenance(report: Record<string, unknown>) {
 
   // 1. Card checkouts the browser and the webhook both missed.
   report.cardCheckouts = await sweepStaleCheckouts();
@@ -107,6 +122,6 @@ export async function GET(request: Request) {
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;
 
-  console.log("[cron-maintenance]", JSON.stringify(report));
+  console.log(JSON.stringify({ at: new Date().toISOString(), level: "info", alert: "cron-maintenance", ...report }));
   return Response.json({ ok: true, ...report });
 }

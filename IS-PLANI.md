@@ -345,7 +345,8 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | DEV-5 | ✅ | CSP eklendi: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`; Stripe ve görsel kaynakları açıkça izinli. Script'lerde `'unsafe-inline'` kaldı (nonce için middleware gerekir — Faz 3) |
 | PRF-1 | 🟡 kısmi | İstek başına oturum sorgusu teke indi. Sayfa önbelleği **yapılmadı**: katalog HTML'i fiyat kilidine göre değişiyor, dolayısıyla paylaşımlı önbellek misafire toptan fiyat sızdırabilir. Doğru çözüm PPR/`cacheComponents` ile kilitli ve kilitsiz varyantı ayırmak — ayrı bir iş olarak planlanmalı |
 | SEP-7 | ✅ | `carts`/`cart_items` (migration 0008): girişli alıcının sepeti cihazlar arası taşınır, girişte yerel sepetle birleşir (satır başına büyük adet), sipariş verilince boşalır; 3 gün bekleyen sepete cron'dan tek hatırlatma e-postası. Misafir sepeti yine yalnızca localStorage'da. Tekrar sipariş zaten vardı |
-| DEV-2/3 | ❌ Açık | Faz 2'nin kalanı (migration otomasyonu, gözlemlenebilirlik) |
+| DEV-2 | ✅ | `npm run db:migrate` koşucusu: `schema_migrations` defteri, sıra, checksum uyarısı, `--status` ve mevcut veritabanını devralmak için `--baseline`. Elle SQL yapıştırma bitti; CI koşucuyu temiz şema üzerinde doğruluyor |
+| DEV-3 | ✅ (vendor'sız) | `alertOps()` tek satır JSON log + 15 dakikada bir operasyona e-posta (webhook, kart capture, sipariş yazma, cron); `instrumentation.ts` → `onRequestError`; `/api/health` veritabanı düşünce 503. Sentry gibi bir servis isteniyorsa üzerine eklenebilir |
 
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 
