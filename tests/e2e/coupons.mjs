@@ -94,12 +94,13 @@ if (air) {
 // --- redemption is recorded with the order ----------------------------------------------------
 const onceId = await makeCoupon("E2E-ONCE", { per_customer_limit: 1 });
 const place = async (couponCode) => {
+  // The quote is refused once the coupon is used up; the order endpoint must refuse it too.
   const priced = await quote(couponCode);
   return buyer.post("/api/orders", {
     items,
     address: NJ,
     couponCode,
-    shippingOptionId: priced.json.quote.shippingOptionId,
+    shippingOptionId: priced.json?.quote?.shippingOptionId ?? null,
     checkoutId: randomUUID(),
     email: "buyer@harborhouse.com",
     name: "Dana Whitfield",
