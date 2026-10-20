@@ -334,8 +334,13 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | KRG-1 | ✅ (Faz 0) | Kararlı kargo seçenek ID'si |
 | PRF-4 | ✅ (Faz 0) | `CardProduct` dar tipi |
 | DEV-4 | ✅ (Faz 1) | Günlük `maintenance` cron'u |
-| KRG-2, KRG-3 | ⏸ Ertelendi | Gerçek parsel/LTL hesabı (EasyPost, LTL aracısı) yok; hesap açılınca yapılacak |
-| SEP-7, KRG-4…8, PRF-1…3, DEV-2/3/5 | ❌ Açık | Faz 2'nin kalanı |
+| KRG-4 | ✅ | Ücretsiz kargo tek yerde (`applyFreightAllowance`), canlı EasyPost fiyatlarında da geçerli; yalnızca ground parsel, zone 1–6, palet hariç; eşik ve kapsam `SITE`'tan okunur, başlık/toptan/politika metinleri kapsamı yazar |
+| KRG-6 | ✅ | Koli ağırlığı ons olarak saklanır (`weight_oz`, migration 0005), arayüz pound; faturalanan ağırlık koli başına `max(gerçek, boyutsal)` + paketleme — tek seferlik paketleme ve "0,6 lb → 1 lb" yuvarlaması bitti |
+| KRG-7 | ✅ | `hazmat` ürün sepetteyse hava servisi hiç listelenmez (matris ve EasyPost); politika metninde de yazıyor |
+| KRG-8 | ✅ | Uydurma taahhütler kalktı: matris fiyatları ve transit süreleri "estimate", LTL satırı gerçek taşıyıcı adı taşımıyor ve class/NMFC'nin booking'de doğrulanacağını söylüyor |
+| KRG-3 | 🟡 kısmi | Yanıltıcı "Ciputra Freight (LTL) · class 100" etiketi dürüstleştirildi; gerçek LTL fiyatı (freight_class/NMFC/palet alanları, ek hizmetler) taşıyıcı hesabı gelince |
+| KRG-2, KRG-5 (adres doğrulama) | ⏸ Ertelendi | Gerçek parsel/LTL hesabı (EasyPost, LTL aracısı) yok; koli başına parcel gönderimi ve adres doğrulama hesap açılınca |
+| SEP-7, PRF-1…3, DEV-2/3/5 | ❌ Açık | Faz 2'nin kalanı |
 
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 

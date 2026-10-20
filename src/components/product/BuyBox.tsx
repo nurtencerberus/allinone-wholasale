@@ -6,11 +6,12 @@ import { ArrowRight, Check, Minus, Plus, ShieldCheck, Truck } from "lucide-react
 import { useCart } from "@/components/cart/CartProvider";
 import type { Product } from "@/db/schema";
 import { formatMoney, unitPriceOf } from "@/lib/money";
+import { ozToLbs } from "@/lib/weight";
 
 /** Only what the buy box needs — never the full Product row (cost, supplier) in the browser. */
 export type BuyBoxProduct = Pick<
   Product,
-  "id" | "slug" | "name" | "sku" | "image" | "caseSize" | "msrpUnit" | "minCases" | "category" | "weightLbs" | "casePrice" | "priceTiers" | "stock"
+  "id" | "slug" | "name" | "sku" | "image" | "caseSize" | "msrpUnit" | "minCases" | "category" | "weightOz" | "casePrice" | "priceTiers" | "stock"
 >;
 
 export function BuyBox({
@@ -161,7 +162,7 @@ export function BuyBox({
             },
             {
               icon: Truck,
-              text: `Dimensional freight quoted at checkout · ${product.weightLbs} lb carton`,
+              text: `Dimensional freight quoted at checkout · ${ozToLbs(product.weightOz)} lb carton`,
               tone: "text-ink/60",
             },
             {

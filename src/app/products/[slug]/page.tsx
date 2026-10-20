@@ -14,6 +14,7 @@ import { categoryName, jsonLdHtml, SITE } from "@/lib/site";
 import { formatDate, formatIsoDate, formatMoney, unitPriceOf } from "@/lib/money";
 import { addDays, EXPIRY_PULL_DAYS, isoDate } from "@/lib/inventory";
 import { amazonUrl, FDA_DISCLAIMER, regionName } from "@/lib/product-data";
+import { ozToLbs } from "@/lib/weight";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -83,8 +84,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const absolute = (url: string) => (/^https?:\/\//i.test(url) ? url : `${SITE.domain}${url}`);
 
   const dimWeight = (product.dimensions.l * product.dimensions.w * product.dimensions.h) / 139;
-  const billable = Math.max(product.weightLbs, Math.round(dimWeight * 10) / 10);
-  const palletised = billable >= 150 || product.weightLbs >= 40;
+  const caseWeightLbs = ozToLbs(product.weightOz);
+  const billable = Math.max(caseWeightLbs, Math.round(dimWeight * 10) / 10);
+  const palletised = billable >= 150 || caseWeightLbs >= 40;
   const averageRating = hasReviews
     ? productReviews.reduce((sum, review) => sum + review.rating, 0) / productReviews.length
     : 0;
@@ -104,7 +106,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     msrpUnit: product.msrpUnit,
     minCases: product.minCases,
     category: product.category,
-    weightLbs: product.weightLbs,
+    weightOz: product.weightOz,
     casePrice: product.casePrice,
     priceTiers: product.priceTiers,
     stock: product.stock,
@@ -388,7 +390,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </div>
                 <div>
                   <p className="text-ink/45">Actual weight</p>
-                  <p className="font-semibold">{product.weightLbs} lb</p>
+                  <p className="font-semibold">{caseWeightLbs} lb</p>
                 </div>
                 <div>
                   <p className="text-ink/45">Dim weight (÷139)</p>

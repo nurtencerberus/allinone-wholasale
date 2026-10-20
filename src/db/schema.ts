@@ -152,7 +152,8 @@ export const products = pgTable(
     caseSize: integer("case_size").notNull(),
     minCases: integer("min_cases").notNull().default(1),
     priceTiers: jsonb("price_tiers").$type<PriceTier[]>().notNull().default([]),
-    weightLbs: integer("weight_lbs").notNull(),
+    /** Case weight in whole ounces; pounds everywhere a person sees it (src/lib/weight.ts). */
+    weightOz: integer("weight_oz").notNull(),
     dimensions: jsonb("dimensions").$type<Dimensions>().notNull(),
     stock: integer("stock").notNull().default(0),
     leadTimeDays: integer("lead_time_days").notNull().default(2),

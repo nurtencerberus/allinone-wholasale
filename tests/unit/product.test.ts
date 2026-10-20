@@ -16,6 +16,28 @@ const base = {
   dimensions: { l: 12, w: 10, h: 8 },
 };
 
+describe("case weight", () => {
+  const values = (input: Record<string, unknown>) => {
+    const result = validateProductInput({ ...base, ...input });
+    if (!result.ok) throw new Error(result.error);
+    return result.values;
+  };
+
+  it("stores pounds as whole ounces", () => {
+    expect(values({}).weightOz).toBe(144);
+  });
+  it("keeps a light carton's real weight", () => {
+    expect(values({ weightLbs: 0.6 }).weightOz).toBe(10);
+  });
+  it("takes ounces directly when a precise weight is imported", () => {
+    expect(values({ weightLbs: 9, weightOz: 137 }).weightOz).toBe(137);
+  });
+  it("refuses a weightless or absurd carton", () => {
+    expect(validateProductInput({ ...base, weightLbs: 0 }).ok).toBe(false);
+    expect(validateProductInput({ ...base, weightLbs: 2001 }).ok).toBe(false);
+  });
+});
+
 describe("identifiers", () => {
   it("checks the GS1 check digit for GTIN-8/12/13/14", () => {
     expect(isValidGtin("012345678905")).toBe(true); // UPC-A

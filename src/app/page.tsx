@@ -29,6 +29,7 @@ import { ensureSeeded } from "@/lib/seed";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { CATEGORIES, SITE } from "@/lib/site";
 import { formatMoney } from "@/lib/money";
+import { ozToLbs } from "@/lib/weight";
 
 export const metadata = {
   title: "Wholesale Vitamins, Pantry Staples & Home Goods",
@@ -148,7 +149,7 @@ export default async function HomePage() {
       priceTiers: product.priceTiers ?? [],
       msrpUnit: product.msrpUnit,
       stock: product.stock,
-      weightLbs: product.weightLbs,
+      weightLbs: ozToLbs(product.weightOz),
       slug: product.slug,
     }));
   } catch (error) {

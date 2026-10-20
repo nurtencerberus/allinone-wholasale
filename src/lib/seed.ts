@@ -18,6 +18,7 @@ import { parseListFile } from "@/lib/wholesale-lists";
 import { demoModeEnabled } from "@/lib/demo-mode";
 import { hashPassword } from "@/lib/password";
 import { defaultTaxClass } from "@/lib/tax";
+import { lbsToOz, ozToLbs } from "@/lib/weight";
 
 const globalForSeed = globalThis as typeof globalThis & {
   __meridianSeedPromise?: Promise<void>;
@@ -52,7 +53,7 @@ async function seedSampleWholesaleLists(): Promise<void> {
       priceTiers: product.priceTiers ?? [],
       msrpUnit: product.msrpUnit,
       stock: product.stock,
-      weightLbs: product.weightLbs,
+      weightLbs: ozToLbs(product.weightOz),
       dimensions: product.dimensions,
       leadTimeDays: product.leadTimeDays,
       slug: product.slug,
@@ -127,8 +128,10 @@ async function seed(): Promise<void> {
   const inserted = await db
     .insert(products)
     .values(
-      PRODUCTS.map((product) => ({
+      PRODUCTS.map(({ weightLbs, ...product }) => ({
         ...product,
+        // The sample catalog is written in pounds; storage is ounces (src/lib/weight.ts).
+        weightOz: lbsToOz(weightLbs),
         priceTiers: product.priceTiers,
         images: product.images,
         features: product.features,

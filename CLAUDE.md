@@ -73,6 +73,12 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
   verisine sızar. Fiyat içeren her yeni API `canSeePrices` kontrolü yapmalı (yoksa 403 + `PRICE_LOCKED_MESSAGE`).
   Misafir ödemesi yok.
 - **Teslimat:** 48 bitişik eyalet + DC; ZIP eyaleti belirler (`src/lib/ship-to.ts` → `shipToProblem`), PO Box yok.
+- **Kargo (`src/lib/shipping.ts`):** koli ağırlığı veritabanında **ons** (`products.weight_oz`), arayüz ve içe/dışa
+  aktarma pound (`src/lib/weight.ts` → `ozToLbs`/`lbsToOz`). Faturalanan ağırlık **koli başına** `max(gerçek, boyutsal)`
+  + paketleme. Ücretsiz kargo tek yerde uygulanır (`applyFreightAllowance`): yalnızca ground parsel, yalnızca
+  `SITE.freeFreightMaxZone`'a kadar, palet hariç — eşik veya kapsam değişirse `SITE` ve politika metni birlikte
+  güncellenir. `hazmat` ürün varsa hava servisi hiç sunulmaz. Matris fiyatları gerçek taşıyıcı teklifi değildir,
+  "estimate" olarak etiketlenir.
 - **Vergi:** yalnızca NJ (`NEXUS` in `src/lib/tax.ts`); `products.tax_class` (general/food/supplement/candy) — NJ'de
   food ve supplement muaf, kargo vergili mala oranla vergilenir; muafiyet NJ sertifika no + süre ister.
 - **Asgari sipariş $150** ve ürün başı `minCases` zorunlu. Toptan başvuru doğrulanmış hesaba bağlıdır.
@@ -83,7 +89,7 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
 | Entegrasyon | Dosya | Yedek |
 |---|---|---|
 | Stripe (Elements + manuel capture) | `src/lib/card-checkout.ts`, `api/checkout/payment-intent`, `api/orders`, `api/stripe/webhook` | Demo simülasyonu / kapalı |
-| EasyPost | `src/lib/shipping.ts` | Boyutsal ağırlık + bölge matrisi; palet → LTL |
+| EasyPost | `src/lib/shipping.ts` | Boyutsal ağırlık + bölge matrisi (tahmin olarak etiketlenir); palet → LTL |
 | Resend | `src/lib/email.ts` | Konsola log (`provider: "console"`) |
 
 `NEXT_PUBLIC_*` değişkenleri (site URL'si, Stripe publishable key) **derleme zamanında** gömülür.

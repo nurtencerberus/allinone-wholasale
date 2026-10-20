@@ -37,7 +37,7 @@ export type PricedLine = {
   catalogLineTotal: number;
   tierSaving: number;
   accountSaving: number;
-  weightLbs: number;
+  weightOz: number;
   dimensions: Dimensions;
 };
 
@@ -213,7 +213,7 @@ export async function priceCart(input: {
       catalogLineTotal: product.casePrice * item.cases,
       tierSaving: Math.max(0, (product.casePrice - listCasePrice) * item.cases),
       accountSaving: Math.max(0, (listCasePrice - casePrice) * item.cases),
-      weightLbs: product.weightLbs,
+      weightOz: product.weightOz,
       dimensions: product.dimensions,
     });
   }
@@ -289,9 +289,10 @@ export async function priceCart(input: {
 
   // Freight -----------------------------------------------------------
   const freightLines = lines.map((line) => ({
-    weightLbs: line.weightLbs,
+    weightOz: line.weightOz,
     dimensions: line.dimensions,
     cases: line.cases,
+    hazmat: byId.get(line.productId)?.hazmat ?? false,
   }));
   const summary = summariseFreight(freightLines);
   const shipping = await quoteShipping({

@@ -1,9 +1,13 @@
 import { SITE, stateName } from "@/lib/site";
+import { ozToLbs } from "@/lib/weight";
 
 export type ShippingInputLine = {
-  weightLbs: number;
+  /** Case weight in whole ounces (KRG-6). */
+  weightOz: number;
   dimensions: { l: number; w: number; h: number };
   cases: number;
+  /** Hazardous material: no air service may be offered for the shipment (KRG-7). */
+  hazmat?: boolean;
 };
 
 export type ShippingOption = {
@@ -43,7 +47,8 @@ const ZONE_BY_STATE: Record<string, number> = {
 
 /** Dimensional weight divisor for UPS/FedEx domestic parcel (in³ per lb). */
 const DIM_DIVISOR = 139;
-const PACKAGING_LBS = 1.5;
+/** Dunnage and the outer carton, added to every package — carriers bill per package. */
+const PACKAGING_LBS_PER_CARTON = 0.4;
 
 export function zoneFor(state: string): number {
   return ZONE_BY_STATE[(state || "").toUpperCase()] ?? 5;
@@ -52,10 +57,14 @@ export function zoneFor(state: string): number {
 export function dimensionalWeight(line: ShippingInputLine) {
   const cubic = line.dimensions.l * line.dimensions.w * line.dimensions.h;
   const dimLbs = cubic / DIM_DIVISOR;
+  const actualLbs = ozToLbs(line.weightOz);
   return {
     dimLbs: dimLbs * line.cases,
-    actualLbs: line.weightLbs * line.cases,
+    actualLbs: actualLbs * line.cases,
     cubic: cubic * line.cases,
+    /** What the carrier bills for one carton of this line: the greater weight, plus packaging. */
+    billablePerCarton: Math.max(actualLbs, dimLbs) + PACKAGING_LBS_PER_CARTON,
+    actualPerCarton: actualLbs,
   };
 }
 
@@ -67,15 +76,18 @@ export function summariseFreight(lines: ShippingInputLine[]) {
       acc.actualWeight += dims.actualLbs;
       acc.cubic += dims.cubic;
       acc.cartons += line.cases;
-      acc.heaviest = Math.max(acc.heaviest, line.weightLbs);
+      // Billable weight is per carton, as the carrier bills it: taking the greater of the two
+      // totals once would under-bill a mix of one heavy and many bulky cartons.
+      acc.billable += dims.billablePerCarton * line.cases;
+      acc.heaviest = Math.max(acc.heaviest, dims.actualPerCarton);
+      acc.hazmat = acc.hazmat || Boolean(line.hazmat);
       return acc;
     },
-    { dimWeight: 0, actualWeight: 0, cubic: 0, cartons: 0, heaviest: 0 },
+    { dimWeight: 0, actualWeight: 0, cubic: 0, cartons: 0, billable: 0, heaviest: 0, hazmat: false },
   );
 
   const dimWeight = Math.round(totals.dimWeight * 10) / 10;
-  const billable = Math.max(totals.actualWeight, totals.dimWeight) + PACKAGING_LBS;
-  const billableLbs = Math.round(billable * 10) / 10;
+  const billableLbs = Math.round(totals.billable * 10) / 10;
   const palletised = billableLbs >= 150 || totals.heaviest >= 40 || totals.cubic > 12000;
 
   return { ...totals, dimWeightLbs: dimWeight, billableLbs, palletised };
@@ -83,44 +95,46 @@ export function summariseFreight(lines: ShippingInputLine[]) {
 
 function matrixOptions(input: {
   state: string;
-  subtotal: number;
   billableLbs: number;
   dimWeightLbs: number;
   cartons: number;
   palletised: boolean;
+  hazmat: boolean;
 }): ShippingOption[] {
   const zone = zoneFor(input.state);
   const lbs = Math.max(input.billableLbs, 1);
   const ground = Math.round(950 + zone * 150 + lbs * (32 + zone * 6));
   const air = Math.round(ground * 2.05 + 1650);
   const options: ShippingOption[] = [];
-  const allowance = !input.palletised && input.subtotal >= SITE.freeFreightThreshold && zone <= 6;
 
   if (input.palletised) {
+    // An estimate, not a carrier quote: no class, NMFC or accessorial has been priced yet, and
+    // the carrier is chosen when the shipment is booked (KRG-3 is a real LTL rate; this is not).
     const ltlBase = Math.max(18500, Math.round(11500 + zone * 900 + lbs * 20));
+    const pallets = Math.max(1, Math.ceil(lbs / 1200));
     options.push({
       id: "ltl-freight",
-      carrier: "Ciputra Freight (LTL)",
-      service: "Curbside LTL · pallet build",
+      carrier: "LTL freight",
+      service: "Curbside delivery · carrier assigned at booking",
       cost: ltlBase,
-      transitDays: "4–7 business days",
+      transitDays: "4–7 business days (estimate)",
       ground: false,
       mode: "ltl",
       billableLbs: Math.round(lbs * 10) / 10,
       dimWeightLbs: input.dimWeightLbs,
-      note: `LTL freight class 100 · ${Math.max(1, Math.ceil(lbs / 1200))} pallet(s) · liftgate included · appointment scheduled by carrier.`,
+      note: `Estimated LTL rate for ${pallets} pallet(s). Freight class, NMFC and any accessorial are confirmed when we book the shipment; we contact you before anything changes.`,
     });
     options.push({
       id: "ltl-freight-appointment",
-      carrier: "Ciputra Freight (LTL)",
+      carrier: "LTL freight",
       service: "Inside delivery · appointment + liftgate",
       cost: Math.round(ltlBase * 1.22),
-      transitDays: "5–8 business days",
+      transitDays: "5–8 business days (estimate)",
       ground: false,
       mode: "ltl",
       billableLbs: Math.round(lbs * 10) / 10,
       dimWeightLbs: input.dimWeightLbs,
-      note: "Inside placement to your receiving area. Two-hour appointment window, call-ahead and liftgate included.",
+      note: "Estimated rate including inside placement, a two-hour appointment window, call-ahead and liftgate. Confirmed when the shipment is booked.",
     });
     return options;
   }
@@ -129,29 +143,30 @@ function matrixOptions(input: {
     id: "ups-ground",
     carrier: "UPS",
     service: "Ground · dimensional rate",
-    cost: allowance ? 0 : ground,
-    transitDays: `${Math.max(1, zone - 1)}–${zone + 1} business days`,
+    cost: ground,
+    transitDays: `${Math.max(1, zone - 1)}–${zone + 1} business days (estimate)`,
     ground: true,
     mode: "parcel",
     billableLbs: Math.round(lbs * 10) / 10,
     dimWeightLbs: input.dimWeightLbs,
-    note: allowance
-      ? "Freight allowance applied — order exceeds $750 and ships free to zone 1–6."
-      : `Billed on dimensional weight (${lbs.toFixed(1)} lb) from ${SITE.city}, ${SITE.state} · zone ${zone} · ${stateName(input.state)}.`,
+    note: `Estimated from billable weight (${lbs.toFixed(1)} lb) out of ${SITE.city}, ${SITE.state} · zone ${zone} · ${stateName(input.state)}. Transit time is the carrier's published range, not a guarantee.`,
   });
 
-  options.push({
-    id: "ups-2day",
-    carrier: "UPS",
-    service: "2nd Day Air · dimensional rate",
-    cost: allowance ? Math.round(air * 0.55) : air,
-    transitDays: "2 business days",
-    ground: false,
-    mode: "parcel",
-    billableLbs: Math.round(lbs * 10) / 10,
-    dimWeightLbs: input.dimWeightLbs,
-    note: "Typically delivered in 2 business days. Oversize cartons may be re-rated at pickup.",
-  });
+  // Hazardous material cannot move by air as ordinary parcel freight.
+  if (!input.hazmat) {
+    options.push({
+      id: "ups-2day",
+      carrier: "UPS",
+      service: "2nd Day Air · dimensional rate",
+      cost: air,
+      transitDays: "2 business days (estimate)",
+      ground: false,
+      mode: "parcel",
+      billableLbs: Math.round(lbs * 10) / 10,
+      dimWeightLbs: input.dimWeightLbs,
+      note: "Estimated air rate. Oversize cartons may be re-rated by the carrier at pickup.",
+    });
+  }
 
   return options;
 }
@@ -161,6 +176,7 @@ async function easyPostOptions(input: {
   zip: string;
   city: string;
   billableLbs: number;
+  hazmat: boolean;
   lines: ShippingInputLine[];
 }): Promise<ShippingOption[] | null> {
   const key = process.env.EASYPOST_API_KEY;
@@ -215,8 +231,10 @@ async function easyPostOptions(input: {
       return Number(a.rate) - Number(b.rate);
     });
 
-    const unique = rates.filter(
-      (rate, index) => rates.findIndex((other) => other.carrier === rate.carrier && other.service === rate.service) === index,
+    // Hazardous material never goes by air (KRG-7).
+    const allowed = input.hazmat ? rates.filter((rate) => /ground|standard|home\s*delivery|surepost|parcel\s*select|freight/i.test(rate.service)) : rates;
+    const unique = allowed.filter(
+      (rate, index) => allowed.findIndex((other) => other.carrier === rate.carrier && other.service === rate.service) === index,
     );
     const picked = unique.slice(0, 3).map((rate, index) => ({
       // EasyPost issues new rate ids on every quote; carrier + service is stable across the
@@ -237,6 +255,32 @@ async function easyPostOptions(input: {
   } catch {
     return null;
   }
+}
+
+/**
+ * KRG-4: the free-freight allowance is applied in one place, to whatever options were quoted —
+ * live rates included — and only to a ground parcel service inside the covered zones. It is
+ * never applied to an air upgrade or to LTL.
+ */
+export const FREE_FREIGHT_MAX_ZONE = SITE.freeFreightMaxZone;
+
+export function applyFreightAllowance(
+  options: ShippingOption[],
+  subtotal: number,
+  zone: number,
+  palletised: boolean,
+): ShippingOption[] {
+  const earned = !palletised && subtotal >= SITE.freeFreightThreshold && zone <= FREE_FREIGHT_MAX_ZONE;
+  if (!earned) return options;
+  return options.map((option) =>
+    option.ground && option.mode === "parcel"
+      ? {
+          ...option,
+          cost: 0,
+          note: `Freight allowance applied — orders over $${(SITE.freeFreightThreshold / 100).toFixed(0)} ship free on ground to zones 1–${FREE_FREIGHT_MAX_ZONE}.`,
+        }
+      : option,
+  );
 }
 
 export async function quoteShipping(input: {
@@ -265,6 +309,7 @@ export async function quoteShipping(input: {
     zip: input.zip,
     city: input.city || "",
     billableLbs: summary.billableLbs,
+    hazmat: summary.hazmat,
     lines: input.lines,
   });
 
@@ -272,16 +317,16 @@ export async function quoteShipping(input: {
     if (summary.palletised) {
       const ltl = matrixOptions({
         state: input.state,
-        subtotal: input.subtotal,
         billableLbs: summary.billableLbs,
         dimWeightLbs: summary.dimWeightLbs,
         cartons: summary.cartons,
         palletised: true,
+        hazmat: summary.hazmat,
       }).find((option) => option.mode === "ltl");
       if (ltl) live.push(ltl);
     }
     return {
-      options: live,
+      options: applyFreightAllowance(live, input.subtotal, zoneFor(input.state), summary.palletised),
       billableLbs: summary.billableLbs,
       dimWeightLbs: summary.dimWeightLbs,
       cartons: summary.cartons,
@@ -293,14 +338,19 @@ export async function quoteShipping(input: {
   }
 
   return {
-    options: matrixOptions({
-      state: input.state,
-      subtotal: input.subtotal,
-      billableLbs: summary.billableLbs,
-      dimWeightLbs: summary.dimWeightLbs,
-      cartons: summary.cartons,
-      palletised: summary.palletised,
-    }),
+    options: applyFreightAllowance(
+      matrixOptions({
+        state: input.state,
+        billableLbs: summary.billableLbs,
+        dimWeightLbs: summary.dimWeightLbs,
+        cartons: summary.cartons,
+        palletised: summary.palletised,
+        hazmat: summary.hazmat,
+      }),
+      input.subtotal,
+      zoneFor(input.state),
+      summary.palletised,
+    ),
     billableLbs: summary.billableLbs,
     dimWeightLbs: summary.dimWeightLbs,
     cartons: summary.cartons,

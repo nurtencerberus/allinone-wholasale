@@ -6,6 +6,7 @@ import { products } from "@/db/schema";
 import { QuickOrderPanel } from "@/components/QuickOrderPanel";
 import { PriceLockNotice } from "@/components/PriceLockNotice";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { ozToLbs } from "@/lib/weight";
 
 export const metadata = {
   title: "Quick order · bulk case ordering",
@@ -86,7 +87,7 @@ export default async function QuickOrderPage() {
             image: product.image,
             minCases: product.minCases,
             msrpUnit: product.msrpUnit,
-            weightLbs: product.weightLbs,
+            weightLbs: ozToLbs(product.weightOz),
           }))}
         />
       </div>

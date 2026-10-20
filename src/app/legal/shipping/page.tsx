@@ -33,9 +33,11 @@ export default function ShippingPolicyPage() {
       <section>
         <h2>Freight cost</h2>
         <p>
-          Freight is priced at checkout from the billable weight of your cartons (the greater of actual and
-          dimensional weight). Free ground parcel freight may apply to qualifying orders over{" "}
-          {formatMoney(SITE.freeFreightThreshold)}; when it applies, it is shown at checkout before you pay.
+          Freight is priced at checkout from the billable weight of each carton (the greater of its actual and
+          dimensional weight, plus packaging). Ground parcel freight is free on orders over{" "}
+          {formatMoney(SITE.freeFreightThreshold)} delivered to zones 1–{SITE.freeFreightMaxZone} of the contiguous 48
+          states; it does not cover air upgrades or LTL freight, and it is shown at checkout before you pay. Hazardous
+          materials ship by ground only.
         </p>
       </section>
       <section>

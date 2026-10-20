@@ -216,7 +216,7 @@ CREATE TABLE "products" (
 	"case_size" integer NOT NULL,
 	"min_cases" integer DEFAULT 1 NOT NULL,
 	"price_tiers" jsonb DEFAULT '[]'::jsonb NOT NULL,
-	"weight_lbs" integer NOT NULL,
+	"weight_oz" integer NOT NULL,
 	"dimensions" jsonb NOT NULL,
 	"stock" integer DEFAULT 0 NOT NULL,
 	"lead_time_days" integer DEFAULT 2 NOT NULL,
