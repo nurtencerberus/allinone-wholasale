@@ -9,13 +9,16 @@ import { formatMoney } from "@/lib/money";
 import { SITE } from "@/lib/site";
 
 export function CartDrawer({ user }: { user: SessionUser | null }) {
-  const { items, isOpen, closeCart, setCases, removeItem, subtotal, cases, hydrated } = useCart();
+  const { items, lines, isOpen, closeCart, setCases, removeItem, subtotal, units, hydrated, loading } = useCart();
   if (!isOpen) return null;
 
   const wholesale = user?.accountTier === "wholesale";
-  const remaining = Math.max(0, SITE.freeFreightThreshold - subtotal);
-  const progress = Math.min(100, Math.round((subtotal / SITE.freeFreightThreshold) * 100));
-  const belowMinimum = subtotal < SITE.minOrderValue;
+  // Prices come from /api/cart, never from local storage: until the first answer lands there is
+  // no subtotal to show, and a signed-out viewer never gets one at all.
+  const goods = subtotal ?? 0;
+  const remaining = Math.max(0, SITE.freeFreightThreshold - goods);
+  const progress = Math.min(100, Math.round((goods / SITE.freeFreightThreshold) * 100));
+  const belowMinimum = subtotal !== null && subtotal < SITE.minOrderValue;
 
   return (
     <div className="fixed inset-0 z-50">
@@ -29,7 +32,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
           <div>
             <p className="eyebrow">Your order</p>
             <p className="mt-1 text-sm font-semibold">
-              {hydrated ? `${cases} units · ${items.length} SKU${items.length === 1 ? "" : "s"}` : "Loading…"}
+              {hydrated ? `${units} units · ${items.length} SKU${items.length === 1 ? "" : "s"}` : "Loading…"}
             </p>
           </div>
           <button
@@ -75,7 +78,9 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
         )}
 
         <div className="flex-1 overflow-y-auto px-5">
-          {items.length === 0 ? (
+          {lines.length === 0 && items.length > 0 ? (
+            <p className="py-10 text-center text-[12px] text-ink/50">Pricing your cart…</p>
+          ) : items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-4 py-16 text-center">
               <span className="rounded-full bg-parchment p-4 text-fern">
                 <ShoppingBag size={26} />
@@ -92,7 +97,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
             </div>
           ) : (
             <ul className="divide-y divide-ink/8">
-              {items.map((line) => (
+              {lines.map((line) => (
                 <li key={line.productId} className="flex gap-3 py-4">
                   <Link href={`/products/${line.slug}`} onClick={closeCart} className="shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -122,6 +127,9 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                     <p className="mt-0.5 text-[10.5px] font-medium tracking-wide text-ink/45 uppercase">
                       {line.sku} · {line.caseSize} units / case
                     </p>
+                    {line.problem ? (
+                      <p className="mt-1 text-[10.5px] font-semibold text-clay">{line.problem}</p>
+                    ) : null}
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center rounded-full border border-ink/15 bg-white/60">
                         <button
@@ -144,12 +152,16 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
                         </button>
                       </div>
                       <div className="text-right">
-                        <p className="text-[13px] font-bold tabular-nums">
-                          {formatMoney(line.casePrice * line.cases)}
-                        </p>
-                        <p className="text-[10px] text-ink/45">
-                          {formatMoney(line.casePrice)} / case
-                        </p>
+                        {line.casePrice === null ? (
+                          <p className="text-[11px] text-ink/45">Price on sign-in</p>
+                        ) : (
+                          <div className={line.stale ? "opacity-40" : undefined}>
+                            <p className="text-[13px] font-bold tabular-nums">
+                              {formatMoney(line.lineTotal ?? line.casePrice * line.cases)}
+                            </p>
+                            <p className="text-[10px] text-ink/45">{formatMoney(line.casePrice)} / case</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -159,7 +171,7 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
           )}
         </div>
 
-        {items.length > 0 ? (
+        {lines.length > 0 ? (
           <div className="border-t border-ink/10 bg-parchment/50 px-5 py-4">
             <div className="mb-4">
               <div className="flex items-center justify-between text-[11px] font-medium text-ink/60">
@@ -178,7 +190,9 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
 
             <div className="flex items-center justify-between text-sm">
               <span className="text-ink/70">Product subtotal</span>
-              <span className="font-bold tabular-nums">{formatMoney(subtotal)}</span>
+              <span className={`font-bold tabular-nums${loading ? " opacity-40" : ""}`}>
+                {subtotal === null ? "—" : formatMoney(subtotal)}
+              </span>
             </div>
             <p className="mt-1 text-[11px] leading-relaxed text-ink/50">
               Sales tax and dimensional freight are quoted from the delivery ZIP at checkout.

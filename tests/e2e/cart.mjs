@@ -92,6 +92,35 @@ r = await quote([...big, { productId: home.id, cases: 2 }], NJ);
 check("inactive product removed with notice", r.json.quote.removedProductIds.includes(home.id) && r.json.quote.messages.some((m) => m.includes("no longer available")));
 await q("update products set active=true where id=$1", [home.id]);
 
+// --- cart view (SEP-3): prices come from the server, never from local storage ----------------
+const cartItems = [{ productId: supp.id, cases: 2 }, { productId: supp.id, cases: 1 }];
+r = await buyer.post("/api/cart", { items: cartItems });
+const buyerCart = r.json?.cart;
+check(
+  "cart view prices the cart for a trade account",
+  r.status === 200 && buyerCart?.pricesVisible === true && buyerCart.lines.length === 1 && buyerCart.lines[0].cases === 3 && buyerCart.lines[0].casePrice > 0,
+  r.text.slice(0, 160),
+);
+check(
+  "cart subtotal equals the sum of its lines",
+  buyerCart.subtotal === buyerCart.lines.reduce((sum, line) => sum + line.lineTotal, 0),
+  `${buyerCart.subtotal}`,
+);
+const guestCart = new Client();
+r = await guestCart.post("/api/cart", { items: cartItems });
+check(
+  "the same cart shows no price once signed out",
+  r.status === 200 && r.json.cart.pricesVisible === false && r.json.cart.subtotal === null && r.json.cart.lines.every((line) => line.casePrice === null && line.lineTotal === null),
+  r.text.slice(0, 160),
+);
+check("locked cart still shows what is in it", r.json.cart.lines.length === 1 && r.json.cart.lines[0].sku === (await q("select sku from products where id=$1", [supp.id]))[0].sku);
+r = await buyer.post("/api/cart", { items: [{ productId: supp.id, cases: supp.stock + 1 }] });
+check("cart view flags a line that cannot be ordered", r.json.cart.lines[0].problem?.includes("stock"), JSON.stringify(r.json.cart.lines[0]));
+await q("update products set active=false where id=$1", [home.id]);
+r = await buyer.post("/api/cart", { items: [{ productId: home.id, cases: 1 }, { productId: supp.id, cases: 2 }] });
+check("cart view drops an inactive product", r.json.cart.removedProductIds.includes(home.id) && r.json.cart.lines.length === 1);
+await q("update products set active=true where id=$1", [home.id]);
+
 // --- order endpoint refuses blockers ---------------------------------------
 const opt = (await quote(big, NJ)).json.quote.shippingOptionId;
 r = await buyer.post("/api/orders", { items: [{ productId: cheapest.id, cases: 1 }], address: NJ, shippingOptionId: opt, paymentMethod: "ach", name: "Dana", email: "buyer@harborhouse.com", checkoutId: crypto.randomUUID() });

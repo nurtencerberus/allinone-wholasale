@@ -45,22 +45,7 @@ export function BuyBox({
   const lowStock = product.stock <= 10;
 
   const handleAdd = () => {
-    addItem(
-      {
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        sku: product.sku,
-        image: product.image,
-        casePrice: accountPrice,
-        caseSize: product.caseSize,
-        msrpUnit: product.msrpUnit,
-        minCases: product.minCases,
-        category: product.category,
-        weightLbs: product.weightLbs,
-      },
-      cases,
-    );
+    addItem({ productId: product.id, minCases: product.minCases }, cases);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
   };

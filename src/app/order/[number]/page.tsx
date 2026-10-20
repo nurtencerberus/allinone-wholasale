@@ -119,16 +119,7 @@ export default async function OrderPage({
     }
     reorder.push({
       productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      sku: product.sku,
-      image: product.image,
-      casePrice: product.casePrice,
-      caseSize: product.caseSize,
-      msrpUnit: product.msrpUnit,
       minCases: product.minCases,
-      category: product.category,
-      weightLbs: product.weightLbs,
       cases: Math.min(item.cases, product.stock),
     });
   }
