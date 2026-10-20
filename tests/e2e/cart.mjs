@@ -93,24 +93,30 @@ check("inactive product removed with notice", r.json.quote.removedProductIds.inc
 await q("update products set active=true where id=$1", [home.id]);
 
 // --- freight rules (KRG-4, KRG-7) -------------------------------------------------------------
-const freight = [{ productId: supp.id, cases: casesFor(supp, 90_000) }];
+// The allowance is for ground parcel, so the shipment must stay under the pallet thresholds:
+// price and carton size are fixed here instead of relying on whatever the seed happens to hold.
+const freightSku = [...prods].sort((a, b) => b.case_price - a.case_price)[0];
+const [freightBefore] = await q("select weight_oz, dimensions from products where id=$1", [freightSku.id]);
+await q(`update products set weight_oz = 48, dimensions = '{"l":8,"w":6,"h":4}'::jsonb where id=$1`, [freightSku.id]);
+const freight = [{ productId: freightSku.id, cases: casesFor(freightSku, 150_000) }];
 r = await quote(freight, NJ);
 let shipOptions = r.json.quote.shippingOptions;
 const groundOption = shipOptions.find((option) => option.ground);
 check("a ground option is offered", Boolean(groundOption), JSON.stringify(shipOptions.map((o) => o.id)));
-check("the freight allowance waives ground over the threshold", r.json.quote.shippingCost === 0 && /allowance/i.test(groundOption.note), JSON.stringify(groundOption));
+check("the freight allowance waives ground over the threshold", r.json.quote.shippingCost === 0 && /allowance/i.test(groundOption?.note ?? ""), JSON.stringify(r.json.quote.shippingOptions));
 const airOption = shipOptions.find((option) => !option.ground && option.mode === "parcel");
 if (airOption) {
   r = await quote(freight, NJ, { shippingOptionId: airOption.id });
   check("the allowance does not pay for an air upgrade", r.json.quote.shippingCost > 0, `${r.json.quote.shippingCost}`);
 }
-r = await quote([{ productId: supp.id, cases: supp.min_cases }], NJ);
+r = await quote([{ productId: freightSku.id, cases: freightSku.min_cases }], NJ);
 check("a small order pays for ground", r.json.quote.shippingOptions.find((o) => o.ground)?.cost > 0, JSON.stringify(r.json.quote.shippingOptions.map((o) => [o.id, o.cost])));
 
-await q("update products set hazmat = true where id=$1", [supp.id]);
+await q("update products set hazmat = true where id=$1", [freightSku.id]);
 r = await quote(freight, NJ);
 check("hazardous goods are not offered an air service", r.json.quote.shippingOptions.every((option) => option.ground || option.mode === "ltl"), JSON.stringify(r.json.quote.shippingOptions.map((o) => o.id)));
-await q("update products set hazmat = false where id=$1", [supp.id]);
+await q("update products set hazmat = false where id=$1", [freightSku.id]);
+await q("update products set weight_oz = $2, dimensions = $3 where id=$1", [freightSku.id, freightBefore.weight_oz, freightBefore.dimensions]);
 
 // --- cart view (SEP-3): prices come from the server, never from local storage ----------------
 const cartItems = [{ productId: supp.id, cases: 2 }, { productId: supp.id, cases: 1 }];

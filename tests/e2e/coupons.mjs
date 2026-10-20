@@ -8,11 +8,14 @@ let r = await buyer.post("/api/auth/login", { email: "buyer@harborhouse.com", pa
 check("wholesale buyer login", r.status === 200, r.text.slice(0, 120));
 const [account] = await q("select id, wholesale_discount_pct from users where email='buyer@harborhouse.com'");
 
-const [product] = await q("select id, case_price, min_cases from products where active and tax_class='general' order by case_price desc limit 1");
+const [product] = await q("select id, case_price, min_cases, weight_oz, dimensions from products where active and tax_class='general' order by case_price desc limit 1");
 await setStock(product.id, 500);
+// A light carton keeps the shipment on ground parcel, where the freight coupon applies; the
+// original carton is put back at the end of the suite.
+await q(`update products set weight_oz = 48, dimensions = '{"l":8,"w":6,"h":4}'::jsonb where id=$1`, [product.id]);
 const NJ = { line1: "238 Lindbergh Pl", city: "Paterson", state: "NJ", zip: "07503" };
-// Comfortably over the $150 minimum and the $750 free-freight threshold.
-const cases = Math.max(product.min_cases, Math.ceil(90_000 / product.case_price));
+// Comfortably over the $150 minimum and the $750 free-freight threshold, contract discount included.
+const cases = Math.max(product.min_cases, Math.ceil(150_000 / product.case_price));
 const items = [{ productId: product.id, cases }];
 const quote = (couponCode, extra = {}) => buyer.post("/api/checkout/quote", { items, address: NJ, couponCode, ...extra });
 
@@ -82,7 +85,7 @@ r = await quote("E2E-FREIGHT");
 const options = r.json.quote.shippingOptions;
 const ground = options.find((option) => option.ground);
 const air = options.find((option) => !option.ground);
-check("ground is free with a freight coupon", r.status === 200 && r.json.quote.shippingCost === 0 && r.json.quote.shippingOptionId === ground.id, r.text.slice(0, 160));
+check("ground is free with a freight coupon", r.status === 200 && Boolean(ground) && r.json.quote.shippingCost === 0 && r.json.quote.shippingOptionId === ground?.id, r.text.slice(0, 160));
 if (air) {
   r = await quote("E2E-FREIGHT", { shippingOptionId: air.id });
   check("the freight coupon does not pay for an air upgrade", r.json.quote.shippingCost > 0, `${r.json.quote.shippingCost}`);
@@ -119,4 +122,5 @@ const after = await q("select count(*)::int as count from coupon_redemptions whe
 check("a refused order does not burn a redemption", after[0].count === 1, JSON.stringify(after));
 
 await q("delete from coupons where code = any($1)", [CODES]);
+await q("update products set weight_oz = $2, dimensions = $3 where id=$1", [product.id, product.weight_oz, product.dimensions]);
 await done();
