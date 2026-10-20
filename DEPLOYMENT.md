@@ -236,3 +236,4 @@ lotuna dönüşmesi) yapmaz.
 |---|---|---|
 | `0001_faz0.sql` | Faz 0 deploy'undan önce | Uygulandı (19 Ekim 2026) |
 | `0002_faz1.sql` | Faz 1 deploy'undan **hemen** önce | Mevcut stok `<SKU>-OPENING` lotuna taşınır (best-by boş — `/admin/inventory`'de girin). Migration ile deploy arasında sipariş gelirse cron `stockDrift` raporlar |
+| `0004_coupon_rules.sql` | Faz 2 sepet/kupon deploy'undan önce (0003'ten sonra) | Kupona tarih, kullanım limiti, tier ve stacking alanları; `coupon_redemptions` tablosu. Kuponlu mevcut siparişler kullanım kaydına dönüştürülür ve `redeemed_count` buna göre ayarlanır |

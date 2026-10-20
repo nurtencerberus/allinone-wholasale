@@ -12,6 +12,8 @@ export type ShippingOption = {
   service: string;
   cost: number;
   transitDays: string;
+  /** A ground / standard service: the only kind a freight coupon may waive. */
+  ground: boolean;
   mode: "parcel" | "ltl";
   billableLbs: number;
   dimWeightLbs: number;
@@ -102,6 +104,7 @@ function matrixOptions(input: {
       service: "Curbside LTL · pallet build",
       cost: ltlBase,
       transitDays: "4–7 business days",
+      ground: false,
       mode: "ltl",
       billableLbs: Math.round(lbs * 10) / 10,
       dimWeightLbs: input.dimWeightLbs,
@@ -113,6 +116,7 @@ function matrixOptions(input: {
       service: "Inside delivery · appointment + liftgate",
       cost: Math.round(ltlBase * 1.22),
       transitDays: "5–8 business days",
+      ground: false,
       mode: "ltl",
       billableLbs: Math.round(lbs * 10) / 10,
       dimWeightLbs: input.dimWeightLbs,
@@ -127,6 +131,7 @@ function matrixOptions(input: {
     service: "Ground · dimensional rate",
     cost: allowance ? 0 : ground,
     transitDays: `${Math.max(1, zone - 1)}–${zone + 1} business days`,
+    ground: true,
     mode: "parcel",
     billableLbs: Math.round(lbs * 10) / 10,
     dimWeightLbs: input.dimWeightLbs,
@@ -141,6 +146,7 @@ function matrixOptions(input: {
     service: "2nd Day Air · dimensional rate",
     cost: allowance ? Math.round(air * 0.55) : air,
     transitDays: "2 business days",
+    ground: false,
     mode: "parcel",
     billableLbs: Math.round(lbs * 10) / 10,
     dimWeightLbs: input.dimWeightLbs,
@@ -220,6 +226,8 @@ async function easyPostOptions(input: {
       service: rate.service,
       cost: Math.round(Number(rate.rate) * 100),
       transitDays: rate.delivery_days ? `${rate.delivery_days} business days` : "3–5 business days",
+      // Only a ground / standard / home-delivery service may be waived by a freight coupon.
+      ground: /ground|standard|home\s*delivery|surepost|parcel\s*select/i.test(rate.service),
       mode: (input.billableLbs >= 150 ? "ltl" : "parcel") as "ltl" | "parcel",
       billableLbs: Math.round(input.billableLbs * 10) / 10,
       dimWeightLbs: 0,

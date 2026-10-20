@@ -92,6 +92,13 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
 - Tüm para değerleri **sent cinsinden integer** (`casePrice`, `msrpUnit`, toplamlar). Görüntüleme için
   `formatMoney()` (`src/lib/money.ts`). Vergi oranı `rateX1000` = binde (66.25 → %6.625).
 - Satış birimi **koli (case)**; `caseSize` koli başına adet, `minCases`, `priceTiers` (koli adedine göre kademeli fiyat).
+- **Sepet görünümü:** tarayıcı yalnızca `{productId, cases}` saklar; çekmece/özet verisi `/api/cart` →
+  `cartView()` (`src/lib/cart-view.ts`) ile sunucudan gelir ve fiyatlar yine `priceCart()`'tan çıkar. İstemciye
+  fiyat yazmayın; kilitli izleyiciye `casePrice: null` döner.
+- **Kuponlar:** `couponProblem()` (`src/lib/checkout.ts`) tek kural noktasıdır — tarih penceresi, toplam ve
+  müşteri başı kullanım limiti, `allowed_tiers`, `stackable` (sözleşme indirimiyle birleşmez) ve asgari tutar.
+  Kullanım siparişle **aynı transaction'da** sayılır (`coupons` satırı `FOR UPDATE`, `coupon_redemptions` kaydı);
+  kargo kuponu yalnızca `option.ground` servisini sıfırlar. Admin ekranı `/admin/coupons` (`accounts` izni).
 - **Tek fiyat kaynağı `priceCart()`** (`src/lib/checkout.ts`): kademe fiyatı → toptan hesap indirimi (en fazla %40) →
   kupon (satırlara `allocateDiscount` ile dağıtılır) → adres kontrolü → kargo (`quoteShipping`) → vergi (`quoteTax`).
   Sorunları sessizce düzeltmez, **`blockers`** listesi döner (asgari koli/tutar, stok, >999 koli, teslimat bölgesi,

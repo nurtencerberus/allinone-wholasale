@@ -1,6 +1,6 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { coupons, products, type Dimensions } from "@/db/schema";
+import { couponRedemptions, coupons, products, type Coupon, type Dimensions } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth";
 import { quoteShipping, summariseFreight, type ShippingOption } from "@/lib/shipping";
 import { allocateTax, quoteTax, type TaxAllocation, type TaxQuote } from "@/lib/tax";
@@ -45,6 +45,7 @@ export type PricedOrder = {
   lines: PricedLine[];
   subtotal: number;
   accountDiscount: number;
+  couponId: number | null;
   couponCode: string | null;
   couponLabel: string | null;
   couponDiscount: number;
@@ -91,6 +92,45 @@ export function resolveCasePrice(
     if (cases >= tier.minCases) best = Math.min(best, tier.casePrice);
   }
   return best;
+}
+
+/** Everything a coupon is judged against that does not come from the coupon row itself. */
+export type CouponContext = {
+  now: Date;
+  /** Goods after tier and contract pricing — what a percentage would be taken from. */
+  eligibleBase: number;
+  /** Contract (account tier) discount already given on this cart. */
+  accountDiscount: number;
+  accountTier: string;
+  /** Orders by this customer that already used the code. */
+  customerRedemptions: number;
+};
+
+/**
+ * SEP-6: why this coupon cannot be used, or null when it may be. Pure, so every rule is
+ * covered by unit tests; the caller supplies the counts it had to read from the database.
+ */
+export function couponProblem(coupon: Coupon, context: CouponContext): string | null {
+  const code = coupon.code;
+  if (!coupon.active) return `Coupon ${code} is not recognised.`;
+  if (coupon.startsAt && context.now < coupon.startsAt) return `Coupon ${code} is not available yet.`;
+  if (coupon.expiresAt && context.now > coupon.expiresAt) return `Coupon ${code} has expired.`;
+  if (coupon.maxRedemptions !== null && coupon.redeemedCount >= coupon.maxRedemptions) {
+    return `Coupon ${code} has been fully redeemed.`;
+  }
+  if (coupon.perCustomerLimit !== null && context.customerRedemptions >= coupon.perCustomerLimit) {
+    return `Coupon ${code} has already been used on this account.`;
+  }
+  if (coupon.allowedTiers.length && !coupon.allowedTiers.includes(context.accountTier)) {
+    return `Coupon ${code} is not valid for this account.`;
+  }
+  if (!coupon.stackable && context.accountDiscount > 0) {
+    return `Coupon ${code} cannot be combined with contract pricing.`;
+  }
+  if (context.eligibleBase < coupon.minSubtotal) {
+    return `Coupon ${code} requires a product subtotal of $${(coupon.minSubtotal / 100).toFixed(2)}.`;
+  }
+  return null;
 }
 
 /** Hard per-line ceiling; larger volumes go through the trade desk. */
@@ -188,21 +228,35 @@ export async function priceCart(input: {
 
   // Coupon ------------------------------------------------------------
   let couponDiscount = 0;
+  let couponId: number | null = null;
   let couponCode: string | null = null;
   let couponLabel: string | null = null;
   let freeFreight = false;
   const code = (input.couponCode ?? "").trim().toUpperCase();
   if (code) {
     const [coupon] = await db.select().from(coupons).where(eq(coupons.code, code)).limit(1);
-    if (!coupon || !coupon.active) {
-      return { error: `Coupon ${code} is not recognised.` };
+    if (!coupon) return { error: `Coupon ${code} is not recognised.` };
+
+    // Per-customer limits only mean something for a signed-in account.
+    let customerRedemptions = 0;
+    if (coupon.perCustomerLimit !== null && user?.id) {
+      const [used] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(couponRedemptions)
+        .where(and(eq(couponRedemptions.couponId, coupon.id), eq(couponRedemptions.userId, user.id)));
+      customerRedemptions = used?.count ?? 0;
     }
+    const problem = couponProblem(coupon, {
+      now: new Date(),
+      eligibleBase: afterTier - accountDiscount,
+      accountDiscount,
+      accountTier: user?.accountTier ?? "retail",
+      customerRedemptions,
+    });
+    if (problem) return { error: problem };
+
     const eligibleBase = afterTier - accountDiscount;
-    if (eligibleBase < coupon.minSubtotal) {
-      return {
-        error: `Coupon ${code} requires a product subtotal of $${(coupon.minSubtotal / 100).toFixed(2)}.`,
-      };
-    }
+    couponId = coupon.id;
     couponCode = coupon.code;
     couponLabel = coupon.description;
     if (coupon.kind === "percent") {
@@ -259,8 +313,11 @@ export async function priceCart(input: {
     shippingOption = shipping.options[0] ?? null;
   }
 
-  if (freeFreight && shippingOption && shippingOption.mode === "parcel") {
-    shippingOption = { ...shippingOption, cost: 0, note: `${couponCode} freight waiver applied.` };
+  // A freight coupon waives ground only: it never pays for an air or LTL upgrade.
+  if (freeFreight && shippingOption) {
+    shippingOption = shippingOption.ground
+      ? { ...shippingOption, cost: 0, note: `${couponCode} freight waiver applied.` }
+      : { ...shippingOption, note: `${shippingOption.note} ${couponCode} waives ground freight only.` };
   }
 
   const shippingCost = shippingOption?.cost ?? 0;
@@ -309,6 +366,7 @@ export async function priceCart(input: {
     lines,
     subtotal,
     accountDiscount,
+    couponId,
     couponCode,
     couponLabel,
     couponDiscount,

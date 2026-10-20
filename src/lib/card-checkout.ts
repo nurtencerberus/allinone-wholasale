@@ -6,6 +6,7 @@ import { canSeePrices, toSessionUser } from "@/lib/auth";
 import { priceCart } from "@/lib/checkout";
 import {
   cancelOrderAndRestock,
+  CouponUnavailableError,
   createOrderRecord,
   DuplicatePaymentError,
   sendOrderConfirmation,
@@ -159,6 +160,9 @@ export async function finalizeCardCheckout(paymentIntentId: string): Promise<Fin
     }
     if (error instanceof StockShortError) {
       return fail(409, `${error.productName} sold out while you were paying. No charge was made.`, releasable);
+    }
+    if (error instanceof CouponUnavailableError) {
+      return fail(409, `${error.message} No charge was made — please check out again.`, releasable);
     }
     console.error("[card-checkout] order insert failed", paymentIntentId, error);
     return fail(500, "We could not record your order. No charge was made — please try again.", releasable);

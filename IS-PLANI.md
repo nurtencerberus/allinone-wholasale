@@ -325,6 +325,18 @@ yetkisi tek başına giriş sağlamaz çünkü parola da gerekir; ayrı bir anah
 **Kabul:** Çok kolili ve paletli sipariş için teklif edilen ve faturalanan kargo farkı < %5; PO Box'a LTL
 reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar CI'dan uygulanır; hata alarmları çalışır.
 
+#### Faz 2 durumu (20 Ekim 2026, `faz-2-sepet-kupon` dalı)
+
+| Kalem | Durum | Not |
+|---|---|---|
+| SEP-3 | ✅ | Sepet yalnızca `{productId, cases}` saklar (v1 sepetleri taşınır); çekmece, ödeme özeti ve tekrar sipariş `/api/cart` → `cartView()`'dan çizilir, fiyat `priceCart()`'tan gelir. Çıkış yapan kullanıcıya fiyat dönmez, katalog/sözleşme fiyatı değişirse anında yansır |
+| SEP-6 | ✅ | `coupons`'a başlangıç/bitiş, toplam ve müşteri başı kullanım limiti, `allowed_tiers`, `stackable`, `redeemed_count`; `coupon_redemptions` tablosu; kurallar tek yerde (`couponProblem()`, 12 birim testi); kullanım sipariş transaction'ında kupon satırı kilitlenerek sayılır; kargo kuponu yalnızca ground servisi sıfırlar; `/admin/coupons` ekranı (`accounts` izni, audit kaydı) |
+| KRG-1 | ✅ (Faz 0) | Kararlı kargo seçenek ID'si |
+| PRF-4 | ✅ (Faz 0) | `CardProduct` dar tipi |
+| DEV-4 | ✅ (Faz 1) | Günlük `maintenance` cron'u |
+| KRG-2, KRG-3 | ⏸ Ertelendi | Gerçek parsel/LTL hesabı (EasyPost, LTL aracısı) yok; hesap açılınca yapılacak |
+| SEP-7, KRG-4…8, PRF-1…3, DEV-2/3/5 | ❌ Açık | Faz 2'nin kalanı |
+
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 
 | Kalemler | Efor |

@@ -40,6 +40,16 @@ CREATE TABLE "checkout_sessions" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE "coupon_redemptions" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"coupon_id" integer NOT NULL,
+	"order_id" integer NOT NULL,
+	"user_id" integer,
+	"email" text NOT NULL,
+	"amount" integer NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "coupons" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"code" text NOT NULL,
@@ -48,6 +58,13 @@ CREATE TABLE "coupons" (
 	"min_subtotal" integer DEFAULT 0 NOT NULL,
 	"description" text NOT NULL,
 	"active" boolean DEFAULT true NOT NULL,
+	"starts_at" timestamp with time zone,
+	"expires_at" timestamp with time zone,
+	"max_redemptions" integer,
+	"per_customer_limit" integer,
+	"allowed_tiers" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"stackable" boolean DEFAULT true NOT NULL,
+	"redeemed_count" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -378,6 +395,9 @@ ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_users_id_fk" FOREIGN K
 ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "checkout_sessions" ADD CONSTRAINT "checkout_sessions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE set null ON UPDATE no action;
+ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_coupon_id_coupons_id_fk" FOREIGN KEY ("coupon_id") REFERENCES "public"."coupons"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "coupon_redemptions" ADD CONSTRAINT "coupon_redemptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_lot_id_product_lots_id_fk" FOREIGN KEY ("lot_id") REFERENCES "public"."product_lots"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "inventory_movements" ADD CONSTRAINT "inventory_movements_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
@@ -402,6 +422,8 @@ CREATE INDEX "audit_log_entity_idx" ON "audit_log" USING btree ("entity_type","e
 CREATE INDEX "audit_log_created_idx" ON "audit_log" USING btree ("created_at");
 CREATE UNIQUE INDEX "checkout_sessions_pi_unique" ON "checkout_sessions" USING btree ("payment_intent_id");
 CREATE INDEX "checkout_sessions_status_idx" ON "checkout_sessions" USING btree ("status","updated_at");
+CREATE UNIQUE INDEX "coupon_redemptions_order_unique" ON "coupon_redemptions" USING btree ("coupon_id","order_id");
+CREATE INDEX "coupon_redemptions_customer_idx" ON "coupon_redemptions" USING btree ("coupon_id","user_id");
 CREATE UNIQUE INDEX "coupons_code_unique" ON "coupons" USING btree ("code");
 CREATE INDEX "inventory_movements_product_idx" ON "inventory_movements" USING btree ("product_id","created_at");
 CREATE INDEX "inventory_movements_lot_idx" ON "inventory_movements" USING btree ("lot_id");

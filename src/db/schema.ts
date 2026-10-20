@@ -298,9 +298,43 @@ export const coupons = pgTable(
     minSubtotal: integer("min_subtotal").notNull().default(0),
     description: text("description").notNull(),
     active: boolean("active").notNull().default(true),
+    /** Redemption window; null on either side means "no bound". */
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** Total redemptions allowed across all customers, and per customer; null means unlimited. */
+    maxRedemptions: integer("max_redemptions"),
+    perCustomerLimit: integer("per_customer_limit"),
+    /** Account tiers that may use the code; empty means every tier. */
+    allowedTiers: jsonb("allowed_tiers").$type<string[]>().notNull().default([]),
+    /** False: the code cannot be combined with contract (account) pricing. */
+    stackable: boolean("stackable").notNull().default(true),
+    /** Kept in step with coupon_redemptions inside the order transaction. */
+    redeemedCount: integer("redeemed_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("coupons_code_unique").on(table.code)],
+);
+
+/** One row per order that used a coupon: the usage counters and per-customer limits rest on it. */
+export const couponRedemptions = pgTable(
+  "coupon_redemptions",
+  {
+    id: serial("id").primaryKey(),
+    couponId: integer("coupon_id")
+      .notNull()
+      .references(() => coupons.id, { onDelete: "cascade" }),
+    orderId: integer("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    email: text("email").notNull(),
+    amount: integer("amount").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("coupon_redemptions_order_unique").on(table.couponId, table.orderId),
+    index("coupon_redemptions_customer_idx").on(table.couponId, table.userId),
+  ],
 );
 
 export const addresses = pgTable(
@@ -589,6 +623,7 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type WholesaleApplication = typeof wholesaleApplications.$inferSelect;
 export type Address = typeof addresses.$inferSelect;
 export type Coupon = typeof coupons.$inferSelect;
+export type CouponRedemption = typeof couponRedemptions.$inferSelect;
 export type CheckoutSession = typeof checkoutSessions.$inferSelect;
 export type ProductLot = typeof productLots.$inferSelect;
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
