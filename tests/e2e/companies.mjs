@@ -30,7 +30,10 @@ check("one company per account", r.status === 409, r.text.slice(0, 120));
 
 // --- invite a colleague ---------------------------------------------------------------------------
 const mateEmail = `mate-${uniq()}@harborhouse.com`;
-r = await owner.post("/api/auth/signup", { name: "Sam Mate", email: mateEmail, password: "Colleague123!" });
+// Sign the colleague up on their own client: signing up rotates the session cookie, so doing it
+// on the owner's client would quietly turn the owner into the colleague.
+const mate = new Client();
+r = await mate.post("/api/auth/signup", { name: "Sam Mate", email: mateEmail, password: "Colleague123!" });
 check("the colleague has an account", r.status === 200 || r.status === 201, r.text.slice(0, 140));
 await q("update users set email_verified = true where email=$1", [mateEmail]);
 
@@ -43,9 +46,6 @@ check("only the digest of the invitation token is stored", invite && invite.toke
 const inviteUrl = r.json.inviteUrl ?? "";
 const token = inviteUrl.split("token=")[1] ?? "";
 check("the demo answer carries the link to follow", token.length > 20, inviteUrl);
-
-const mate = new Client();
-await mate.post("/api/auth/login", { email: mateEmail, password: "Colleague123!" });
 
 // --- the invitation is tied to one address ----------------------------------------------------------
 const stranger = new Client();
