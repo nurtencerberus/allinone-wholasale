@@ -19,11 +19,14 @@ export function BuyBox({
   accountDiscountPct,
   taxExempt,
   wholesaleApproved,
+  contractPrice,
 }: {
   product: BuyBoxProduct;
   accountDiscountPct: number;
   taxExempt: boolean;
   wholesaleApproved: boolean;
+  /** This account's negotiated price for the product, if the trade desk agreed one (UX-7). */
+  contractPrice?: { casePrice: number; minCases: number | null } | null;
 }) {
   const { addItem } = useCart();
   const [cases, setCases] = useState(Math.max(1, product.minCases));
@@ -38,9 +41,14 @@ export function BuyBox({
   }, [cases, product.casePrice, product.priceTiers]);
 
   const nextTier = (product.priceTiers ?? []).find((entry) => cases < entry.minCases);
-  const accountPrice = accountDiscountPct
-    ? Math.round(tier.casePrice * (1 - accountDiscountPct / 100))
-    : tier.casePrice;
+  // A negotiated price replaces the tier price and is not discounted again (UX-7); priceCart()
+  // applies the same rule on the server, so what is shown here is what will be charged.
+  const contractApplies = Boolean(contractPrice && cases >= (contractPrice.minCases ?? product.minCases));
+  const accountPrice = contractApplies
+    ? contractPrice!.casePrice
+    : accountDiscountPct
+      ? Math.round(tier.casePrice * (1 - accountDiscountPct / 100))
+      : tier.casePrice;
   const msrpCase = product.msrpUnit * product.caseSize;
   const marginPct = msrpCase ? Math.round(((msrpCase - accountPrice) / msrpCase) * 100) : 0;
   const lowStock = product.stock <= 10;
@@ -81,7 +89,9 @@ export function BuyBox({
 
         {wholesaleApproved ? (
           <div className="mt-3 rounded-lg bg-moss px-3 py-2 text-[10.5px] font-semibold text-cream">
-            Trade account pricing: {accountDiscountPct}% contract discount applied
+            {contractApplies
+              ? `Your agreed price for this SKU${contractPrice?.minCases ? ` at ${contractPrice.minCases}+ cases` : ""}`
+              : `Trade account pricing: ${accountDiscountPct}% contract discount applied`}
             {taxExempt ? " · resale tax exemption on file" : ""}
           </div>
         ) : (

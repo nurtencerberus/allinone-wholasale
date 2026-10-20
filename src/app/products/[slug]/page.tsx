@@ -8,6 +8,7 @@ import { productLots, products, reviews } from "@/db/schema";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { BuyBox } from "@/components/product/BuyBox";
 import { ProductCard } from "@/components/ProductCard";
+import { contractPricesFor } from "@/lib/account-pricing";
 import { cachedProductBySlug, cachedRelated } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/staff";
@@ -72,6 +73,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       .limit(1)
       .then((rows) => rows[0] ?? null),
   ]);
+
+  // UX-7: the price this account has agreed for this SKU, if any. Read per request — it is
+  // specific to the viewer, so it never goes near the shared catalogue cache.
+  const contractPrice = (await contractPricesFor(user?.id, [product.id])).get(product.id) ?? null;
 
   // Archived products are hidden from the public store; admins can still preview them.
   const archivedPreview = !product.active;
@@ -273,6 +278,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 accountDiscountPct={wholesaleApproved ? user?.wholesaleDiscountPct ?? 0 : 0}
                 taxExempt={Boolean(user?.taxExempt)}
                 wholesaleApproved={wholesaleApproved}
+                contractPrice={contractPrice}
               />
             ) : (
               <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">

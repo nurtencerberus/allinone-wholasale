@@ -353,6 +353,8 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | Kalem | Durum | Not |
 |---|---|---|
 | PRF-1 (katalog önbelleği) | ✅ | Vitrin sorguları Next data cache'inde (`src/lib/catalog-cache.ts`), satırlar önbellekte / HTML değil, her yazmada geçersiz kılınıyor |
+| UX-7 hesap başı fiyat listesi | ✅ | `account_prices` (migration 0009): ticaret masası hesap+SKU bazında fiyat anlaşır (isteğe bağlı asgari koli ve tarih penceresi). Katalog/kademe fiyatının yerine geçer, yüzde indirim üstüne **eklenmez**; `priceCart()` zorunlu kılar, vitrin yalnızca gösterir. Admin ekranı `/admin/accounts/[id]/prices` (`accounts` izni, audit). E2E: çifte indirim yok, asgari koli ve pencere, başka hesaba sızmıyor, sipariş satırı anlaşılan fiyatla yazılıyor |
+| UX-7 RFQ ve çok kullanıcılı firma hesabı | ❌ Açık | Fiyat listesi altyapısı hazır; RFQ anlaşılan fiyatı üretecek akış, firma hesabı ise fiyatın kullanıcı yerine firmaya bağlanmasını gerektirir |
 | UX-3 erişilebilirlik | 🟢 büyük kısmı | 33 etiketsiz form kontrolüne ad verildi, 92 `<th>`'ye `scope`, hata mesajlarına `role="alert"`; `:focus-visible` odak halkası, `prefers-reduced-motion`, içeriğe atlama bağlantısı ve `<main>` yer imi; sepet çekmecesi `role="dialog"` + odak tuzağı + odağı geri verme; kontrast: 413 metin sınıfı AA eşiğinin üstüne çekildi, `clay` koyulaştırıldı. Birim testi paleti, e2e sunulan HTML'i koruyor. **Kalan:** gerçek ekran okuyucu ve klavye turu (manuel), bazı dekoratif ikon kontrastları |
 
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
