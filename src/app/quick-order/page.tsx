@@ -28,7 +28,7 @@ export default async function QuickOrderPage() {
           <div>
             <p className="eyebrow">Stock replenishment</p>
             <h1 className="display mt-2 text-[32px] leading-tight sm:text-[40px]">Quick order</h1>
-            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-ink/60">
+            <p className="mt-2 max-w-xl text-[12.5px] leading-relaxed text-ink/72">
               Every SKU in one table. Set case quantities, watch freight weight and subtotal update, then add
               the whole order to the cart — or fill the table from an XLS/CSV order sheet.
             </p>
@@ -54,7 +54,7 @@ export default async function QuickOrderPage() {
             {user?.taxExempt ? " · resale tax exemption on file" : ""}.
           </div>
         ) : (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink/12 bg-[#fffdf8] px-4 py-2.5 text-[11px] text-ink/60">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink/12 bg-[#fffdf8] px-4 py-2.5 text-[11px] text-ink/72">
             <span>Catalog case pricing shown. Contract pricing requires an approved trade account.</span>
             <Link href="/wholesale/apply" className="font-bold text-ink underline">
               Apply for wholesale

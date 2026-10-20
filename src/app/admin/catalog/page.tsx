@@ -61,7 +61,7 @@ export default async function AdminCatalogPage() {
             ].map((stat) => (
               <div key={stat.label} className="card p-3.5">
                 <div className="flex items-center justify-between">
-                  <p className="text-[9.5px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+                  <p className="text-[9.5px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
                   <stat.icon size={14} className="text-fern" />
                 </div>
                 <p className="display mt-1.5 text-[22px] leading-none">{stat.value}</p>
@@ -73,18 +73,18 @@ export default async function AdminCatalogPage() {
         <div className="card overflow-hidden">
           <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-4 py-3">
             <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Live catalog</p>
-            <span className="text-[10px] text-ink/45">Updates on import</span>
+            <span className="text-[10px] text-ink/65">Updates on import</span>
           </div>
           <div className="max-h-[560px] overflow-y-auto">
             <table className="w-full text-left text-[11px]">
-              <thead className="sticky top-0 bg-[#fffdf8] text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+              <thead className="sticky top-0 bg-[#fffdf8] text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
                 <tr className="border-b border-ink/8">
-                  <th className="px-4 py-2">SKU</th>
-                  <th className="px-2 py-2">Product</th>
-                  <th className="px-2 py-2">Dept</th>
-                  <th className="px-2 py-2 text-right">Case</th>
-                  <th className="px-2 py-2 text-right">Unit</th>
-                  <th className="px-4 py-2 text-right">Stock</th>
+                  <th scope="col" className="px-4 py-2">SKU</th>
+                  <th scope="col" className="px-2 py-2">Product</th>
+                  <th scope="col" className="px-2 py-2">Dept</th>
+                  <th scope="col" className="px-2 py-2 text-right">Case</th>
+                  <th scope="col" className="px-2 py-2 text-right">Unit</th>
+                  <th scope="col" className="px-4 py-2 text-right">Stock</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,20 +93,20 @@ export default async function AdminCatalogPage() {
                     <td className="px-4 py-2 font-mono text-[10px] text-fern">{product.sku}</td>
                     <td className="px-2 py-2">
                       <p className="font-medium">{product.name}</p>
-                      <p className="text-[9px] text-ink/40">
+                      <p className="text-[9px] text-ink/65">
                         {product.caseSize} / case · {product.brand}
                       </p>
                     </td>
-                    <td className="px-2 py-2 text-ink/55">{categoryName(product.category)}</td>
+                    <td className="px-2 py-2 text-ink/70">{categoryName(product.category)}</td>
                     <td className="px-2 py-2 text-right font-semibold tabular-nums">
                       {formatMoney(product.casePrice)}
                     </td>
-                    <td className="px-2 py-2 text-right text-ink/55 tabular-nums">
+                    <td className="px-2 py-2 text-right text-ink/70 tabular-nums">
                       {formatMoney(unitPriceOf(product.casePrice, product.caseSize))}
                     </td>
                     <td
                       className={`px-4 py-2 text-right font-semibold tabular-nums ${
-                        product.stock <= 10 ? "text-clay" : "text-ink/60"
+                        product.stock <= 10 ? "text-clay" : "text-ink/72"
                       }`}
                     >
                       {product.stock}

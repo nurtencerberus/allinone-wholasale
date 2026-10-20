@@ -103,7 +103,7 @@ export default async function AdminOrdersPage({
           <Link
             href="/admin/orders"
             className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
-              !filter ? "border-ink bg-ink text-cream" : "border-ink/15 text-ink/60 hover:border-ink/40"
+              !filter ? "border-ink bg-ink text-cream" : "border-ink/15 text-ink/72 hover:border-ink/40"
             }`}
           >
             All ({counts.reduce((sum, row) => sum + row.count, 0)})
@@ -117,7 +117,7 @@ export default async function AdminOrdersPage({
                 className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold capitalize ${
                   filter === entry
                     ? "border-ink bg-ink text-cream"
-                    : "border-ink/15 text-ink/60 hover:border-ink/40"
+                    : "border-ink/15 text-ink/72 hover:border-ink/40"
                 }`}
               >
                 {entry} ({count})
@@ -146,7 +146,7 @@ export default async function AdminOrdersPage({
             },
           ].map((stat) => (
             <div key={stat.label} className="card p-4">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
               <p className="display mt-1.5 text-[22px] leading-none">{stat.value}</p>
             </div>
           ))}
@@ -160,7 +160,7 @@ export default async function AdminOrdersPage({
           <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-dashed border-ink/20 py-14 text-center">
             <Package size={26} className="text-ink/25" />
             <p className="text-[12.5px] font-bold">No {filter ?? "new"} orders in this view</p>
-            <p className="max-w-sm text-[11px] text-ink/50">
+            <p className="max-w-sm text-[11px] text-ink/68">
               Orders appear here the moment a buyer completes checkout. Tracking numbers entered below
               are emailed to the customer automatically.
             </p>

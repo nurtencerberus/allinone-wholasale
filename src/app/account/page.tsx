@@ -74,7 +74,7 @@ export default async function AccountPage() {
           <h1 className="display mt-1.5 text-[32px] leading-tight sm:text-[38px]">
             Welcome back, {user.name.split(" ")[0]}.
           </h1>
-          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-ink/55">
+          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12px] text-ink/70">
             {user.email}
             {user.emailVerified ? (
               <span className="chip border-fern/25 bg-fern/8 text-fern">
@@ -113,7 +113,7 @@ export default async function AccountPage() {
         ].map((stat) => (
           <div key={stat.label} className="card p-4">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+              <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
               <stat.icon size={15} className="text-fern" />
             </div>
             <p className="display mt-2 text-[24px] leading-none">{stat.value}</p>
@@ -126,13 +126,13 @@ export default async function AccountPage() {
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-4 py-3">
               <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Order history</p>
-              <span className="text-[10.5px] text-ink/45">{orderRows.length} most recent</span>
+              <span className="text-[10.5px] text-ink/65">{orderRows.length} most recent</span>
             </div>
             {orderRows.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-5 py-14 text-center">
                 <Package size={26} className="text-ink/25" />
                 <p className="text-[13px] font-bold">No orders yet</p>
-                <p className="max-w-xs text-[11.5px] text-ink/55">
+                <p className="max-w-xs text-[11.5px] text-ink/70">
                   Build a mixed pallet across supplements, pantry and home goods.
                 </p>
                 <Link href="/shop" className="btn btn-primary btn-sm mt-2">Start an order</Link>
@@ -140,14 +140,14 @@ export default async function AccountPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left text-[11.5px]">
-                  <thead className="text-[9.5px] font-bold tracking-[0.12em] text-ink/40 uppercase">
+                  <thead className="text-[9.5px] font-bold tracking-[0.12em] text-ink/65 uppercase">
                     <tr className="border-b border-ink/8">
-                      <th className="px-4 py-2.5">Order</th>
-                      <th className="px-2 py-2.5">Placed</th>
-                      <th className="px-2 py-2.5">Status</th>
-                      <th className="px-2 py-2.5">Freight</th>
-                      <th className="px-2 py-2.5 text-right">Total</th>
-                      <th className="px-4 py-2.5" />
+                      <th scope="col" className="px-4 py-2.5">Order</th>
+                      <th scope="col" className="px-2 py-2.5">Placed</th>
+                      <th scope="col" className="px-2 py-2.5">Status</th>
+                      <th scope="col" className="px-2 py-2.5">Freight</th>
+                      <th scope="col" className="px-2 py-2.5 text-right">Total</th>
+                      <th scope="col" className="px-4 py-2.5" />
                     </tr>
                   </thead>
                   <tbody>
@@ -155,15 +155,15 @@ export default async function AccountPage() {
                       <tr key={order.id} className="border-b border-ink/5 last:border-0 hover:bg-parchment/30">
                         <td className="px-4 py-3">
                           <p className="font-bold">{order.orderNumber}</p>
-                          <p className="text-[10px] text-ink/45">
+                          <p className="text-[10px] text-ink/65">
                             {order.taxExempt ? "Tax exempt" : formatRate(order.taxRate)}
                           </p>
                         </td>
-                        <td className="px-2 py-3 text-ink/60">{formatDate(order.createdAt)}</td>
+                        <td className="px-2 py-3 text-ink/72">{formatDate(order.createdAt)}</td>
                         <td className="px-2 py-3">
                           <span
                             className={`rounded-full px-2 py-1 text-[9.5px] font-bold uppercase ${
-                              STATUS_STYLE[order.status] ?? "bg-ink/10 text-ink/60"
+                              STATUS_STYLE[order.status] ?? "bg-ink/10 text-ink/72"
                             }`}
                           >
                             {order.status}
@@ -171,7 +171,7 @@ export default async function AccountPage() {
                         </td>
                         <td className="px-2 py-3">
                           <p className="text-ink/70">{order.shippingCarrier}</p>
-                          <p className="text-[9.5px] text-ink/40">{order.trackingNumber ?? "Tracking pending"}</p>
+                          <p className="text-[9.5px] text-ink/65">{order.trackingNumber ?? "Tracking pending"}</p>
                         </td>
                         <td className="px-2 py-3 text-right font-bold tabular-nums">{formatMoney(order.total)}</td>
                         <td className="px-4 py-3 text-right">
@@ -200,7 +200,7 @@ export default async function AccountPage() {
               </Link>
             </div>
             {addressRows.length === 0 ? (
-              <p className="mt-2 text-[11.5px] text-ink/50">
+              <p className="mt-2 text-[11.5px] text-ink/68">
                 Add a dock address to speed up freight quotes and LTL scheduling.
               </p>
             ) : (
@@ -211,7 +211,7 @@ export default async function AccountPage() {
                       {entry.label}
                       {entry.isDefault ? <span className="ml-1.5 text-[9px] font-semibold text-fern">DEFAULT</span> : null}
                     </p>
-                    <p className="text-[10.5px] leading-relaxed text-ink/55">
+                    <p className="text-[10.5px] leading-relaxed text-ink/70">
                       {entry.line1}
                       {entry.line2 ? `, ${entry.line2}` : ""}
                       <br />
@@ -236,7 +236,7 @@ export default async function AccountPage() {
                 ["Resale exemption", user.taxExempt ? `Yes · ${user.taxExemptState ?? "on file"}` : "Not on file"],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-3 border-b border-ink/8 pb-1.5 last:border-0">
-                  <dt className="text-ink/45">{label}</dt>
+                  <dt className="text-ink/65">{label}</dt>
                   <dd className="text-right font-semibold">{value}</dd>
                 </div>
               ))}

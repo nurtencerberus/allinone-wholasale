@@ -190,7 +190,7 @@ export function PaymentStep({
           >
             <tab.icon size={18} />
             <span className="text-[12.5px] font-bold">{tab.label}</span>
-            <span className={`text-[10px] ${method === tab.key ? "text-cream/60" : "text-ink/45"}`}>
+            <span className={`text-[10px] ${method === tab.key ? "text-cream/60" : "text-ink/65"}`}>
               {tab.sub}
             </span>
           </button>
@@ -201,7 +201,7 @@ export function PaymentStep({
       {method === "card" ? (
         stripeLive ? (
           <div>
-            <p className="mb-3 flex items-center gap-1.5 text-[10.5px] text-ink/55">
+            <p className="mb-3 flex items-center gap-1.5 text-[10.5px] text-ink/70">
               <ShieldCheck size={12} className="text-fern" /> Card details are entered inside Stripe-hosted
               iframes and tokenised before they reach our servers.
             </p>
@@ -284,7 +284,7 @@ export function PaymentStep({
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-[10.5px] leading-relaxed text-cream/45">
+              <p className="mt-3 text-[10.5px] leading-relaxed text-cream/50">
                 This sandbox has no Stripe keys, so this is a simulation: card fields stay in your browser and
                 are never sent. Only Stripe&apos;s test numbers are accepted. With keys configured, this panel
                 is replaced by Stripe Elements.
@@ -302,7 +302,7 @@ export function PaymentStep({
             </p>
           </div>
         ) : (
-          <p className="rounded-lg border border-ink/10 bg-parchment/40 px-4 py-6 text-center text-[11.5px] text-ink/50">
+          <p className="rounded-lg border border-ink/10 bg-parchment/40 px-4 py-6 text-center text-[11.5px] text-ink/68">
             <Loader2 size={14} className="mr-1.5 inline animate-spin" /> Initialising secure payment session…
           </p>
         )
@@ -313,7 +313,7 @@ export function PaymentStep({
         netEligible ? (
           <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">
             <p className="text-[13px] font-bold">Pay on Net-30 terms</p>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-ink/60">
+            <p className="mt-1 text-[11.5px] leading-relaxed text-ink/72">
               Your order ships without card payment and an invoice is due 30 days from the order date. Quote
               your purchase order number so it prints on the invoice and packing slip.
             </p>
@@ -363,11 +363,11 @@ export function PaymentStep({
       {method === "ach" ? (
         <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">
           <p className="text-[13px] font-bold">Pay by ACH or wire transfer</p>
-          <p className="mt-1 text-[11.5px] leading-relaxed text-ink/60">
+          <p className="mt-1 text-[11.5px] leading-relaxed text-ink/72">
             We reserve your cases and email remittance instructions. The order is held and ships once the
             transfer clears — typically 1–3 business days for ACH, same day for wire.
           </p>
-          <ul className="mt-3 space-y-1.5 text-[11px] text-ink/55">
+          <ul className="mt-3 space-y-1.5 text-[11px] text-ink/70">
             <li>• Amount due: <strong className="text-ink">{formatMoney(total)}</strong></li>
             <li>• Reference your order number on the transfer</li>
             <li>• Bank details are sent by the trade desk — never shown on this page</li>
@@ -375,7 +375,7 @@ export function PaymentStep({
         </div>
       ) : null}
 
-      <label className="flex items-start gap-2.5 text-[10.5px] leading-relaxed text-ink/60">
+      <label className="flex items-start gap-2.5 text-[10.5px] leading-relaxed text-ink/72">
         <input
           type="checkbox"
           checked={terms}
@@ -397,7 +397,7 @@ export function PaymentStep({
       </label>
 
       {error ? (
-        <p className="flex items-start gap-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2.5 text-[11.5px] font-medium text-clay">
+        <p role="alert" className="flex items-start gap-2 rounded-md border border-clay/30 bg-clay/10 px-3 py-2.5 text-[11.5px] font-medium text-clay">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {error}
         </p>
       ) : null}

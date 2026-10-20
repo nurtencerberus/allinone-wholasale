@@ -149,7 +149,7 @@ export function AdminCoupons({ coupons, canEdit }: { coupons: AdminCoupon[]; can
 
   return (
     <div className="space-y-5">
-      {error ? <p className="rounded-md border border-clay/40 bg-clay/10 px-4 py-2.5 text-[12px] font-semibold text-clay">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-md border border-clay/40 bg-clay/10 px-4 py-2.5 text-[12px] font-semibold text-clay">{error}</p> : null}
       {notice ? <p className="rounded-md border border-fern/40 bg-fern/10 px-4 py-2.5 text-[12px] font-semibold text-fern">{notice}</p> : null}
 
       {canEdit ? (
@@ -277,20 +277,20 @@ export function AdminCoupons({ coupons, canEdit }: { coupons: AdminCoupon[]; can
 
       <div className="card overflow-x-auto">
         <table className="w-full text-left text-[11.5px]">
-          <thead className="border-b border-ink/10 bg-parchment/50 text-[10px] font-bold tracking-[0.12em] uppercase text-ink/55">
+          <thead className="border-b border-ink/10 bg-parchment/50 text-[10px] font-bold tracking-[0.12em] uppercase text-ink/70">
             <tr>
-              <th className="px-4 py-2.5">Code</th>
-              <th className="px-4 py-2.5">Offer</th>
-              <th className="px-4 py-2.5">Window</th>
-              <th className="px-4 py-2.5">Rules</th>
-              <th className="px-4 py-2.5 text-right">Used</th>
-              <th className="px-4 py-2.5" />
+              <th scope="col" className="px-4 py-2.5">Code</th>
+              <th scope="col" className="px-4 py-2.5">Offer</th>
+              <th scope="col" className="px-4 py-2.5">Window</th>
+              <th scope="col" className="px-4 py-2.5">Rules</th>
+              <th scope="col" className="px-4 py-2.5 text-right">Used</th>
+              <th scope="col" className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-ink/8">
             {coupons.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-ink/50">
+                <td colSpan={6} className="px-4 py-8 text-center text-ink/68">
                   No coupons yet.
                 </td>
               </tr>
@@ -299,14 +299,14 @@ export function AdminCoupons({ coupons, canEdit }: { coupons: AdminCoupon[]; can
               <tr key={coupon.id} className={coupon.active ? undefined : "opacity-55"}>
                 <td className="px-4 py-3">
                   <p className="font-bold">{coupon.code}</p>
-                  <p className="text-[10.5px] text-ink/50">{coupon.description}</p>
+                  <p className="text-[10.5px] text-ink/68">{coupon.description}</p>
                 </td>
                 <td className="px-4 py-3">
                   {describeValue(coupon)}
-                  {coupon.minSubtotal > 0 ? <p className="text-[10.5px] text-ink/50">min {formatMoney(coupon.minSubtotal)}</p> : null}
+                  {coupon.minSubtotal > 0 ? <p className="text-[10.5px] text-ink/68">min {formatMoney(coupon.minSubtotal)}</p> : null}
                 </td>
                 <td className="px-4 py-3">{describeWindow(coupon)}</td>
-                <td className="px-4 py-3 text-[10.5px] text-ink/60">
+                <td className="px-4 py-3 text-[10.5px] text-ink/72">
                   <p>{coupon.allowedTiers.length ? coupon.allowedTiers.join(", ") : "all tiers"}</p>
                   <p>
                     {coupon.perCustomerLimit === null ? "no per-customer limit" : `${coupon.perCustomerLimit} per customer`}
@@ -316,7 +316,7 @@ export function AdminCoupons({ coupons, canEdit }: { coupons: AdminCoupon[]; can
                 <td className="px-4 py-3 text-right tabular-nums">
                   {coupon.redeemed}
                   {coupon.maxRedemptions === null ? "" : ` / ${coupon.maxRedemptions}`}
-                  <p className="text-[10.5px] text-ink/50">{formatMoney(coupon.discounted)} given</p>
+                  <p className="text-[10.5px] text-ink/68">{formatMoney(coupon.discounted)} given</p>
                 </td>
                 <td className="px-4 py-3">
                   {canEdit ? (

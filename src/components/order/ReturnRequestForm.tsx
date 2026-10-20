@@ -69,14 +69,14 @@ export function ReturnRequestForm({ orderNumber, lines, deadline }: { orderNumbe
 
   return (
     <form onSubmit={submit} className="space-y-3 rounded-lg border border-ink/12 bg-[#fffdf8] p-4">
-      <p className="text-[12px] text-ink/60">Returns are accepted until {deadline}, including opened supplements and food.</p>
+      <p className="text-[12px] text-ink/72">Returns are accepted until {deadline}, including opened supplements and food.</p>
       <ul className="space-y-2">
         {lines.map((line) => (
           <li key={line.id} className="flex items-center justify-between gap-3 text-[12px]">
             <span>
-              <span className="font-semibold">{line.name}</span> <span className="text-ink/45">{line.sku}</span>
+              <span className="font-semibold">{line.name}</span> <span className="text-ink/65">{line.sku}</span>
             </span>
-            <label className="flex items-center gap-1.5 text-[11px] text-ink/55">
+            <label className="flex items-center gap-1.5 text-[11px] text-ink/70">
               Cases
               <input
                 type="number"
@@ -97,8 +97,8 @@ export function ReturnRequestForm({ orderNumber, lines, deadline }: { orderNumbe
           <option key={value} value={value}>{label}</option>
         ))}
       </select>
-      <textarea className="field min-h-[60px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Details (lot number, photos sent by email, etc.)" />
-      {error ? <p className="text-[11.5px] font-medium text-clay">{error}</p> : null}
+      <textarea aria-label="What happened (optional)" className="field min-h-[60px]" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Details (lot number, photos sent by email, etc.)" />
+      {error ? <p role="alert" className="text-[11.5px] font-medium text-clay">{error}</p> : null}
       <div className="flex gap-2">
         <button type="submit" disabled={busy} className="btn btn-primary btn-sm">
           {busy ? <Loader2 size={13} className="animate-spin" /> : null} Submit return request

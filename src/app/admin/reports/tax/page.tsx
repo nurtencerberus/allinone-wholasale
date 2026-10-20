@@ -62,7 +62,7 @@ export default async function TaxReportPage({ searchParams }: { searchParams: Pr
                 ["Net tax for the month", formatMoney(row.taxCollected - row.returnsTax)],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4 border-b border-ink/8 pb-1.5">
-                  <dt className="text-ink/60">{label}</dt>
+                  <dt className="text-ink/72">{label}</dt>
                   <dd className="font-semibold tabular-nums">{value}</dd>
                 </div>
               ))}
@@ -72,17 +72,17 @@ export default async function TaxReportPage({ searchParams }: { searchParams: Pr
 
         <section className="card mt-5 p-5">
           <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Other states · last 12 months (no tax collected)</p>
-          <p className="mt-1 text-[11px] text-ink/55">
+          <p className="mt-1 text-[11px] text-ink/70">
             Economic nexus watch: many states require registration above {formatMoney(NEXUS_WATCH.revenue, { decimals: false })} or{" "}
             {NEXUS_WATCH.transactions} transactions a year. Rows at 75% of either are flagged.
           </p>
           <table className="mt-3 w-full text-left text-[12px]">
-            <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+            <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
               <tr className="border-b border-ink/10">
-                <th className="py-2">State</th>
-                <th className="text-right">Orders</th>
-                <th className="text-right">Sales</th>
-                <th />
+                <th scope="col" className="py-2">State</th>
+                <th scope="col" className="text-right">Orders</th>
+                <th scope="col" className="text-right">Sales</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>
@@ -96,7 +96,7 @@ export default async function TaxReportPage({ searchParams }: { searchParams: Pr
               ))}
               {report.others.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-4 text-center text-ink/45">No out-of-state sales yet.</td>
+                  <td colSpan={4} className="py-4 text-center text-ink/65">No out-of-state sales yet.</td>
                 </tr>
               ) : null}
             </tbody>

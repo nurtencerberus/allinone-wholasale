@@ -198,7 +198,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       />
 
       <div className="wrap py-6">
-        <nav className="text-[10.5px] font-semibold tracking-[0.1em] text-ink/40 uppercase">
+        <nav className="text-[10.5px] font-semibold tracking-[0.1em] text-ink/65 uppercase">
           <Link href="/" className="hover:text-ink">Home</Link>
           <span className="mx-2">/</span>
           <Link href="/shop" className="hover:text-ink">Catalog</Link>
@@ -222,7 +222,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             ].map((item) => (
               <div key={item.label} className="rounded-lg border border-ink/10 bg-[#fffdf8] px-2 py-3">
                 <item.icon size={15} className="mx-auto text-fern" />
-                <p className="mt-1.5 text-[10px] font-semibold leading-tight text-ink/60">{item.label}</p>
+                <p className="mt-1.5 text-[10px] font-semibold leading-tight text-ink/72">{item.label}</p>
               </div>
             ))}
           </div>
@@ -234,7 +234,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               {product.brand}
             </span>
             <span className="text-ink/20">|</span>
-            <span className="text-[10.5px] font-medium tracking-wide text-ink/45 uppercase">
+            <span className="text-[10.5px] font-medium tracking-wide text-ink/65 uppercase">
               SKU {product.sku}
             </span>
           </div>
@@ -254,7 +254,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   ))}
                   <span className="ml-1 text-[11.5px] font-bold">{averageRating.toFixed(1)}</span>
                 </span>
-                <a href="#reviews" className="text-[11.5px] text-ink/50 underline underline-offset-4">
+                <a href="#reviews" className="text-[11.5px] text-ink/68 underline underline-offset-4">
                   {productReviews.length} buyer review{productReviews.length === 1 ? "" : "s"}
                 </a>
               </>
@@ -276,7 +276,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               />
             ) : (
               <div className="rounded-xl border border-ink/12 bg-[#fffdf8] p-5">
-                <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] text-ink/50 uppercase">
+                <p className="flex items-center gap-2 text-[11px] font-bold tracking-[0.12em] text-ink/68 uppercase">
                   <Lock size={13} /> Wholesale price
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-ink/70">
@@ -284,15 +284,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </p>
                 <dl className="mt-4 grid grid-cols-3 gap-3 border-y border-ink/10 py-3 text-[11.5px]">
                   <div>
-                    <dt className="text-ink/45">Case pack</dt>
+                    <dt className="text-ink/65">Case pack</dt>
                     <dd className="font-semibold">{product.caseSize} units</dd>
                   </div>
                   <div>
-                    <dt className="text-ink/45">Minimum</dt>
+                    <dt className="text-ink/65">Minimum</dt>
                     <dd className="font-semibold">{product.minCases} case{product.minCases === 1 ? "" : "s"}</dd>
                   </div>
                   <div>
-                    <dt className="text-ink/45">MSRP</dt>
+                    <dt className="text-ink/65">MSRP</dt>
                     <dd className="font-semibold">{formatMoney(product.msrpUnit)} / unit</dd>
                   </div>
                 </dl>
@@ -330,7 +330,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/65">{product.story}</p>
             </div>
 
-            <h3 className="mt-8 text-[11px] font-bold tracking-[0.16em] text-ink/45 uppercase">
+            <h3 className="mt-8 text-[11px] font-bold tracking-[0.16em] text-ink/65 uppercase">
               What ships in the case
             </h3>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -347,7 +347,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <dl className="mt-3 divide-y divide-ink/8 overflow-hidden rounded-lg border border-ink/10 bg-[#fffdf8]">
               {product.specs.map((spec) => (
                 <div key={spec.label} className="flex items-start justify-between gap-4 px-4 py-2.5">
-                  <dt className="text-[11.5px] font-semibold text-ink/50">{spec.label}</dt>
+                  <dt className="text-[11.5px] font-semibold text-ink/68">{spec.label}</dt>
                   <dd className="text-right text-[11.5px] font-medium text-ink/80">{spec.value}</dd>
                 </div>
               ))}
@@ -357,7 +357,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <dl className="mt-4 divide-y divide-ink/8 overflow-hidden rounded-lg border border-ink/10 bg-[#fffdf8]">
                 {labelFacts.map((fact) => (
                   <div key={fact.label} className="flex items-start justify-between gap-4 px-4 py-2.5">
-                    <dt className="text-[11.5px] font-semibold text-ink/50">{fact.label}</dt>
+                    <dt className="text-[11.5px] font-semibold text-ink/68">{fact.label}</dt>
                     <dd className="text-right font-mono text-[11.5px] font-medium text-ink/80">{fact.value}</dd>
                   </div>
                 ))}
@@ -381,21 +381,21 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </p>
               <div className="mt-2.5 grid grid-cols-2 gap-3 text-[11.5px]">
                 <div>
-                  <p className="text-ink/45">Carton dimensions</p>
+                  <p className="text-ink/65">Carton dimensions</p>
                   <p className="font-semibold">
                     {product.dimensions.l} × {product.dimensions.w} × {product.dimensions.h} in
                   </p>
                 </div>
                 <div>
-                  <p className="text-ink/45">Actual weight</p>
+                  <p className="text-ink/65">Actual weight</p>
                   <p className="font-semibold">{caseWeightLbs} lb</p>
                 </div>
                 <div>
-                  <p className="text-ink/45">Dim weight (÷139)</p>
+                  <p className="text-ink/65">Dim weight (÷139)</p>
                   <p className="font-semibold">{dimWeight.toFixed(1)} lb</p>
                 </div>
                 <div>
-                  <p className="text-ink/45">Billable per case</p>
+                  <p className="text-ink/65">Billable per case</p>
                   <p className="font-semibold">{billable.toFixed(1)} lb</p>
                 </div>
               </div>
@@ -410,16 +410,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             {showPrices ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5">
-                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Unit cost</p>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Unit cost</p>
                 <p className="mt-1 text-[15px] font-bold">
                   {formatMoney(unitPriceOf(product.casePrice, product.caseSize))}
                 </p>
-                <p className="text-[10.5px] text-ink/45">MSRP {formatMoney(product.msrpUnit)}</p>
+                <p className="text-[10.5px] text-ink/65">MSRP {formatMoney(product.msrpUnit)}</p>
               </div>
               <div className="rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5">
-                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Case</p>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Case</p>
                 <p className="mt-1 text-[15px] font-bold">{formatMoney(product.casePrice)}</p>
-                <p className="text-[10.5px] text-ink/45">{product.caseSize} units · FOB Paterson</p>
+                <p className="text-[10.5px] text-ink/65">{product.caseSize} units · FOB Paterson</p>
               </div>
             </div>
             ) : null}
@@ -445,7 +445,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             ) : null}
             {product.ingredients ? (
               <div className="mt-4">
-                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/45 uppercase">Ingredients</h3>
+                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/65 uppercase">Ingredients</h3>
                 <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/70">{product.ingredients}</p>
               </div>
             ) : null}
@@ -454,16 +454,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 Contains: <span className="capitalize">{product.allergens.join(", ")}</span>
               </p>
             ) : product.taxClass !== "general" && product.ingredients ? (
-              <p className="mt-3 text-[12px] text-ink/55">No major food allergens declared.</p>
+              <p className="mt-3 text-[12px] text-ink/70">No major food allergens declared.</p>
             ) : null}
             {product.fdaDisclaimer ? (
-              <p className="mt-4 border-l-2 border-ink/20 pl-3 text-[11.5px] leading-relaxed text-ink/60">
+              <p className="mt-4 border-l-2 border-ink/20 pl-3 text-[11.5px] leading-relaxed text-ink/72">
                 *{FDA_DISCLAIMER}
               </p>
             ) : null}
             {documentedCerts.length ? (
               <div className="mt-5">
-                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/45 uppercase">Certifications on file</h3>
+                <h3 className="text-[11px] font-bold tracking-[0.16em] text-ink/65 uppercase">Certifications on file</h3>
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {documentedCerts.map((cert) => (
                     <li key={cert.name}>
@@ -481,7 +481,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </div>
             ) : null}
             {nextLot?.expiresOn ? (
-              <p className="mt-5 flex items-center gap-2 text-[11.5px] text-ink/60">
+              <p className="mt-5 flex items-center gap-2 text-[11.5px] text-ink/72">
                 <CalendarCheck size={13} className="text-fern" /> Orders ship from the earliest lot with at least{" "}
                 {EXPIRY_PULL_DAYS} days to its best-by date; the lot number is printed on your packing slip.
               </p>
@@ -491,7 +491,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <figure className="rounded-xl border border-ink/10 bg-white p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={product.factsPanelImage} alt={`${product.taxClass === "supplement" ? "Supplement" : "Nutrition"} Facts panel for ${product.name}`} className="mx-auto max-h-[520px] w-auto" />
-              <figcaption className="mt-2 text-center text-[10.5px] text-ink/45">
+              <figcaption className="mt-2 text-center text-[10.5px] text-ink/65">
                 {product.taxClass === "supplement" ? "Supplement Facts" : "Nutrition Facts"} as printed on the label
               </figcaption>
             </figure>
@@ -504,7 +504,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           // No reviews: show nothing invented — no score, no star distribution, no buyer count.
           <div className="rounded-xl border border-dashed border-ink/20 bg-[#fffdf8] p-8 text-center">
             <h2 className="display text-[24px]">Buyer reviews</h2>
-            <p className="mt-2 text-[12.5px] text-ink/55">No reviews yet for this product.</p>
+            <p className="mt-2 text-[12.5px] text-ink/70">No reviews yet for this product.</p>
           </div>
         ) : (
         <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
@@ -522,7 +522,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-[11px] text-ink/50">
+                <p className="mt-1 text-[11px] text-ink/68">
                   {productReviews.length} review{productReviews.length === 1 ? "" : "s"}
                 </p>
               </div>
@@ -534,16 +534,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 );
                 return (
                   <div key={star} className="flex items-center gap-2">
-                    <span className="w-3 text-[10.5px] font-bold text-ink/45">{star}</span>
+                    <span className="w-3 text-[10.5px] font-bold text-ink/65">{star}</span>
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink/8">
                       <div className="h-full rounded-full bg-gold" style={{ width: `${share}%` }} />
                     </div>
-                    <span className="w-8 text-right text-[10px] text-ink/40">{share}%</span>
+                    <span className="w-8 text-right text-[10px] text-ink/65">{share}%</span>
                   </div>
                 );
               })}
             </div>
-            <p className="mt-4 border-t border-ink/10 pt-3 text-[10.5px] leading-relaxed text-ink/50">
+            <p className="mt-4 border-t border-ink/10 pt-3 text-[10.5px] leading-relaxed text-ink/68">
               Reviews are collected from verified trade accounts after a delivered order. We do not
               remove negative reviews; we respond to them.
             </p>
@@ -569,7 +569,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                     <span className="chip border-fern/25 bg-fern/8 text-fern">Verified buyer</span>
                   </div>
                   <p className="mt-2 text-[12.5px] leading-relaxed text-ink/70">{review.body}</p>
-                  <p className="mt-2.5 text-[10.5px] font-medium text-ink/40">
+                  <p className="mt-2.5 text-[10.5px] font-medium text-ink/65">
                     {review.author} · {review.company} · {formatDate(review.createdAt)}
                   </p>
                 </article>

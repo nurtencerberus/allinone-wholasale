@@ -22,11 +22,11 @@ export default async function SecurityPage({
 
   return (
     <div className="wrap max-w-2xl py-8 lg:py-10">
-      <Link href="/account" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/50 hover:text-ink">
+      <Link href="/account" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/68 hover:text-ink">
         <ArrowLeft size={13} /> Account
       </Link>
       <h1 className="display mt-2 text-[32px] leading-tight">Sign-in security</h1>
-      <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/60">
+      <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink/72">
         Two-factor sign-in asks for a code from an authenticator app (Google Authenticator, 1Password, Authy,
         Microsoft Authenticator) after your password.
       </p>

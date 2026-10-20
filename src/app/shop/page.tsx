@@ -147,7 +147,7 @@ export default async function ShopPage({
     <div className="border-t border-ink/10">
       <section className="border-b border-ink/10 bg-parchment/40">
         <div className="wrap py-10 lg:py-12">
-          <nav className="text-[10.5px] font-semibold tracking-[0.1em] text-ink/40 uppercase">
+          <nav className="text-[10.5px] font-semibold tracking-[0.1em] text-ink/65 uppercase">
             <Link href="/" className="hover:text-ink">Home</Link>
             <span className="mx-2">/</span>
             <span className="text-ink/70">Wholesale catalog</span>
@@ -157,7 +157,7 @@ export default async function ShopPage({
               <h1 className="display text-[34px] leading-tight sm:text-[44px]">
                 {category ? CATEGORIES.find((c) => c.key === category)?.name : "The wholesale catalog"}
               </h1>
-              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink/60">
+              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink/72">
                 {category
                   ? CATEGORIES.find((c) => c.key === category)?.blurb
                   : "Every SKU is case-packed with published weights and carton dimensions. Volume tiers resolve automatically; freight and destination tax are quoted before payment."}
@@ -189,7 +189,7 @@ export default async function ShopPage({
           </div>
 
           <div className="mt-5 border-t border-ink/10 pt-5">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/45 uppercase">Department</p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">Department</p>
             <div className="mt-2.5 space-y-0.5">
               <Link
                 href={buildHref(params, { category: undefined })}
@@ -217,7 +217,7 @@ export default async function ShopPage({
 
           {showPrices ? (
           <div className="mt-5 border-t border-ink/10 pt-5">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/45 uppercase">Case price</p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">Case price</p>
             <div className="mt-2.5 space-y-0.5">
               {PRICE_BANDS.map((item) => (
                 <Link
@@ -235,7 +235,7 @@ export default async function ShopPage({
           ) : null}
 
           <div className="mt-5 border-t border-ink/10 pt-5">
-            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/45 uppercase">Availability</p>
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">Availability</p>
             <Link
               href={buildHref(params, { stock: inStockOnly ? undefined : "in" })}
               className="mt-2.5 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] text-ink/70 hover:bg-ink/5"
@@ -253,7 +253,7 @@ export default async function ShopPage({
 
           <div className="mt-5 rounded-lg border border-fern/20 bg-fern/5 p-4">
             <p className="text-[11.5px] font-bold text-fern">Need a freight estimate?</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-ink/60">
+            <p className="mt-1 text-[11px] leading-relaxed text-ink/72">
               Add cases to the cart and enter a ZIP at checkout — parcel and LTL rates price
               automatically.
             </p>
@@ -266,7 +266,7 @@ export default async function ShopPage({
         <div>
           <div className="flex flex-col gap-3 border-b border-ink/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10.5px] font-bold tracking-[0.12em] text-ink/40 uppercase">Sort</span>
+              <span className="text-[10.5px] font-bold tracking-[0.12em] text-ink/65 uppercase">Sort</span>
               {sorts.map((item) => (
                 <Link
                   key={item.key}
@@ -274,7 +274,7 @@ export default async function ShopPage({
                   className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                     sort === item.key
                       ? "border-ink bg-ink text-cream"
-                      : "border-ink/15 text-ink/60 hover:border-ink/40"
+                      : "border-ink/15 text-ink/72 hover:border-ink/40"
                   }`}
                 >
                   {item.label}
@@ -283,7 +283,7 @@ export default async function ShopPage({
             </div>
             <div className="flex items-center gap-2">
               {q ? (
-                <p className="text-[11.5px] text-ink/55">
+                <p className="text-[11.5px] text-ink/70">
                   Results for <span className="font-bold text-ink">“{q}”</span>
                 </p>
               ) : null}
@@ -314,7 +314,7 @@ export default async function ShopPage({
                 <p className="flex items-center gap-1.5 text-[12px] font-bold text-ink">
                   <Lock size={13} /> Wholesale prices are for approved trade accounts
                 </p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-ink/60">
+                <p className="mt-0.5 text-[11px] leading-relaxed text-ink/72">
                   {viewer
                     ? "Your account is not approved for wholesale yet. Apply once — most applications are decided within one business day."
                     : "Sign in to your trade account, or apply with your EIN and resale certificate."}
@@ -333,7 +333,7 @@ export default async function ShopPage({
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-ink/20 py-24 text-center">
               <PackageSearch size={30} className="text-ink/30" />
               <p className="display text-2xl">No cases match those filters</p>
-              <p className="max-w-sm text-[12.5px] text-ink/55">
+              <p className="max-w-sm text-[12.5px] text-ink/70">
                 Try clearing the search or the price band, or browse another department.
               </p>
               <Link href="/shop" className="btn btn-primary btn-sm mt-2">

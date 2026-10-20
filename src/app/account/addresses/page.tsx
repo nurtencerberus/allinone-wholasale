@@ -24,11 +24,11 @@ export default async function AddressesPage() {
 
   return (
     <div className="wrap py-8 lg:py-10">
-      <Link href="/account" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/50 hover:text-ink">
+      <Link href="/account" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/68 hover:text-ink">
         <ArrowLeft size={13} /> Account
       </Link>
       <h1 className="display mt-2 text-[32px] leading-tight">Saved delivery addresses</h1>
-      <p className="mt-1.5 max-w-xl text-[12.5px] leading-relaxed text-ink/60">
+      <p className="mt-1.5 max-w-xl text-[12.5px] leading-relaxed text-ink/72">
         Dock addresses pre-fill checkout so freight and destination tax are priced on the first pass.
         LTL carriers use the freight phone to schedule delivery appointments.
       </p>

@@ -231,7 +231,7 @@ export function CheckoutFlow({
       <div className="wrap flex min-h-[52vh] flex-col items-center justify-center py-20 text-center">
         <Boxes size={34} className="text-ink/30" />
         <h1 className="display mt-4 text-[32px]">Nothing to check out yet</h1>
-        <p className="mt-2 max-w-sm text-[13px] text-ink/55">
+        <p className="mt-2 max-w-sm text-[13px] text-ink/70">
           Your cart is empty. Build a case order and return — freight and destination tax are priced live.
         </p>
         <Link href="/shop" className="btn btn-primary mt-5">
@@ -269,12 +269,12 @@ export function CheckoutFlow({
     <div className="wrap py-8 lg:py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/shop" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/50 hover:text-ink">
+          <Link href="/shop" className="inline-flex items-center gap-1.5 text-[11px] font-bold text-ink/68 hover:text-ink">
             <ArrowLeft size={13} /> Continue shopping
           </Link>
           <h1 className="display mt-2 text-[32px] leading-tight sm:text-[38px]">Wholesale checkout</h1>
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-ink/15 bg-[#fffdf8] px-3.5 py-2 text-[10.5px] font-semibold text-ink/60">
+        <div className="flex items-center gap-2 rounded-full border border-ink/15 bg-[#fffdf8] px-3.5 py-2 text-[10.5px] font-semibold text-ink/72">
           <Lock size={12} className="text-fern" /> 256-bit TLS · Stripe tokenised · PCI-DSS SAQ-A
         </div>
       </div>
@@ -284,7 +284,7 @@ export function CheckoutFlow({
           <p className="text-[11.5px] font-bold text-ink">
             Confirm your email before placing this order
           </p>
-          <p className="mt-0.5 text-[10.5px] leading-relaxed text-ink/60">
+          <p className="mt-0.5 text-[10.5px] leading-relaxed text-ink/72">
             Double opt-in is required for trade ordering so tracking and freight updates reach you.{" "}
             <Link href="/account" className="font-bold underline">
               Resend the confirmation link
@@ -310,14 +310,14 @@ export function CheckoutFlow({
                     ? "bg-ink text-cream"
                     : step > entry.id
                       ? "bg-fern text-cream"
-                      : "border border-ink/20 text-ink/40"
+                      : "border border-ink/20 text-ink/65"
                 }`}
               >
                 {step > entry.id ? <Check size={12} /> : entry.id}
               </span>
               <span
                 className={`text-[11.5px] font-semibold ${
-                  step === entry.id ? "text-ink" : "text-ink/45"
+                  step === entry.id ? "text-ink" : "text-ink/65"
                 }`}
               >
                 {entry.label}
@@ -331,8 +331,8 @@ export function CheckoutFlow({
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
         <div className="space-y-5">
           {error ? (
-            <div className="flex items-start justify-between gap-3 rounded-lg border border-clay/30 bg-clay/10 px-4 py-3 text-[12px] text-clay">
-              <p className="font-medium">{error}</p>
+            <div role="alert" className="flex items-start justify-between gap-3 rounded-lg border border-clay/30 bg-clay/10 px-4 py-3 text-[12px] text-clay">
+              <p role="alert" className="font-medium">{error}</p>
               <button onClick={() => setError(null)} aria-label="Dismiss"><X size={14} /></button>
             </div>
           ) : null}
@@ -354,7 +354,7 @@ export function CheckoutFlow({
             {step === 1 ? (
               <div className="mt-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-parchment/60 px-3 py-2 text-[11px]">
-                  <span className="text-ink/60">
+                  <span className="text-ink/72">
                     {user ? `Signed in as ${user.email}` : "Guest checkout — an account is optional."}
                   </span>
                   {!user ? (
@@ -378,7 +378,7 @@ export function CheckoutFlow({
                         }`}
                       >
                         <span className="block font-bold">{entry.label}</span>
-                        <span className="block text-ink/50">
+                        <span className="block text-ink/68">
                           {entry.city}, {entry.state} {entry.zip}
                         </span>
                       </button>
@@ -506,7 +506,7 @@ export function CheckoutFlow({
                   </div>
                 </div>
 
-                <div className="rounded-md border border-dashed border-ink/20 bg-parchment/40 px-3 py-2.5 text-[10.5px] leading-relaxed text-ink/55">
+                <div className="rounded-md border border-dashed border-ink/20 bg-parchment/40 px-3 py-2.5 text-[10.5px] leading-relaxed text-ink/70">
                   <MapPin size={12} className="mr-1 inline" />
                   ZIP <strong>{address.zip || "-----"}</strong> locks the destination sales-tax jurisdiction and
                   the freight zone. Enter it now — we re-price both before payment.
@@ -518,7 +518,7 @@ export function CheckoutFlow({
                 </button>
               </div>
             ) : (
-              <div className="mt-3 text-[11.5px] leading-relaxed text-ink/60">
+              <div className="mt-3 text-[11.5px] leading-relaxed text-ink/72">
                 <p className="font-semibold text-ink">{contact.name} · {contact.company || "—"}</p>
                 <p>{address.line1}{address.line2 ? `, ${address.line2}` : ""}, {address.city}, {address.state} {address.zip}</p>
                 <p>{contact.email}{contact.phone ? ` · ${contact.phone}` : ""}</p>
@@ -530,7 +530,7 @@ export function CheckoutFlow({
           <section className={`card p-5 ${step < 2 ? "opacity-50" : ""}`}>
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-[14px] font-bold">
-                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${step >= 2 ? "bg-ink text-cream" : "border border-ink/20 text-ink/40"}`}>2</span>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${step >= 2 ? "bg-ink text-cream" : "border border-ink/20 text-ink/65"}`}>2</span>
                 Dimensional freight & destination tax
               </h2>
               {step > 2 ? (
@@ -548,7 +548,7 @@ export function CheckoutFlow({
                     { label: "Zone", value: `${quote.freight.zone}` },
                   ].map((item) => (
                     <div key={item.label} className="rounded-md border border-ink/10 bg-parchment/40 px-2.5 py-2">
-                      <p className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">{item.label}</p>
+                      <p className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">{item.label}</p>
                       <p className="mt-0.5 text-[13px] font-bold">{item.value}</p>
                     </div>
                   ))}
@@ -580,16 +580,16 @@ export function CheckoutFlow({
                             {option.cost === 0 ? "Freight allowance" : formatMoney(option.cost)}
                           </p>
                         </div>
-                        <p className="mt-0.5 text-[10.5px] text-ink/50">
+                        <p className="mt-0.5 text-[10.5px] text-ink/68">
                           {option.transitDays} · {option.mode === "ltl" ? "Curbside LTL" : "Parcel"}
                         </p>
-                        <p className="mt-1 text-[10px] leading-relaxed text-ink/45">{option.note}</p>
+                        <p className="mt-1 text-[10px] leading-relaxed text-ink/65">{option.note}</p>
                       </div>
                     </label>
                   ))}
                 </div>
 
-                <p className="flex items-start gap-2 rounded-md bg-parchment/60 px-3 py-2 text-[10.5px] leading-relaxed text-ink/55">
+                <p className="flex items-start gap-2 rounded-md bg-parchment/60 px-3 py-2 text-[10.5px] leading-relaxed text-ink/70">
                   <Ruler size={12} className="mt-0.5 shrink-0" />
                   {quote.shippingNote} Sourced from{" "}
                   <strong className="font-semibold">
@@ -602,7 +602,7 @@ export function CheckoutFlow({
                     <Tag size={13} /> Coupon or trade code
                   </p>
                   <div className="mt-2 flex gap-2">
-                    <input
+                    <input aria-label="Coupon code"
                       className="field"
                       value={couponInput}
                       onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
@@ -630,7 +630,7 @@ export function CheckoutFlow({
                           setCouponInput("");
                           await requestQuote({ coupon: "" });
                         }}
-                        className="btn btn-sm shrink-0 border border-ink/15 text-ink/50"
+                        className="btn btn-sm shrink-0 border border-ink/15 text-ink/68"
                       >
                         <X size={13} />
                       </button>
@@ -641,7 +641,7 @@ export function CheckoutFlow({
                       <BadgeCheck size={12} /> {quote.couponCode} — {quote.couponLabel}
                     </p>
                   ) : (
-                    <p className="mt-2 text-[10px] text-ink/40">
+                    <p className="mt-2 text-[10px] text-ink/65">
                       Try MERIDIAN10 (10% off) or WELCOME25 ($25 off $250+).
                     </p>
                   )}
@@ -653,12 +653,12 @@ export function CheckoutFlow({
                       <p className="flex items-center gap-1.5 text-[11px] font-bold text-fern">
                         <ShieldCheck size={13} /> Sales tax · {quote.taxQuote.source === "exempt" ? "Exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : formatRate(quote.taxQuote.rateX1000)}
                       </p>
-                      <p className="mt-1 text-[10.5px] leading-relaxed text-ink/60">{quote.taxQuote.jurisdiction}</p>
-                      <p className="mt-1 text-[10px] leading-relaxed text-ink/45">{quote.taxQuote.note}</p>
+                      <p className="mt-1 text-[10.5px] leading-relaxed text-ink/72">{quote.taxQuote.jurisdiction}</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-ink/65">{quote.taxQuote.note}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[14px] font-bold tabular-nums">{formatMoney(quote.taxAmount)}</p>
-                      <p className="text-[9px] font-semibold tracking-wide text-ink/40 uppercase">
+                      <p className="text-[9px] font-semibold tracking-wide text-ink/65 uppercase">
                         {quote.taxQuote.source === "exempt" ? "Resale exempt" : quote.taxQuote.source === "no_nexus" ? "Not collected" : "State rate"}
                       </p>
                     </div>
@@ -676,7 +676,7 @@ export function CheckoutFlow({
                 </button>
               </div>
             ) : step > 2 && quote ? (
-              <div className="mt-3 text-[11.5px] leading-relaxed text-ink/60">
+              <div className="mt-3 text-[11.5px] leading-relaxed text-ink/72">
                 <p className="font-semibold text-ink">
                   {quote.shippingCarrier} · {quote.shippingService} — {formatMoney(quote.shippingCost)}
                 </p>
@@ -691,7 +691,7 @@ export function CheckoutFlow({
           {/* STEP 3 ------------------------------------------------- */}
           <section className={`card p-5 ${step < 3 ? "opacity-50" : ""}`}>
             <h2 className="flex items-center gap-2 text-[14px] font-bold">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${step >= 3 ? "bg-ink text-cream" : "border border-ink/20 text-ink/40"}`}>3</span>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${step >= 3 ? "bg-ink text-cream" : "border border-ink/20 text-ink/65"}`}>3</span>
               Payment
             </h2>
 
@@ -704,7 +704,7 @@ export function CheckoutFlow({
                 onPlace={placeOrder}
               />
             ) : (
-              <p className="mt-2 text-[11px] text-ink/40">Complete freight and tax to unlock payment.</p>
+              <p className="mt-2 text-[11px] text-ink/65">Complete freight and tax to unlock payment.</p>
             )}
           </section>
         </div>
@@ -714,7 +714,7 @@ export function CheckoutFlow({
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-ink/10 bg-parchment/50 px-4 py-3">
               <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Order summary</p>
-              <p className="text-[11px] font-semibold text-ink/50">
+              <p className="text-[11px] font-semibold text-ink/68">
                 {quote ? `${quote.cases} cases · ${quote.unitCount} units` : `${summaryLines.length} SKUs`}
               </p>
             </div>
@@ -724,7 +724,7 @@ export function CheckoutFlow({
                   <Image src={line.image} alt={line.name} width={48} height={48} className="h-12 w-12 rounded border border-ink/10 object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[11.5px] font-semibold leading-snug">{line.name}</p>
-                    <p className="mt-0.5 text-[10px] text-ink/45">
+                    <p className="mt-0.5 text-[10px] text-ink/65">
                       {line.cases} × {line.caseSize} units
                       {line.casePrice === null ? "" : ` · ${formatMoney(line.casePrice)}/case`}
                     </p>
@@ -737,7 +737,7 @@ export function CheckoutFlow({
             </ul>
             <div className="space-y-1.5 border-t border-ink/10 px-4 py-3.5 text-[11.5px]">
               <div className="flex justify-between">
-                <span className="text-ink/60">Catalog subtotal</span>
+                <span className="text-ink/72">Catalog subtotal</span>
                 <span className="font-semibold tabular-nums">{formatMoney(quote?.subtotal ?? localSubtotal)}</span>
               </div>
               {quote && quote.lines.some((line) => line.tierSaving + line.accountSaving > 0) ? (
@@ -758,13 +758,13 @@ export function CheckoutFlow({
                 </div>
               ) : null}
               <div className="flex justify-between">
-                <span className="text-ink/60">Freight</span>
+                <span className="text-ink/72">Freight</span>
                 <span className="font-semibold tabular-nums">
                   {quote ? (quote.shippingCost === 0 ? "Waived" : formatMoney(quote.shippingCost)) : "Quoted next"}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-ink/60">
+                <span className="text-ink/72">
                   Sales tax {quote ? `(${formatRate(quote.taxQuote.rateX1000)})` : ""}
                 </span>
                 <span className="font-semibold tabular-nums">
@@ -775,14 +775,14 @@ export function CheckoutFlow({
                 <span className="text-[12px] font-bold">Total due</span>
                 <span className="display text-[24px] leading-none">{formatMoney(displayTotal)}</span>
               </div>
-              <p className="pt-1 text-[9.5px] leading-relaxed text-ink/40">
+              <p className="pt-1 text-[9.5px] leading-relaxed text-ink/65">
                 USD · FOB Paterson, NJ. Sales tax and freight are recalculated server-side on order
                 submission.
               </p>
             </div>
           </div>
 
-          <div className="mt-3 space-y-2 rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5 text-[10px] leading-relaxed text-ink/55">
+          <div className="mt-3 space-y-2 rounded-lg border border-ink/10 bg-[#fffdf8] p-3.5 text-[10px] leading-relaxed text-ink/70">
             <p className="flex items-center gap-2"><ShieldCheck size={12} className="text-fern" /> Stripe Elements · card data never touches our API</p>
             <p className="flex items-center gap-2"><Truck size={12} className="text-fern" /> UPS Ground, 2nd Day & LTL compared at once</p>
             <p className="flex items-center gap-2"><BadgeCheck size={12} className="text-fern" /> Destination tax via nexus rules{user?.taxExempt ? " / resale exemption" : ""}</p>

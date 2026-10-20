@@ -117,8 +117,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       </head>
       <body className="min-h-screen bg-cream text-ink antialiased">
         <CartProvider signedIn={Boolean(user)}>
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
           <SiteHeader user={user} />
-          <main>{children}</main>
+          <main id="main-content" tabIndex={-1}>
+            {children}
+          </main>
           <SiteFooter />
           <CartDrawer user={user} />
         </CartProvider>

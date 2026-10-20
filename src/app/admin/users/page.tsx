@@ -114,7 +114,7 @@ export default async function AdminUsersPage() {
           ].map((stat) => (
             <div key={stat.label} className="card p-4">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/40 uppercase">{stat.label}</p>
+                <p className="text-[10px] font-bold tracking-[0.12em] text-ink/65 uppercase">{stat.label}</p>
                 <stat.icon size={15} className="text-fern" />
               </div>
               <p className="display mt-2 text-[26px] leading-none">{stat.value}</p>
@@ -142,17 +142,17 @@ export default async function AdminUsersPage() {
                   </span>
                   <span>
                     <span className="font-semibold">{account.name}</span>
-                    <span className="ml-1.5 text-[10px] text-ink/45">{account.company ?? account.email}</span>
+                    <span className="ml-1.5 text-[10px] text-ink/65">{account.company ?? account.email}</span>
                   </span>
                 </span>
                 <span className="flex items-center gap-3">
-                  <span className="text-[10px] text-ink/45">{account.orderCount} orders</span>
+                  <span className="text-[10px] text-ink/65">{account.orderCount} orders</span>
                   <span className="font-bold tabular-nums">{formatMoney(account.totalSpend)}</span>
                 </span>
               </li>
             ))}
             {topAccounts.length === 0 ? (
-              <li className="text-[11px] text-ink/45">No accounts yet.</li>
+              <li className="text-[11px] text-ink/65">No accounts yet.</li>
             ) : null}
           </ul>
         </div>

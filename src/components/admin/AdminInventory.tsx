@@ -33,7 +33,7 @@ export type InventoryProduct = {
 const STATUS_STYLE: Record<string, string> = {
   available: "bg-fern/15 text-fern",
   hold: "bg-gold/20 text-[#7a5a1f]",
-  expired: "bg-ink/10 text-ink/50",
+  expired: "bg-ink/10 text-ink/68",
   recalled: "bg-clay/15 text-clay",
 };
 
@@ -138,14 +138,14 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
       ) : null}
 
       {message ? <p className="rounded-md border border-fern/30 bg-fern/10 px-3 py-2 text-[11.5px] font-medium text-fern">{message}</p> : null}
-      {error ? <p className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">{error}</p> : null}
 
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-ink/10 bg-parchment/50 px-4 py-3">
           <p className="text-[11px] font-bold tracking-[0.14em] uppercase">Stock by lot</p>
           <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35" />
-            <input
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/50" />
+            <input aria-label="Search inventory"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="SKU, name or lot…"
@@ -155,16 +155,16 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-[11px]">
-            <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+            <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
               <tr className="border-b border-ink/8">
-                <th className="px-4 py-2.5">Product</th>
-                <th className="px-2 py-2.5 text-right">Sellable</th>
-                <th className="px-2 py-2.5">Lot</th>
-                <th className="px-2 py-2.5">Best by</th>
-                <th className="px-2 py-2.5 text-right">On hand</th>
-                <th className="px-2 py-2.5 text-right">Quarantine</th>
-                <th className="px-2 py-2.5">Status</th>
-                <th className="px-4 py-2.5" />
+                <th scope="col" className="px-4 py-2.5">Product</th>
+                <th scope="col" className="px-2 py-2.5 text-right">Sellable</th>
+                <th scope="col" className="px-2 py-2.5">Lot</th>
+                <th scope="col" className="px-2 py-2.5">Best by</th>
+                <th scope="col" className="px-2 py-2.5 text-right">On hand</th>
+                <th scope="col" className="px-2 py-2.5 text-right">Quarantine</th>
+                <th scope="col" className="px-2 py-2.5">Status</th>
+                <th scope="col" className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
@@ -177,12 +177,12 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
                       <>
                         <td className="px-4 py-2.5" rowSpan={rows.length}>
                           <p className="font-bold">{product.sku}</p>
-                          <p className="text-[10px] text-ink/55">{product.name}</p>
-                          {!product.active ? <p className="text-[9px] text-ink/40 uppercase">Archived</p> : null}
+                          <p className="text-[10px] text-ink/70">{product.name}</p>
+                          {!product.active ? <p className="text-[9px] text-ink/65 uppercase">Archived</p> : null}
                         </td>
                         <td className="px-2 py-2.5 text-right" rowSpan={rows.length}>
                           <p className={`font-bold tabular-nums ${low ? "text-clay" : ""}`}>{product.stock}</p>
-                          <p className="text-[9px] text-ink/40">reorder at {product.reorderPoint}</p>
+                          <p className="text-[9px] text-ink/65">reorder at {product.reorderPoint}</p>
                         </td>
                       </>
                     ) : null}
@@ -190,7 +190,7 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
                       <>
                         <td className="px-2 py-2.5 font-mono">
                           {lot.lotNumber}
-                          {lot.supplier ? <span className="block font-sans text-[9px] text-ink/40">{lot.supplier}</span> : null}
+                          {lot.supplier ? <span className="block font-sans text-[9px] text-ink/65">{lot.supplier}</span> : null}
                         </td>
                         <td className={`px-2 py-2.5 ${lot.expiringSoon ? "font-semibold text-clay" : ""}`}>
                           {lot.expiringSoon ? <AlertTriangle size={11} className="mr-1 inline" /> : null}
@@ -226,7 +226,7 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
                             <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] font-semibold">
                               <button type="button" disabled={busy} className="text-fern hover:underline" onClick={() => adjust(lot, "on_hand")}>Adjust</button>
                               {lot.qtyQuarantine > 0 ? (
-                                <button type="button" disabled={busy} className="text-ink/60 hover:underline" onClick={() => adjust(lot, "quarantine")}>Quarantine</button>
+                                <button type="button" disabled={busy} className="text-ink/72 hover:underline" onClick={() => adjust(lot, "quarantine")}>Quarantine</button>
                               ) : null}
                               {lot.status === "available" ? (
                                 <button type="button" disabled={busy} className="text-[#7a5a1f] hover:underline" onClick={() => setStatus(lot, "hold")}>Hold</button>
@@ -237,13 +237,13 @@ export function AdminInventory({ products, canEdit }: { products: InventoryProdu
                               {lot.status !== "recalled" ? (
                                 <button type="button" disabled={busy} className="text-clay hover:underline" onClick={() => setStatus(lot, "recalled")}>Recall</button>
                               ) : null}
-                              <a className="text-ink/50 hover:underline" href={`/admin/inventory?lot=${encodeURIComponent(lot.lotNumber)}#recall`}>Orders</a>
+                              <a className="text-ink/68 hover:underline" href={`/admin/inventory?lot=${encodeURIComponent(lot.lotNumber)}#recall`}>Orders</a>
                             </div>
                           ) : null}
                         </td>
                       </>
                     ) : (
-                      <td colSpan={6} className="px-2 py-2.5 text-ink/45">No lots on hand — receive goods to sell this product.</td>
+                      <td colSpan={6} className="px-2 py-2.5 text-ink/65">No lots on hand — receive goods to sell this product.</td>
                     )}
                   </tr>
                 ));

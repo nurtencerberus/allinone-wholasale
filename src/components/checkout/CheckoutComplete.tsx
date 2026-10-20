@@ -44,14 +44,14 @@ export function CheckoutComplete({
       {error ? (
         <>
           <h1 className="display text-[30px]">We could not confirm this order</h1>
-          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink/60" role="alert">{error}</p>
+          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink/72" role="alert">{error}</p>
           <Link href="/checkout" className="btn btn-primary mt-5">Back to checkout</Link>
         </>
       ) : (
         <>
-          <Loader2 size={28} className="animate-spin text-ink/40" />
+          <Loader2 size={28} className="animate-spin text-ink/65" />
           <h1 className="display mt-4 text-[28px]">Confirming your order…</h1>
-          <p className="mt-2 text-[12.5px] text-ink/55" aria-live="polite">Please keep this page open.</p>
+          <p className="mt-2 text-[12.5px] text-ink/70" aria-live="polite">Please keep this page open.</p>
         </>
       )}
     </div>

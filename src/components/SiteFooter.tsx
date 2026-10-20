@@ -85,7 +85,7 @@ export function SiteFooter() {
 
         {COLUMNS.map((column) => (
           <div key={column.title}>
-            <p className="text-[10.5px] font-bold tracking-[0.2em] text-cream/45 uppercase">
+            <p className="text-[10.5px] font-bold tracking-[0.2em] text-cream/50 uppercase">
               {column.title}
             </p>
             <ul className="mt-4 space-y-2.5">

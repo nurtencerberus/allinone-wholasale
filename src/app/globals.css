@@ -8,7 +8,7 @@
   --color-moss: #1e3a2c;
   --color-fern: #3d5c48;
   --color-sage: #a6b4a1;
-  --color-clay: #b4552f;
+  --color-clay: #b0532e; /* WCAG AA on cream: 4.64:1 */
   --color-gold: #b08a45;
   --font-display: var(--font-fraunces), "Iowan Old Style", Georgia, "Times New Roman", serif;
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -246,6 +246,53 @@
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* UX-3 (WCAG 2.4.7 Focus Visible): every control shows where the keyboard is, on any background.
+   :focus-visible only fires for keyboard and assistive-technology focus, so a mouse click does
+   not draw a ring. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-fern);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* On the dark header and footer the fern outline has too little contrast; use the cream. */
+.bg-ink :where(a, button, input, select, textarea, [tabindex]):focus-visible,
+footer :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: var(--color-cream);
+}
+
+/* The keyboard shortcut to the content, visible only once it has focus (WCAG 2.4.1). */
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 100;
+  border-radius: 0 0 0.5rem 0.5rem;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  padding: 0.6rem 1rem;
+  font-size: 12px;
+  font-weight: 700;
+  transition: top 140ms ease;
+}
+
+.skip-link:focus-visible {
+  top: 0;
+  outline-color: var(--color-cream);
+}
+
+/* WCAG 2.3.3: honour the visitor's "reduce motion" setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .no-scrollbar {

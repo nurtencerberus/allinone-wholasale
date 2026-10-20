@@ -31,7 +31,7 @@ export function ProductGallery({
             {badge}
           </span>
         ) : null}
-        <span className="absolute bottom-4 right-4 rounded-full bg-cream/95 px-3 py-1 text-[9.5px] font-bold tracking-[0.1em] text-ink/60 uppercase">
+        <span className="absolute bottom-4 right-4 rounded-full bg-cream/95 px-3 py-1 text-[9.5px] font-bold tracking-[0.1em] text-ink/72 uppercase">
           Actual packaging may vary by lot
         </span>
       </div>

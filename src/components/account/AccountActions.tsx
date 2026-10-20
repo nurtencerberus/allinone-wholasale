@@ -43,14 +43,14 @@ export function AccountActions({ emailVerified }: { emailVerified: boolean }) {
       {!emailVerified ? (
         <div className="rounded-lg border border-gold/40 bg-gold/10 p-3">
           <p className="text-[11px] font-bold text-ink">Email confirmation pending</p>
-          <p className="mt-0.5 text-[10.5px] leading-relaxed text-ink/60">
+          <p className="mt-0.5 text-[10.5px] leading-relaxed text-ink/72">
             Double opt-in is required before ordering. Order updates and tracking are paused until confirmed.
           </p>
           <button onClick={resend} disabled={verifying} className="btn btn-primary btn-sm mt-2 w-full">
             {verifying ? <Loader2 size={12} className="animate-spin" /> : <MailCheck size={12} />}
             Resend confirmation
           </button>
-          {note ? <p className="mt-2 text-[10px] text-ink/60">{note}</p> : null}
+          {note ? <p className="mt-2 text-[10px] text-ink/72">{note}</p> : null}
           {devLink ? (
             <a href={devLink} className="mt-1 block break-all text-[9.5px] font-medium text-ink underline">
               {devLink}

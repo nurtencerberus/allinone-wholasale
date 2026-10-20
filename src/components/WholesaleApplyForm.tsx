@@ -84,15 +84,15 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
         <p className="mt-2 text-[13px] leading-relaxed text-ink/65">{reference.message}</p>
         <div className="mt-4 rounded-lg border border-ink/12 bg-parchment/40 p-4 text-[12px]">
           <p className="flex justify-between border-b border-ink/8 pb-2">
-            <span className="text-ink/50">Reference</span>
+            <span className="text-ink/68">Reference</span>
             <span className="font-bold">#{String(reference.id ?? 0).padStart(4, "0")}</span>
           </p>
           <p className="flex justify-between border-b border-ink/8 py-2">
-            <span className="text-ink/50">Company</span>
+            <span className="text-ink/68">Company</span>
             <span className="font-semibold">{values.companyName}</span>
           </p>
           <p className="flex justify-between pt-2">
-            <span className="text-ink/50">EIN on file</span>
+            <span className="text-ink/68">EIN on file</span>
             <span className="font-semibold">{values.ein}</span>
           </p>
         </div>
@@ -121,7 +121,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
   return (
     <form onSubmit={submit} className="card p-5 sm:p-6">
       {error ? (
-        <p className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
+        <p role="alert" className="mb-4 rounded-md border border-clay/30 bg-clay/10 px-3 py-2 text-[11.5px] font-medium text-clay">
           {error}
         </p>
       ) : null}
@@ -151,7 +151,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
               placeholder="12-3456789"
               inputMode="numeric"
             />
-            <p className="mt-1 text-[10px] text-ink/45">Verified against IRS records. Never shared.</p>
+            <p className="mt-1 text-[10px] text-ink/65">Verified against IRS records. Never shared.</p>
           </div>
           <div>
             <label className="label" htmlFor="businessType">Business type *</label>
@@ -217,7 +217,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
               readOnly
               aria-describedby="email-note"
             />
-            <p id="email-note" className="mt-1 text-[10px] text-ink/45">The confirmed email on your account.</p>
+            <p id="email-note" className="mt-1 text-[10px] text-ink/65">The confirmed email on your account.</p>
           </div>
           <div>
             <label className="label" htmlFor="phone">Phone *</label>
@@ -306,7 +306,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
                   )
                 }
                 className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                  active ? "border-ink bg-ink text-cream" : "border-ink/20 text-ink/60 hover:border-ink/50"
+                  active ? "border-ink bg-ink text-cream" : "border-ink/20 text-ink/72 hover:border-ink/50"
                 }`}
               >
                 {active ? <Check size={11} className="mr-1 inline" /> : null}
@@ -332,7 +332,7 @@ export function WholesaleApplyForm({ account }: { account: { name: string; email
         Submit trade application
         {!busy ? <ArrowRight size={15} /> : null}
       </button>
-      <p className="mt-2.5 text-center text-[10px] leading-relaxed text-ink/40">
+      <p className="mt-2.5 text-center text-[10px] leading-relaxed text-ink/65">
         No membership fee. Submitting an application does not create a purchasing obligation. EIN data is
         stored encrypted and used only for resale verification.
       </p>

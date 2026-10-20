@@ -70,7 +70,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Ship to</p>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Ship to</p>
                 <p className="mt-1 text-[13px] font-bold">{order.customerName}</p>
                 {order.company ? <p className="text-[12px]">{order.company}</p> : null}
                 <p className="text-[12px] text-ink/70">
@@ -79,24 +79,24 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   <br />
                   {address.city}, {address.state} {address.zip}
                 </p>
-                {order.phone ? <p className="text-[11px] text-ink/55">{order.phone}</p> : null}
+                {order.phone ? <p className="text-[11px] text-ink/70">{order.phone}</p> : null}
               </div>
               <div className="sm:text-right">
-                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/40 uppercase">Order</p>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-ink/65 uppercase">Order</p>
                 <p className="mt-1 font-mono text-[13px] font-bold">{order.orderNumber}</p>
                 {order.poNumber ? <p className="text-[12px] font-semibold">PO {order.poNumber}</p> : null}
-                <p className="text-[11.5px] text-ink/60">{order.shippingCarrier} · {order.shippingService}</p>
+                <p className="text-[11.5px] text-ink/72">{order.shippingCarrier} · {order.shippingService}</p>
                 {order.trackingNumber ? <p className="font-mono text-[11.5px]">{order.trackingNumber}</p> : null}
               </div>
             </div>
             <table className="mt-5 w-full text-left text-[11.5px]">
-              <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/40 uppercase">
+              <thead className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">
                 <tr className="border-b border-ink/10">
-                  <th className="py-2">SKU / item</th>
-                  <th>Lot · best by</th>
-                  <th className="text-right">Cases</th>
-                  <th className="text-right print:hidden">Net</th>
-                  <th className="text-right print:hidden">Tax</th>
+                  <th scope="col" className="py-2">SKU / item</th>
+                  <th scope="col">Lot · best by</th>
+                  <th scope="col" className="text-right">Cases</th>
+                  <th scope="col" className="text-right print:hidden">Net</th>
+                  <th scope="col" className="text-right print:hidden">Tax</th>
                 </tr>
               </thead>
               <tbody>
@@ -104,7 +104,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                   <tr key={item.id} className="border-b border-ink/6 align-top">
                     <td className="py-2">
                       <p className="font-mono font-bold">{item.sku}</p>
-                      <p className="text-[10.5px] text-ink/60">{item.name} · {item.unitsPerCase}/case</p>
+                      <p className="text-[10.5px] text-ink/72">{item.name} · {item.unitsPerCase}/case</p>
                       {item.returnedCases ? <p className="text-[10px] font-semibold text-clay">{item.returnedCases} returned</p> : null}
                     </td>
                     <td className="py-2 font-mono text-[10.5px]">
@@ -139,13 +139,13 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                 ["Refunded / credited", formatMoney(order.refundedAmount)],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-3 border-b border-ink/6 pb-1">
-                  <dt className="text-ink/55">{label}</dt>
+                  <dt className="text-ink/70">{label}</dt>
                   <dd className="font-semibold tabular-nums">{value}</dd>
                 </div>
               ))}
             </dl>
-            {order.exemptionCert ? <p className="mt-2 text-[11px] text-ink/55">Exemption certificate: {order.exemptionCert}</p> : null}
-            <p className="mt-1 text-[11px] text-ink/55">
+            {order.exemptionCert ? <p className="mt-2 text-[11px] text-ink/70">Exemption certificate: {order.exemptionCert}</p> : null}
+            <p className="mt-1 text-[11px] text-ink/70">
               {order.paymentMethod.toUpperCase()} · {paymentLabel(order.paymentStatus)}
               {order.paymentRef ? ` · ${order.paymentRef}` : ""}
             </p>
@@ -174,7 +174,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ num
                     {event.fromValue || event.toValue ? `: ${event.fromValue ?? "—"} → ${event.toValue ?? "—"}` : ""}
                     {event.visibleToCustomer ? "" : " · internal"}
                   </p>
-                  <p className="text-[10.5px] text-ink/50">
+                  <p className="text-[10.5px] text-ink/68">
                     {formatDateTime(event.createdAt)} · {event.actorLabel}
                     {event.message ? ` · ${event.message}` : ""}
                   </p>
