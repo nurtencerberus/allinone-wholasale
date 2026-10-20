@@ -147,6 +147,34 @@ r = await buyer.post("/api/cart", { items: [{ productId: home.id, cases: 1 }, { 
 check("cart view drops an inactive product", r.json.cart.removedProductIds.includes(home.id) && r.json.cart.lines.length === 1);
 await q("update products set active=true where id=$1", [home.id]);
 
+// --- stored cart (SEP-7) ----------------------------------------------------------------------
+await q("delete from cart_items where cart_id in (select id from carts where user_id=(select id from users where email='buyer@harborhouse.com'))");
+await q("delete from carts where user_id=(select id from users where email='buyer@harborhouse.com')");
+r = await buyer.req("PUT", "/api/cart", { items: [{ productId: supp.id, cases: 3 }, { productId: home.id, cases: 1 }] });
+check("a trade account's cart is stored", r.status === 200 && r.json.stored === true && r.json.items.length === 2, r.text.slice(0, 160));
+
+const second = new Client();
+await second.post("/api/auth/login", { email: "buyer@harborhouse.com", password: "Trade123!" });
+r = await second.req("GET", "/api/cart");
+check("the cart is there on another device", r.status === 200 && r.json.items.length === 2, r.text.slice(0, 160));
+
+// The second device carries one line of its own and a smaller quantity of a shared line.
+r = await second.req("PATCH", "/api/cart", { items: [{ productId: supp.id, cases: 1 }, { productId: pantry.id, cases: 2 }] });
+const mergedLines = Object.fromEntries((r.json.items ?? []).map((line) => [line.productId, line.cases]));
+check(
+  "sign-in merges the two carts, taking the larger quantity",
+  r.status === 200 && Object.keys(mergedLines).length === 3 && mergedLines[supp.id] === 3 && mergedLines[pantry.id] === 2,
+  JSON.stringify(r.json.items),
+);
+
+r = await guestCart.req("GET", "/api/cart");
+check("a guest has no stored cart and no error", r.status === 200 && r.json.stored === false && r.json.items.length === 0, r.text.slice(0, 120));
+r = await guestCart.req("PUT", "/api/cart", { items: [{ productId: supp.id, cases: 2 }] });
+check("a guest cannot write a stored cart", r.status === 200 && r.json.stored === false && (await q("select count(*)::int as c from carts"))[0].c === 1, r.text.slice(0, 120));
+
+r = await buyer.req("PUT", "/api/cart", { items: [] });
+check("emptying the cart empties the stored copy", r.status === 200 && r.json.items.length === 0);
+
 // --- order endpoint refuses blockers ---------------------------------------
 const opt = (await quote(big, NJ)).json.quote.shippingOptionId;
 r = await buyer.post("/api/orders", { items: [{ productId: cheapest.id, cases: 1 }], address: NJ, shippingOptionId: opt, paymentMethod: "ach", name: "Dana", email: "buyer@harborhouse.com", checkoutId: crypto.randomUUID() });

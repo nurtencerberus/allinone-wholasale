@@ -116,7 +116,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-cream text-ink antialiased">
-        <CartProvider>
+        <CartProvider signedIn={Boolean(user)}>
           <SiteHeader user={user} />
           <main>{children}</main>
           <SiteFooter />

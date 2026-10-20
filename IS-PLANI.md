@@ -344,7 +344,8 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | PRF-3 | ✅ | Eksik indeksler (migration 0007): doğrulama/sıfırlama jetonu, `orders.email`, `orders.created_at`, `products(active, featured)`, `sessions.expires_at`, `rate_limits.reset_at`. Ürün sayfasındaki çift sorgu ve istek başına tekrarlanan oturum sorgusu React `cache()` ile teke indi |
 | DEV-5 | ✅ | CSP eklendi: `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`; Stripe ve görsel kaynakları açıkça izinli. Script'lerde `'unsafe-inline'` kaldı (nonce için middleware gerekir — Faz 3) |
 | PRF-1 | 🟡 kısmi | İstek başına oturum sorgusu teke indi. Sayfa önbelleği **yapılmadı**: katalog HTML'i fiyat kilidine göre değişiyor, dolayısıyla paylaşımlı önbellek misafire toptan fiyat sızdırabilir. Doğru çözüm PPR/`cacheComponents` ile kilitli ve kilitsiz varyantı ayırmak — ayrı bir iş olarak planlanmalı |
-| SEP-7, DEV-2/3 | ❌ Açık | Faz 2'nin kalanı |
+| SEP-7 | ✅ | `carts`/`cart_items` (migration 0008): girişli alıcının sepeti cihazlar arası taşınır, girişte yerel sepetle birleşir (satır başına büyük adet), sipariş verilince boşalır; 3 gün bekleyen sepete cron'dan tek hatırlatma e-postası. Misafir sepeti yine yalnızca localStorage'da. Tekrar sipariş zaten vardı |
+| DEV-2/3 | ❌ Açık | Faz 2'nin kalanı (migration otomasyonu, gözlemlenebilirlik) |
 
 ### Faz 3 — Büyüme ve olgunluk (Hafta 14–18, ≈25 g)
 
