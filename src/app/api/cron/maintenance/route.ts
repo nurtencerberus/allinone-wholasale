@@ -52,7 +52,12 @@ export async function GET(request: Request) {
   report.unpaidAchCancelled = cancelled;
 
   // 3. Lots close to their best-by date stop being sold.
-  report.lotsPulled = await pullExpiringLots();
+  const expiry = await pullExpiringLots();
+  report.lotsPulled = expiry.pulled;
+  if (expiry.failed.length) {
+    report.lotsPullFailed = expiry.failed;
+    console.error("[cron-expiry-pull]", JSON.stringify(expiry.failed));
+  }
 
   // 4. Low stock: one daily digest to the trade desk.
   const low = await db
