@@ -141,9 +141,16 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       const imageIds = [...new Set(urls.map((url) => UPLOADED_IMAGE.exec(url)?.[1]).filter(Boolean).map(Number))];
       let removedImages = 0;
       if (imageIds.length) {
-        const others = await tx.select({ image: products.image, images: products.images, facts: products.factsPanelImage }).from(products);
+        const others = await tx
+          .select({ image: products.image, images: products.images, facts: products.factsPanelImage, certifications: products.certifications })
+          .from(products);
+        // Certificate documents count as uses too, or deleting one product breaks another's proof.
         const stillUsed = new Set(
-          others.flatMap((row) => [row.image, ...row.images, row.facts ?? ""]).map((url) => UPLOADED_IMAGE.exec(url)?.[1]).filter(Boolean).map(Number),
+          others
+            .flatMap((row) => [row.image, ...row.images, row.facts ?? "", ...row.certifications.map((cert) => cert.documentUrl ?? "")])
+            .map((url) => UPLOADED_IMAGE.exec(url)?.[1])
+            .filter(Boolean)
+            .map(Number),
         );
         const orphaned = imageIds.filter((imageId) => !stillUsed.has(imageId));
         if (orphaned.length) {

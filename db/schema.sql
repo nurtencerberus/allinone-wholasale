@@ -443,6 +443,7 @@ CREATE UNIQUE INDEX "products_gtin_unique" ON "products" USING btree ("gtin");
 CREATE INDEX "products_asin_idx" ON "products" USING btree ("asin");
 CREATE INDEX "products_category_idx" ON "products" USING btree ("category");
 CREATE INDEX "return_items_return_idx" ON "return_items" USING btree ("return_id");
+CREATE UNIQUE INDEX "return_items_line_unique" ON "return_items" USING btree ("return_id","order_item_id");
 CREATE UNIQUE INDEX "return_requests_rma_unique" ON "return_requests" USING btree ("rma_number");
 CREATE INDEX "return_requests_order_idx" ON "return_requests" USING btree ("order_id");
 CREATE INDEX "reviews_product_idx" ON "reviews" USING btree ("product_id");

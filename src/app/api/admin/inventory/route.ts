@@ -70,7 +70,16 @@ export async function POST(request: Request) {
         });
         return row;
       });
-      return Response.json({ ok: true, lot, message: `Received ${Number(body.cases)} cases into lot ${lot.lotNumber}.` });
+      // Cases on a lot that is not "available" are on file but not for sale — say so, or the
+      // receipt reads like stock the storefront will never show.
+      const sellable = lot.status === "available";
+      return Response.json({
+        ok: true,
+        lot,
+        message: sellable
+          ? `Received ${Number(body.cases)} cases into lot ${lot.lotNumber}.`
+          : `Received ${Number(body.cases)} cases into lot ${lot.lotNumber}, which is ${lot.status} — these cases are not for sale.`,
+      });
     }
 
     if (body.action === "adjust") {

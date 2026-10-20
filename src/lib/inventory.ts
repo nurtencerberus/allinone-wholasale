@@ -121,6 +121,10 @@ export async function receiveLot(
     throw new InventoryError("Received quantity must be a whole number of cases (1 or more).");
   }
 
+  // allocateFefo never picks a lot inside the pull window, and products.stock must not count
+  // cases checkout cannot fill: the goods are booked in, on a lot that is not for sale.
+  const shortDated = !!input.expiresOn && input.expiresOn <= isoDate(addDays(new Date(), EXPIRY_PULL_DAYS));
+
   const [existing] = await tx
     .select()
     .from(productLots)
@@ -151,6 +155,7 @@ export async function receiveLot(
         productId: input.productId,
         lotNumber,
         expiresOn: input.expiresOn,
+        status: shortDated ? "expired" : "available",
         supplier: input.supplier?.trim().slice(0, 120) || null,
         qtyReceived: input.cases,
         qtyOnHand: input.cases,
@@ -168,9 +173,14 @@ export async function receiveLot(
     reason: input.reason ?? "receipt",
     refType: input.refType,
     refId: input.refId,
-    note: input.note,
+    note: shortDated && lot.status !== "available" ? `${input.note ? `${input.note} · ` : ""}Not for sale: within ${EXPIRY_PULL_DAYS} days of best-by` : input.note,
     actorId: input.actorId,
   });
+  // A lot that was still on sale when the short-dated cases arrived leaves sale now, with its
+  // whole quantity, rather than waiting for the nightly pull.
+  if (shortDated && lot.status === "available") {
+    return setLotStatus(tx, { lotId: lot.id, status: "expired", note: `Within ${EXPIRY_PULL_DAYS} days of best-by`, actorId: input.actorId });
+  }
   return lot;
 }
 
@@ -248,6 +258,11 @@ export async function setLotExpiry(tx: Tx, input: { lotId: number; expiresOn: st
     note: `Best-by recorded: ${input.expiresOn}`,
     actorId: input.actorId,
   });
+  // The recorded date may already be inside the pull window: FEFO would skip the lot while its
+  // cases still counted as sellable stock, so take it off sale with the date.
+  if (lot.status === "available" && input.expiresOn <= isoDate(addDays(new Date(), EXPIRY_PULL_DAYS))) {
+    return setLotStatus(tx, { lotId: lot.id, status: "expired", note: `Within ${EXPIRY_PULL_DAYS} days of best-by`, actorId: input.actorId });
+  }
   return lot;
 }
 
@@ -358,12 +373,16 @@ export async function returnToLot(
     )
     .where(eq(productLots.id, lotId))
     .returning();
+  if (!lot) throw new InventoryError("That lot is no longer on file; the cases could not be booked back in.");
   if (input.bucket === "on_hand" && lot.status === "available") await moveSellable(tx, input.productId, input.cases);
   await logMovement(tx, { ...input, lotId, delta: input.cases });
 }
 
-/** Daily: lots inside the pull window stop being sold. */
-export async function pullExpiringLots(): Promise<string[]> {
+/**
+ * Daily: lots inside the pull window stop being sold. A lot that cannot be pulled (drifted
+ * stock column, say) is reported and skipped — the rest of the maintenance run must still finish.
+ */
+export async function pullExpiringLots(): Promise<{ pulled: string[]; failed: { lotNumber: string; error: string }[] }> {
   const cutoff = isoDate(addDays(new Date(), EXPIRY_PULL_DAYS));
   const due = await db
     .select({ id: productLots.id, lotNumber: productLots.lotNumber })
@@ -371,13 +390,19 @@ export async function pullExpiringLots(): Promise<string[]> {
     .where(and(eq(productLots.status, "available"), sql`${productLots.expiresOn} <= ${cutoff}`))
     .limit(500);
   const pulled: string[] = [];
+  const failed: { lotNumber: string; error: string }[] = [];
   for (const lot of due) {
-    await db.transaction((tx) =>
-      setLotStatus(tx, { lotId: lot.id, status: "expired", note: `Within ${EXPIRY_PULL_DAYS} days of best-by` }),
-    );
-    pulled.push(lot.lotNumber);
+    try {
+      await db.transaction((tx) =>
+        setLotStatus(tx, { lotId: lot.id, status: "expired", note: `Within ${EXPIRY_PULL_DAYS} days of best-by` }),
+      );
+      pulled.push(lot.lotNumber);
+    } catch (error) {
+      console.error("[expiry-pull]", lot.lotNumber, error);
+      failed.push({ lotNumber: lot.lotNumber, error: error instanceof Error ? error.message : String(error) });
+    }
   }
-  return pulled;
+  return { pulled, failed };
 }
 
 /** Products whose stock column disagrees with their lots (should always be empty). */

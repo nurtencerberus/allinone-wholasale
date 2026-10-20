@@ -535,7 +535,11 @@ export const returnItems = pgTable(
     condition: text("condition"), // sealed | opened | damaged — set when the cartons arrive
     disposition: text("disposition"), // restock | quarantine | destroy
   },
-  (table) => [index("return_items_return_idx").on(table.returnId)],
+  // One row per line: a request that claims the same line twice would be refunded twice.
+  (table) => [
+    index("return_items_return_idx").on(table.returnId),
+    uniqueIndex("return_items_line_unique").on(table.returnId, table.orderItemId),
+  ],
 );
 
 /** Product photos uploaded from the admin panel, served from /api/product-images/[id]. */

@@ -35,6 +35,9 @@ export const ORDER_TRANSITIONS: Record<string, readonly string[]> = {
 /** Payment states in which goods may leave the warehouse. */
 export const SHIPPABLE_PAYMENT = ["paid", "paid_demo", "net30_invoice"] as const;
 
+/** Reads that run either on the pool or inside a transaction. */
+type SelectExecutor = Pick<typeof db, "select">;
+
 export const RETURN_WINDOW_DAYS = 14;
 export const RETURN_REASONS = ["damaged", "wrong_item", "not_as_described", "expired_or_short_dated", "no_longer_needed", "other"] as const;
 export const RETURN_CONDITIONS = ["sealed", "opened", "damaged"] as const;
@@ -352,8 +355,8 @@ export function returnEligibility(order: Pick<Order, "deliveredAt" | "shippedAt"
 }
 
 /** Cases of each line already claimed by return requests that were not rejected. */
-async function claimedCases(orderId: number): Promise<Map<number, number>> {
-  const rows = await db
+async function claimedCases(exec: SelectExecutor, orderId: number): Promise<Map<number, number>> {
+  const rows = await exec
     .select({ orderItemId: returnItems.orderItemId, cases: sql<number>`sum(${returnItems.cases})::int` })
     .from(returnItems)
     .innerJoin(returnRequests, eq(returnRequests.id, returnItems.returnId))
@@ -362,12 +365,27 @@ async function claimedCases(orderId: number): Promise<Map<number, number>> {
   return new Map(rows.map((row) => [row.orderItemId, row.cases]));
 }
 
-export async function returnableLines(orderId: number): Promise<(OrderItem & { returnable: number })[]> {
-  const [lines, claimed] = await Promise.all([
-    db.select().from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(asc(orderItems.id)),
-    claimedCases(orderId),
-  ]);
+export async function returnableLines(orderId: number, exec: SelectExecutor = db): Promise<(OrderItem & { returnable: number })[]> {
+  const lines = await exec.select().from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(asc(orderItems.id));
+  const claimed = await claimedCases(exec, orderId);
   return lines.map((line) => ({ ...line, returnable: Math.max(0, line.cases - (claimed.get(line.id) ?? 0)) }));
+}
+
+/**
+ * Every claimed line is on the order and still has room for the cases asked for. Called again
+ * inside the insert transaction, where the order's lines are locked first: without that recount
+ * two requests sent at once could each pass the per-line cap and the refund would be paid twice.
+ */
+async function assertReturnable(tx: Tx, orderId: number, wanted: { orderItemId: number; cases: number }[]): Promise<void> {
+  await tx.select({ id: orderItems.id }).from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(asc(orderItems.id)).for("update");
+  const byId = new Map((await returnableLines(orderId, tx)).map((line) => [line.id, line]));
+  for (const item of wanted) {
+    const line = byId.get(item.orderItemId);
+    if (!line) throw new OrderActionError("That item is not on this order.");
+    if (item.cases > line.returnable) {
+      throw new OrderActionError(`${line.name}: at most ${line.returnable} case(s) can still be returned.`);
+    }
+  }
 }
 
 export async function requestReturn(input: {
@@ -382,22 +400,21 @@ export async function requestReturn(input: {
   if (!eligibility.eligible) throw new OrderActionError(eligibility.reason ?? "This order cannot be returned.", 409);
   if (!(RETURN_REASONS as readonly string[]).includes(input.reason)) throw new OrderActionError("Choose a return reason.");
 
-  const lines = await returnableLines(order.id);
-  const byId = new Map(lines.map((line) => [line.id, line]));
-  const wanted = input.items.filter((item) => Number.isInteger(item.cases) && item.cases > 0);
-  if (!wanted.length) throw new OrderActionError("Choose at least one case to return.");
-  for (const item of wanted) {
-    const line = byId.get(item.orderItemId);
-    if (!line) throw new OrderActionError("That item is not on this order.");
-    if (item.cases > line.returnable) {
-      throw new OrderActionError(`${line.name}: at most ${line.returnable} case(s) can still be returned.`);
-    }
+  // One entry per line: a payload that names the same line twice must not slip past the per-line
+  // cap, which is checked per entry and would otherwise be paid out once for each entry.
+  const merged = new Map<number, number>();
+  for (const item of input.items) {
+    if (!Number.isInteger(item.cases) || item.cases <= 0) continue;
+    merged.set(item.orderItemId, (merged.get(item.orderItemId) ?? 0) + item.cases);
   }
+  const wanted = [...merged].map(([orderItemId, cases]) => ({ orderItemId, cases }));
+  if (!wanted.length) throw new OrderActionError("Choose at least one case to return.");
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const rmaNumber = `RMA-${randomInt(100000, 1000000)}`;
     try {
       const created = await db.transaction(async (tx) => {
+        await assertReturnable(tx, order.id, wanted);
         const [row] = await tx
           .insert(returnRequests)
           .values({
@@ -504,8 +521,10 @@ export async function receiveReturn(
     for (const { item, line } of items) {
       const decision = decisionById.get(item.id)!;
       await tx.update(returnItems).set({ condition: decision.condition, disposition: decision.disposition }).where(eq(returnItems.id, item.id));
-      await tx.update(orderItems).set({ returnedCases: sql`${orderItems.returnedCases} + ${item.cases}` }).where(eq(orderItems.id, line.id));
-      if (line.productId === null) continue;
+      if (line.productId === null) {
+        await tx.update(orderItems).set({ returnedCases: sql`${orderItems.returnedCases} + ${item.cases}` }).where(eq(orderItems.id, line.id));
+        continue;
+      }
 
       // Put the cases back against the lots they shipped from.
       const lots = await tx
@@ -572,6 +591,12 @@ export async function receiveReturn(
           });
         }
       }
+      // Never count cases as returned that no lot took back: order_items would drift away from
+      // order_item_lots and the stock ledger with nothing to show where the cases went.
+      if (remaining > 0) {
+        throw new OrderActionError(`${line.name}: only ${item.cases - remaining} of ${item.cases} case(s) are still open against the lots they shipped from.`, 409);
+      }
+      await tx.update(orderItems).set({ returnedCases: sql`${orderItems.returnedCases} + ${item.cases}` }).where(eq(orderItems.id, line.id));
     }
     await tx.update(returnRequests).set({ status: "received", receivedAt: new Date(), updatedAt: new Date() }).where(eq(returnRequests.id, returnId));
     await recordOrderEvent(tx, { orderId: order.id, type: "return", from: "approved", to: "received", message: rma.rmaNumber, actor, visibleToCustomer: true });
