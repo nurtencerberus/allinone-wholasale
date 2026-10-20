@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from "lucide-react";
@@ -14,6 +14,28 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
   const { items, lines, isOpen, closeCart, setCases, removeItem, subtotal, units, hydrated, loading } = useCart();
   const panel = useRef<HTMLElement | null>(null);
   const opener = useRef<Element | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [quoteMessage, setQuoteMessage] = useState<string | null>(null);
+
+  // Send the cart to the trade desk as a request for quote (UX-7). The reply lands on
+  // /account/quotes; accepting it prices every later order on its own.
+  const askForQuote = async () => {
+    setQuoting(true);
+    setQuoteMessage(null);
+    try {
+      const response = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items: items.map((line) => ({ productId: line.productId, cases: line.cases })) }),
+      });
+      const data = (await response.json()) as { error?: string; message?: string };
+      setQuoteMessage(response.ok ? (data.message ?? "Request sent.") : (data.error ?? "Could not send the request."));
+    } catch {
+      setQuoteMessage("Network error — the request was not sent.");
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   // UX-3: a drawer is a modal dialog. Focus moves into it when it opens, stays inside while it
   // is open (WCAG 2.1.2, no keyboard trap outside it) and returns to whatever opened it.
@@ -251,6 +273,20 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
             <Link href="/checkout" onClick={closeCart} className="btn btn-primary mt-4 w-full">
               Secure checkout
             </Link>
+            {/* UX-7: the same quantities can go to the trade desk for a price instead. */}
+            <button
+              type="button"
+              disabled={quoting}
+              onClick={() => void askForQuote()}
+              className="btn btn-outline btn-sm mt-2 w-full"
+            >
+              {quoting ? "Sending…" : "Ask the trade desk for a quote"}
+            </button>
+            {quoteMessage ? (
+              <p role="alert" className="mt-2 text-center text-[11px] font-semibold text-fern">
+                {quoteMessage}
+              </p>
+            ) : null}
             <div className="mt-3 flex items-center justify-between text-[10.5px] text-ink/65">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck size={12} /> Stripe tokenised · PCI-DSS

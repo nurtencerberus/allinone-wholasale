@@ -8,6 +8,7 @@ import { abandonedCarts, markCartReminded } from "@/lib/cart-store";
 import { abandonedCartTemplate, escapeHtml, sendEmail } from "@/lib/email";
 import { pullExpiringLots, stockDrift } from "@/lib/inventory";
 import { cancelOrderAndRestock } from "@/lib/orders";
+import { expireQuotes } from "@/lib/quotes";
 import { appOrigin, SITE } from "@/lib/site";
 
 export const runtime = "nodejs";
@@ -113,12 +114,15 @@ async function runMaintenance(report: Record<string, unknown>) {
   }
   report.cartsReminded = reminded.length;
 
-  // 6. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
+  // 6. Quotes whose deadline has passed stop being acceptable (UX-7).
+  report.quotesExpired = await expireQuotes();
+
+  // 7. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
   const drift = await stockDrift();
   report.stockDrift = drift;
   if (drift.length) console.error("[cron-stock-drift]", JSON.stringify(drift));
 
-  // 7. Expired sessions, sign-in challenges and rate-limit windows.
+  // 8. Expired sessions, sign-in challenges and rate-limit windows.
   await db.delete(loginChallenges).where(lt(loginChallenges.expiresAt, new Date()));
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;

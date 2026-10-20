@@ -257,3 +257,4 @@ CI, `main`'deki şema + migration'ların `db/schema.sql` ile birebir aynı sonuc
 | `0007_performance_indexes.sql` | Performans deploy'uyla birlikte (öncesi veya sonrası fark etmez) | Jeton aramaları, hesap sipariş geçmişi, admin listeleri ve gecelik temizlik için eksik indeksler. Veriye dokunmaz |
 | `0008_server_cart.sql` | Sunucu sepeti deploy'undan önce | `carts` ve `cart_items` tabloları. Olmadan yeni kod sepet senkronunda hata verir (misafir sepeti etkilenmez) |
 | `0009_account_prices.sql` | Sözleşmeli fiyat deploy'undan önce | `account_prices` tablosu. Olmadan yeni kod teklif ve sipariş fiyatlamasında hata verir |
+| `0010_quote_requests.sql` | RFQ deploy'undan önce | `quote_requests` ve `quote_items` tabloları. Olmadan teklif ekranları ve gecelik cron hata verir |
