@@ -284,7 +284,17 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
   değişiklikte `PUT /api/cart` kaydeder, sipariş oluşunca `clearCart()` boşaltır. Cron 3 gün dokunulmamış sepet
   için **tek** hatırlatma e-postası atar (`reminded_at`; sepet değişince sıfırlanır).
 - DB bağlantı havuzu `src/db/index.ts`: serverless için küçük (`DATABASE_POOL_MAX`, varsayılan 5), Neon'da
-  **pooled** (`-pooler`) bağlantı dizesi + `sslmode=require`. Stripe/pg kullanan route'lar `runtime = "nodejs"`.
+  **pooled** (`-pooler`) bağlantı dizesi. Stripe/pg kullanan route'lar `runtime = "nodejs"`. Üç ayrıntı canlı
+  log'lardan geldi, değiştirmeden önce okuyun:
+  - **TLS kodda ayarlanır.** `DATABASE_URL`'deki `sslmode` (ve libpq'ya özel `channel_binding`) `poolConfigFor()`
+    ile dizeden çıkarılıp `ssl: { rejectUnauthorized: true }`'ye çevrilir. Çünkü pg 8.23 `sslmode=require` görünce
+    her bağlantıda stderr'e uyarı basıyor ve Vercel bunu `level:error` olarak kaydedip gerçek hataları gömüyor;
+    ayrıca pg 9'da `require` anlamı zayıflayacak. Davranış bugünküyle aynı, uyarı yok.
+  - **`keepAlive` + `pool.on("error")`.** Neon boşta kalan compute'u askıya alır, pooler sessiz socket'i düşürür.
+    Havuzun `error` olayını dinlemezseniz Node bunu yakalanmamış hata sayar ve fonksiyon çağrısını düşürür.
+  - **Tek SELECT için bir kez yeniden deneme.** `Connection terminated unexpectedly` canlıda katalog önbelleği
+    yenilenirken görüldü. Yalnızca tek `select`/`with` ifadeleri tekrarlanır; yazmalar ve transaction'lar
+    (`pool.connect()` ile ayrı istemci alır) **asla** — çift uygulanabilecek hiçbir şey tekrarlanmaz.
 - Güvenlik başlıkları `next.config.ts`'te tanımlı; **CSP** de orada (`default-src 'self'`, Stripe için
   `js.stripe.com` / `*.stripe.network`, görseller için `images.pexels.com`). Script'lerde `'unsafe-inline'` var
   çünkü App Router satır içi bootstrap script'i basıyor ve nonce üretecek middleware yok — yeni bir dış kaynak
