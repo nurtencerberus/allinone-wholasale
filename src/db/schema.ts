@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   customType,
@@ -310,6 +311,12 @@ export const products = pgTable(
     index("products_category_idx").on(table.category),
     // The storefront only ever lists active products, and the home page the featured ones.
     index("products_active_featured_idx").on(table.active, table.featured),
+    // UX-6: catalogue search. `ilike '%term%'` across the description could only ever be a scan;
+    // this is the expression the search query uses, so the GIN index answers it.
+    index("products_search_idx").using(
+      "gin",
+      sql`to_tsvector('english', coalesce(${table.name}, '') || ' ' || coalesce(${table.brand}, '') || ' ' || coalesce(${table.sku}, '') || ' ' || coalesce(${table.description}, ''))`,
+    ),
   ],
 );
 

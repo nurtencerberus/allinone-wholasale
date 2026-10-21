@@ -49,6 +49,24 @@ test.describe("storefront", () => {
     await expect(addToCart(page)).toBeVisible();
   });
 
+  test("the catalog facets filter the grid from the sidebar", async ({ page }) => {
+    await page.goto("/shop");
+    // Nothing is filtered yet, so there is nothing to clear.
+    await expect(page.getByRole("link", { name: "Clear" })).toHaveCount(0);
+
+    // The facets are links: they work without JavaScript and the filtered view has a URL to share.
+    await page.locator("aside a", { hasText: /^Ciputra/ }).first().click();
+    await page.waitForURL(/brand=/);
+    await expect(page.getByText(/of \d+ matching SKUs/)).toBeVisible();
+    await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
+
+    const clear = page.getByRole("link", { name: "Clear" });
+    await expect(clear).toBeVisible();
+    await clear.click();
+    await page.waitForURL((url) => url.pathname === "/shop" && url.search === "");
+    await expect(page.getByRole("link", { name: "Clear" })).toHaveCount(0);
+  });
+
   test("a staff sign-in lands in the admin portal", async ({ page }) => {
     await signIn(page, ACCOUNTS.admin);
     expect(new URL(page.url()).pathname).toBe("/admin");

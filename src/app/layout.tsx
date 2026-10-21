@@ -54,7 +54,9 @@ export const metadata: Metadata = {
     description: SITE.description,
   },
   robots: { index: true, follow: true },
-  alternates: { canonical: "/" },
+  // No canonical here on purpose (UX-5): metadata is inherited, so a default of "/" told search
+  // engines that every page without its own canonical *was* the home page. Each indexable page
+  // declares its own; the private ones declare `robots: noindex` instead.
 };
 
 export const viewport: Viewport = {

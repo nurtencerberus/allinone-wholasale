@@ -1,29 +1,62 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { and, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
-import { Download, FileSpreadsheet, Lock, PackageSearch, SlidersHorizontal, X } from "lucide-react";
+import { and, eq, ilike, or } from "drizzle-orm";
+import { BadgeCheck, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Lock, PackageSearch, SlidersHorizontal, X } from "lucide-react";
 import { db } from "@/db";
 import { products } from "@/db/schema";
+import { CatalogSkeleton } from "@/components/CatalogSkeleton";
 import { ProductCard } from "@/components/ProductCard";
-import { cachedCategoryCounts, shopList } from "@/lib/catalog-cache";
+import { cachedBrands, cachedCategoryCounts, shopList, SHOP_PAGE_SIZE, type ShopPage } from "@/lib/catalog-cache";
+import { pageRange, pageWindow } from "@/lib/pagination";
 import { CATEGORIES } from "@/lib/site";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
+import { ensureSeeded } from "@/lib/seed";
 import { toCardProduct } from "@/lib/catalog-view";
 
 type SearchParams = {
   category?: string;
+  brand?: string;
   q?: string;
   sort?: string;
   price?: string;
   stock?: string;
+  cert?: string;
+  page?: string;
 };
 
-export const metadata = {
-  title: "Wholesale catalog · case pricing",
-  description:
-    "Browse every Ciputra Corp. wholesale SKU: supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.",
-  alternates: { canonical: "/shop" },
-};
+const TITLE = "Wholesale catalog · case pricing";
+const DESCRIPTION =
+  "Browse every Ciputra Corp. wholesale SKU: supplements, pantry staples and home goods with case pricing, dimensional weight and volume tiers.";
+
+/**
+ * UX-5: every view carries its own canonical, so a filtered or paged grid no longer points
+ * search engines at the home page. A search result set is a visitor's query, not a page worth
+ * indexing — those are noindex, and the canonical still names the catalogue itself.
+ */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  const category = CATEGORIES.find((entry) => entry.key === params.category);
+  const page = pageNumber(params.page);
+  const search = (params.q ?? "").trim();
+
+  const canonical = new URLSearchParams();
+  if (category) canonical.set("category", category.key);
+  if (page > 1) canonical.set("page", String(page));
+  const query = canonical.toString();
+
+  return {
+    title: category ? `${category.name} · wholesale case pricing` : TITLE,
+    description: category ? category.blurb : DESCRIPTION,
+    alternates: { canonical: query ? `/shop?${query}` : "/shop" },
+    robots: search ? { index: false, follow: true } : undefined,
+  };
+}
+
+function pageNumber(raw: string | undefined): number {
+  const parsed = Number.parseInt(raw ?? "1", 10);
+  return Number.isFinite(parsed) && parsed > 1 ? Math.min(parsed, 10_000) : 1;
+}
 
 const SORTS = [
   { key: "featured", label: "Featured" },
@@ -40,7 +73,9 @@ const PRICE_BANDS = [
 
 function buildHref(current: SearchParams, patch: Partial<SearchParams>) {
   const params = new URLSearchParams();
-  const next = { ...current, ...patch };
+  // Any change but paging itself starts again at page one: page 7 of the old filter is not
+  // page 7 of the new one.
+  const next = { ...current, ...("page" in patch ? {} : { page: undefined }), ...patch };
   for (const [key, value] of Object.entries(next)) {
     if (value && value !== "all") params.set(key, String(value));
   }
@@ -64,8 +99,10 @@ export default async function ShopPage({
   const band = showPrices ? PRICE_BANDS.find((item) => item.key === params.price) : undefined;
   const inStockOnly = params.stock === "in";
 
-  const filters = [eq(products.active, true)];
-  if (category) filters.push(eq(products.category, category));
+  const brand = (params.brand ?? "").trim().slice(0, 80) || undefined;
+  const certifiedOnly = params.cert === "on";
+  const page = pageNumber(params.page);
+
   if (q) {
     // An exact SKU, UPC/GTIN, ASIN or MPN goes straight to the product (scanner and buyer-sheet lookups).
     const code = q.replace(/[\s-]/g, "").toUpperCase();
@@ -82,66 +119,22 @@ export default async function ShopPage({
         .limit(2);
       if (exact) redirect(`/products/${exact.slug}`);
     }
-    filters.push(
-      or(
-        ilike(products.name, `%${q}%`),
-        ilike(products.sku, `%${q}%`),
-        ilike(products.description, `%${q}%`),
-        ilike(products.brand, `%${q}%`),
-        ilike(products.gtin, `%${code}%`),
-        ilike(products.asin, `%${code}%`),
-        ilike(products.mpn, `%${q}%`),
-      )!,
-    );
-  }
-  if (band) {
-    filters.push(gte(products.casePrice, band.min));
-    filters.push(lte(products.casePrice, band.max));
-  }
-  if (inStockOnly) filters.push(gt(products.stock, 0));
-
-  const orderBy =
-    sort === "price-asc"
-      ? [asc(products.casePrice)]
-      : sort === "price-desc"
-        ? [desc(products.casePrice)]
-        : sort === "newest"
-          ? [desc(products.createdAt)]
-          : [desc(products.featured), asc(products.name)];
-
-  let list: (typeof products.$inferSelect)[] = [];
-  let counts: { category: string; count: number }[] = [];
-  try {
-    // Without a search term the grid comes from the shared data cache (PRF-1); a search runs
-    // against the database so visitor input cannot fill the cache with one entry per query.
-    [list, counts] = await Promise.all([
-      q
-        ? db
-            .select()
-            .from(products)
-            .where(filters.length ? and(...filters) : undefined)
-            .orderBy(...orderBy)
-        : shopList(
-            {
-              category: category ?? null,
-              min: band?.min ?? null,
-              max: band?.max ?? null,
-              inStockOnly,
-              sort,
-              activeOnly: true,
-            },
-            null,
-          ),
-      cachedCategoryCounts(),
-    ]);
-  } catch (error) {
-    console.error("[shop] catalog unavailable", error);
   }
 
-  const totalCount = counts.reduce((sum, row) => sum + row.count, 0);
-  const countFor = (key: string) => counts.find((row) => row.category === key)?.count ?? 0;
-  const activeFilterCount =
-    (category ? 1 : 0) + (q ? 1 : 0) + (band ? 1 : 0) + (inStockOnly ? 1 : 0);
+  const view: CatalogView = {
+    params,
+    showPrices,
+    viewer: Boolean(viewer),
+    sorts,
+    category,
+    q,
+    sort,
+    band,
+    inStockOnly,
+    brand,
+    certifiedOnly,
+    page,
+  };
 
   return (
     <div className="border-t border-ink/10">
@@ -165,16 +158,91 @@ export default async function ShopPage({
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
               <span className="rounded-full border border-ink/15 bg-[#fffdf8] px-3 py-1.5">
-                {list.length} of {totalCount} SKUs
+                Case-packed · FOB Paterson
               </span>
               <span className="rounded-full border border-ink/15 bg-[#fffdf8] px-3 py-1.5">
-                Case-packed · FOB Paterson
+                Freight &amp; destination tax quoted at checkout
               </span>
             </div>
           </div>
         </div>
       </section>
 
+      {/*
+        UX-4: the catalogue's queries are suspended, not the page. A route-level loading.tsx
+        would flush the shell with status 200 before this component runs, and the exact-SKU
+        redirect above would stop being a 307.
+      */}
+      <Suspense fallback={<CatalogSkeleton />}>
+        <CatalogBody view={view} />
+      </Suspense>
+    </div>
+  );
+}
+
+type CatalogView = {
+  params: SearchParams;
+  showPrices: boolean;
+  viewer: boolean;
+  sorts: { key: string; label: string }[];
+  category?: string;
+  q: string;
+  sort: string;
+  band?: { key: string; label: string; min: number; max: number };
+  inStockOnly: boolean;
+  brand?: string;
+  certifiedOnly: boolean;
+  page: number;
+};
+
+async function CatalogBody({ view }: { view: CatalogView }) {
+  const { params, showPrices, viewer, sorts, category, q, sort, band, inStockOnly, brand, certifiedOnly, page } = view;
+
+  // The layout seeds in parallel with the page, which on a cold demo database meant the grid
+  // could be queried — and its empty answer cached for a minute — before the catalogue existed.
+  try {
+    await ensureSeeded();
+  } catch (error) {
+    console.error("[shop] seed unavailable", error);
+  }
+
+  let grid: ShopPage = { rows: [], total: 0, page: 1, pages: 1 };
+  let counts: { category: string; count: number }[] = [];
+  let brands: { brand: string; count: number }[] = [];
+  try {
+    // One page at a time (UX-6). Without a search term the page comes from the shared data cache
+    // (PRF-1); a search runs against the database so visitor input cannot fill the cache.
+    [grid, counts, brands] = await Promise.all([
+      shopList(
+        {
+          category: category ?? null,
+          brand: brand ?? null,
+          min: band?.min ?? null,
+          max: band?.max ?? null,
+          inStockOnly,
+          certifiedOnly,
+          sort,
+          activeOnly: true,
+        },
+        q || null,
+        page,
+      ),
+      cachedCategoryCounts(),
+      cachedBrands(),
+    ]);
+  } catch (error) {
+    console.error("[shop] catalog unavailable", error);
+  }
+
+  const list = grid.rows;
+  const totalCount = counts.reduce((sum, row) => sum + row.count, 0);
+  const countFor = (key: string) => counts.find((row) => row.category === key)?.count ?? 0;
+  const range = pageRange(grid.page, SHOP_PAGE_SIZE, grid.total);
+  const activeFilterCount =
+    (category ? 1 : 0) + (q ? 1 : 0) + (band ? 1 : 0) + (inStockOnly ? 1 : 0) + (brand ? 1 : 0) + (certifiedOnly ? 1 : 0);
+
+  return (
+    <>
       <div className="wrap grid gap-8 py-8 lg:grid-cols-[240px_1fr] lg:py-10">
         <aside className="lg:sticky lg:top-32 lg:self-start">
           <div className="flex items-center justify-between">
@@ -251,6 +319,55 @@ export default async function ShopPage({
             </Link>
           </div>
 
+          {brands.length > 1 ? (
+            <div className="mt-5 border-t border-ink/10 pt-5">
+              <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">Brand</p>
+              <div className="mt-2.5 space-y-0.5">
+                {brands.slice(0, 12).map((item) => (
+                  <Link
+                    key={item.brand}
+                    href={buildHref(params, { brand: brand === item.brand ? undefined : item.brand })}
+                    className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-[12.5px] transition-colors ${
+                      brand === item.brand ? "bg-ink text-cream font-semibold" : "text-ink/70 hover:bg-ink/5"
+                    }`}
+                  >
+                    <span className="truncate">{item.brand}</span>
+                    <span className="text-[10.5px] opacity-60">{item.count}</span>
+                  </Link>
+                ))}
+                {/* A brand picked from a search result may sit outside the first twelve. */}
+                {brand && !brands.slice(0, 12).some((item) => item.brand === brand) ? (
+                  <Link
+                    href={buildHref(params, { brand: undefined })}
+                    className="flex items-center justify-between gap-2 rounded-md bg-ink px-2.5 py-2 text-[12.5px] font-semibold text-cream"
+                  >
+                    <span className="truncate">{brand}</span>
+                    <X size={11} />
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mt-5 border-t border-ink/10 pt-5">
+            <p className="text-[10px] font-bold tracking-[0.16em] text-ink/65 uppercase">Certification</p>
+            <Link
+              href={buildHref(params, { cert: certifiedOnly ? undefined : "on" })}
+              className="mt-2.5 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[12.5px] text-ink/70 hover:bg-ink/5"
+            >
+              <span
+                className={`flex h-4 w-4 items-center justify-center rounded border ${
+                  certifiedOnly ? "border-ink bg-ink text-cream" : "border-ink/25"
+                }`}
+              >
+                {certifiedOnly ? "✓" : ""}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <BadgeCheck size={13} className="text-fern" /> Certificate on file
+              </span>
+            </Link>
+          </div>
+
           <div className="mt-5 rounded-lg border border-fern/20 bg-fern/5 p-4">
             <p className="text-[11.5px] font-bold text-fern">Need a freight estimate?</p>
             <p className="mt-1 text-[11px] leading-relaxed text-ink/72">
@@ -282,11 +399,16 @@ export default async function ShopPage({
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {q ? (
-                <p className="text-[11.5px] text-ink/70">
-                  Results for <span className="font-bold text-ink">“{q}”</span>
-                </p>
-              ) : null}
+              <p className="text-[11.5px] text-ink/70">
+                {q ? (
+                  <>
+                    Results for <span className="font-bold text-ink">“{q}”</span> ·{" "}
+                  </>
+                ) : null}
+                {grid.total === 0
+                  ? `0 of ${totalCount} SKUs`
+                  : `${range.from}–${range.to} of ${grid.total}${grid.total === totalCount ? "" : " matching"} SKUs`}
+              </p>
               {showPrices ? (
               <>
               <a
@@ -341,14 +463,72 @@ export default async function ShopPage({
               </Link>
             </div>
           ) : (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {list.map((product, index) => (
-                <ProductCard key={product.id} product={toCardProduct(product, showPrices)} index={index} />
-              ))}
-            </div>
+            <>
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {list.map((product, index) => (
+                  <ProductCard key={product.id} product={toCardProduct(product, showPrices)} index={index} />
+                ))}
+              </div>
+
+              {/* UX-6: the grid is paged, so a thousand-SKU catalogue is a thousand SKUs on the
+                  server and twenty-four in the browser. */}
+              {grid.pages > 1 ? (
+                <nav aria-label="Catalog pages" className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-ink/10 pt-5">
+                  <p className="text-[11.5px] text-ink/70">
+                    Page {grid.page} of {grid.pages} · showing {range.from}–{range.to} of {grid.total}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {grid.page > 1 ? (
+                      <Link
+                        href={buildHref(params, { page: grid.page - 1 === 1 ? undefined : String(grid.page - 1) })}
+                        rel="prev"
+                        aria-label="Previous page"
+                        className="flex items-center gap-1 rounded-full border border-ink/15 px-3 py-1.5 text-[11px] font-semibold text-ink/72 hover:border-ink/40 hover:text-ink"
+                      >
+                        <ChevronLeft size={12} /> Prev
+                      </Link>
+                    ) : null}
+                    {pageWindow(grid.page, grid.pages).map((entry, index) =>
+                      entry === null ? (
+                        <span key={`gap-${index}`} className="px-1 text-[11px] text-ink/50">
+                          …
+                        </span>
+                      ) : entry === grid.page ? (
+                        <span
+                          key={entry}
+                          aria-current="page"
+                          className="rounded-full border border-ink bg-ink px-3 py-1.5 text-[11px] font-bold text-cream"
+                        >
+                          {entry}
+                        </span>
+                      ) : (
+                        <Link
+                          key={entry}
+                          href={buildHref(params, { page: entry === 1 ? undefined : String(entry) })}
+                          aria-label={`Page ${entry}`}
+                          className="rounded-full border border-ink/15 px-3 py-1.5 text-[11px] font-semibold text-ink/72 hover:border-ink/40 hover:text-ink"
+                        >
+                          {entry}
+                        </Link>
+                      ),
+                    )}
+                    {grid.page < grid.pages ? (
+                      <Link
+                        href={buildHref(params, { page: String(grid.page + 1) })}
+                        rel="next"
+                        aria-label="Next page"
+                        className="flex items-center gap-1 rounded-full border border-ink/15 px-3 py-1.5 text-[11px] font-semibold text-ink/72 hover:border-ink/40 hover:text-ink"
+                      >
+                        Next <ChevronRight size={12} />
+                      </Link>
+                    ) : null}
+                  </div>
+                </nav>
+              ) : null}
+            </>
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
