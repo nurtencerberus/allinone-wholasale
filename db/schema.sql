@@ -29,6 +29,18 @@ CREATE TABLE "addresses" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE "application_documents" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"application_id" integer NOT NULL,
+	"kind" text NOT NULL,
+	"filename" text NOT NULL,
+	"mime" text NOT NULL,
+	"bytes" integer NOT NULL,
+	"content" "bytea" NOT NULL,
+	"uploaded_by" integer,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE "audit_log" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"actor_id" integer,
@@ -488,6 +500,8 @@ ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_company_id_companies
 ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "account_prices" ADD CONSTRAINT "account_prices_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "application_documents" ADD CONSTRAINT "application_documents_application_id_wholesale_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."wholesale_applications"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "application_documents" ADD CONSTRAINT "application_documents_uploaded_by_users_id_fk" FOREIGN KEY ("uploaded_by") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "audit_log" ADD CONSTRAINT "audit_log_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cart_id_carts_id_fk" FOREIGN KEY ("cart_id") REFERENCES "public"."carts"("id") ON DELETE cascade ON UPDATE no action;
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;
@@ -528,6 +542,7 @@ ALTER TABLE "wholesale_applications" ADD CONSTRAINT "wholesale_applications_user
 CREATE UNIQUE INDEX "account_prices_account_product_unique" ON "account_prices" USING btree ("user_id","product_id");
 CREATE INDEX "account_prices_user_idx" ON "account_prices" USING btree ("user_id");
 CREATE INDEX "addresses_user_idx" ON "addresses" USING btree ("user_id");
+CREATE INDEX "application_documents_application_idx" ON "application_documents" USING btree ("application_id");
 CREATE INDEX "audit_log_entity_idx" ON "audit_log" USING btree ("entity_type","entity_id");
 CREATE INDEX "audit_log_created_idx" ON "audit_log" USING btree ("created_at");
 CREATE UNIQUE INDEX "cart_items_product_unique" ON "cart_items" USING btree ("cart_id","product_id");

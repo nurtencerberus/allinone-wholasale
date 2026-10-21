@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { db } from "@/db";
 import { orders, products, users, wholesaleApplications } from "@/db/schema";
+import { documentsFor, einMatches } from "@/lib/application-docs";
 import { checkStaff } from "@/lib/auth";
 import { ROLE_LABELS } from "@/lib/staff";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -68,6 +69,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     db.select({ stock: products.stock, slug: products.slug, name: products.name, reorderPoint: products.reorderPoint }).from(products),
     db.select({ tier: users.accountTier, verified: users.emailVerified }).from(users),
   ]);
+
+  // KYT-11: the paperwork on each application, and anywhere else its EIN already appears.
+  // Only for the ones the desk can still act on — an approved pile does not need re-checking.
+  const applicationDetails = await Promise.all(
+    applicationRows.map(async (app) => ({
+      ...app,
+      documents: await documentsFor(app.id),
+      einMatches: app.status === "pending" ? await einMatches(app.ein, app.id) : [],
+    })),
+  );
 
   const [{ count: accountCount } = { count: 0 }] = stats[0];
   const [{ count: pendingCount } = { count: 0 }] = stats[1];
@@ -163,7 +174,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         <div className="mt-6" id="applications">
           <AdminApplications
-            applications={applicationRows.map((app) => ({
+            applications={applicationDetails.map((app) => ({
               id: app.id,
               companyName: app.companyName,
               ein: app.ein,
@@ -185,6 +196,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               taxExempt: app.taxExempt,
               verifiedEin: app.verifiedEin,
               createdAt: app.createdAt.toISOString(),
+              documents: app.documents,
+              einMatches: app.einMatches,
             }))}
           />
         </div>

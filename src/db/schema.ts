@@ -206,6 +206,29 @@ export const wholesaleApplications = pgTable("wholesale_applications", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
 });
 
+/**
+ * KYT-11: the paperwork behind a wholesale application — resale certificate, W-9, licence.
+ * Stored in the database like product photos (`product_images`), because Vercel has no disk and
+ * these are small, rare and need the same access control as the application itself.
+ */
+export const applicationDocuments = pgTable(
+  "application_documents",
+  {
+    id: serial("id").primaryKey(),
+    applicationId: integer("application_id")
+      .notNull()
+      .references(() => wholesaleApplications.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // resale_certificate | w9 | business_license | other
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull(),
+    bytes: integer("bytes").notNull(),
+    content: bytea("content").notNull(),
+    uploadedBy: integer("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("application_documents_application_idx").on(table.applicationId)],
+);
+
 export const products = pgTable(
   "products",
   {
@@ -830,6 +853,7 @@ export const rateLimits = pgTable(
 export type AccountPrice = typeof accountPrices.$inferSelect;
 export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export type QuoteItem = typeof quoteItems.$inferSelect;
+export type ApplicationDocument = typeof applicationDocuments.$inferSelect;
 export type Company = typeof companies.$inferSelect;
 export type CompanyInvite = typeof companyInvites.$inferSelect;
 export type Cart = typeof carts.$inferSelect;

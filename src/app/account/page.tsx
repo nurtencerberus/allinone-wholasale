@@ -4,6 +4,8 @@ import { and, desc, eq, or, sql } from "drizzle-orm";
 import { ArrowRight, BadgeCheck, Boxes, Building2, ClipboardList, FileText, MapPin, Package, Percent, Plus, ShieldCheck, Truck } from "lucide-react";
 import { db } from "@/db";
 import { addresses, orders, wholesaleApplications } from "@/db/schema";
+import { ApplicationDocuments } from "@/components/account/ApplicationDocuments";
+import { documentsFor } from "@/lib/application-docs";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { isStaffRole } from "@/lib/staff";
 import { AccountActions } from "@/components/account/AccountActions";
@@ -50,6 +52,8 @@ export default async function AccountPage() {
   ]);
 
   const application = applicationRows[0];
+  // KYT-11: the paperwork on this application, so the applicant can see and complete it.
+  const applicationDocs = application ? await documentsFor(application.id) : [];
   const totalSpend = orderRows.reduce((sum, order) => sum + order.total, 0);
   const openShipments = orderRows.filter((order) => ["processing", "picking", "shipped"].includes(order.status));
   const [{ count: itemCount }] = await db
@@ -296,6 +300,10 @@ export default async function AccountPage() {
               </>
             )}
           </div>
+
+          {application ? (
+            <ApplicationDocuments documents={applicationDocs} canEdit={application.status !== "rejected"} />
+          ) : null}
 
           <div className="card p-4">
             <p className="eyebrow">Buyer tools</p>

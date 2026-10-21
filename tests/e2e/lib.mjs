@@ -28,11 +28,18 @@ export class Client {
   constructor() { this.jar = new Map(); }
   cookie() { return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; "); }
   async req(method, path, body, headers = {}) {
+    // FormData goes through untouched so fetch can set its own multipart boundary; everything
+    // else is JSON, which is also what the cross-site guard in src/proxy.ts expects.
+    const isForm = typeof FormData !== "undefined" && body instanceof FormData;
     const response = await fetch(BASE + path, {
       method,
       redirect: "manual",
-      headers: { ...(body !== undefined ? { "Content-Type": "application/json" } : {}), cookie: this.cookie(), ...headers },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      headers: {
+        ...(body !== undefined && !isForm ? { "Content-Type": "application/json" } : {}),
+        cookie: this.cookie(),
+        ...headers,
+      },
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
     for (const line of response.headers.getSetCookie()) {
       const [pair] = line.split(";");
