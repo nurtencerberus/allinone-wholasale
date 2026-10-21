@@ -22,6 +22,10 @@ export type SessionUser = {
   /** Company account membership (UX-7); null for a single-person account. */
   companyId: number | null;
   companyRole: string | null;
+  /** ODE-6: invoice terms for this account. */
+  creditLimit: number;
+  paymentTermsDays: number;
+  creditHold: boolean;
   role: string;
   accountTier: string;
   wholesaleDiscountPct: number;
@@ -41,6 +45,9 @@ export function toSessionUser(user: User): SessionUser {
     company: user.company,
     companyId: user.companyId,
     companyRole: user.companyRole,
+    creditLimit: user.creditLimit,
+    paymentTermsDays: user.paymentTermsDays,
+    creditHold: user.creditHold,
     role: user.role,
     accountTier: user.accountTier,
     wholesaleDiscountPct: user.wholesaleDiscountPct,

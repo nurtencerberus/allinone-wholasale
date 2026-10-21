@@ -8,6 +8,8 @@ import { abandonedCarts, markCartReminded } from "@/lib/cart-store";
 import { abandonedCartTemplate, escapeHtml, sendEmail } from "@/lib/email";
 import { pullExpiringLots, stockDrift } from "@/lib/inventory";
 import { cancelOrderAndRestock } from "@/lib/orders";
+import { overdueInvoices } from "@/lib/credit";
+import { formatMoney } from "@/lib/money";
 import { expireQuotes } from "@/lib/quotes";
 import { appOrigin, SITE } from "@/lib/site";
 
@@ -117,12 +119,30 @@ async function runMaintenance(report: Record<string, unknown>) {
   // 6. Quotes whose deadline has passed stop being acceptable (UX-7).
   report.quotesExpired = await expireQuotes();
 
-  // 7. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
+  // 7. Invoices past their due date: one digest to the trade desk (ODE-6).
+  const late = await overdueInvoices();
+  report.overdueInvoices = late.length;
+  if (late.length) {
+    const owed = late.reduce((sum, row) => sum + Math.max(0, row.total - row.refunded), 0);
+    try {
+      await sendEmail({
+        to: process.env.OPS_EMAIL?.trim() || SITE.email,
+        subject: `${late.length} invoice(s) past due · ${formatMoney(owed)}`,
+        html: `<p>These invoice orders are past their due date:</p><ul>${late
+          .map((row) => `<li>${escapeHtml(row.orderNumber)} — ${escapeHtml(row.email)}: ${formatMoney(Math.max(0, row.total - row.refunded))}, due ${escapeHtml(row.dueAt?.toDateString() ?? "")}</li>`)
+          .join("")}</ul><p><a href="${appOrigin()}/admin/reports/ar">Open receivables</a></p>`,
+      });
+    } catch (error) {
+      console.error("[cron-overdue]", error);
+    }
+  }
+
+  // 8. products.stock must equal the sellable lots; anything else is a bug worth knowing about.
   const drift = await stockDrift();
   report.stockDrift = drift;
   if (drift.length) console.error("[cron-stock-drift]", JSON.stringify(drift));
 
-  // 8. Expired sessions, sign-in challenges and rate-limit windows.
+  // 9. Expired sessions, sign-in challenges and rate-limit windows.
   await db.delete(loginChallenges).where(lt(loginChallenges.expiresAt, new Date()));
   report.sessionsDeleted = (await db.delete(sessions).where(lt(sessions.expiresAt, new Date())).returning({ t: sessions.token })).length;
   report.rateLimitsDeleted = (await db.delete(rateLimits).where(lt(rateLimits.resetAt, new Date())).returning({ k: rateLimits.key })).length;

@@ -348,10 +348,11 @@ reddedilir; katalog sayfaları önbellekten gelir (TTFB < 300 ms); migration'lar
 | DEV-2 | ✅ | `npm run db:migrate` koşucusu: `schema_migrations` defteri, sıra, checksum uyarısı, `--status` ve mevcut veritabanını devralmak için `--baseline`. Elle SQL yapıştırma bitti; CI koşucuyu temiz şema üzerinde doğruluyor |
 | DEV-3 | ✅ (vendor'sız) | `alertOps()` tek satır JSON log + 15 dakikada bir operasyona e-posta (webhook, kart capture, sipariş yazma, cron); `instrumentation.ts` → `onRequestError`; `/api/health` veritabanı düşünce 503. Sentry gibi bir servis isteniyorsa üzerine eklenebilir |
 
-#### Faz 3 durumu (20 Ekim 2026)
+#### Faz 3 durumu (21 Ekim 2026)
 
 | Kalem | Durum | Not |
 |---|---|---|
+| ODE-6 Net-30 kredi kontrolü | ✅ | Kredi limiti, vade günü ve hold (hesapta ya da firmada, migration 0012); vadeli sipariş hold / vadesi geçmiş fatura / limit aşımı durumunda 402 ile reddedilir. Bakiye açık faturalardan sayılır, firma hesabında üyeler tek bakiyeyi paylaşır. `/admin/reports/ar` yaşlandırma raporu + CSV, cron'dan vadesi geçen bildirimi, siparişte gerçek vade tarihi. **Fatura PDF'i** ayrı dosya olarak üretilmiyor: sipariş sayfası yazdırma düzeniyle PDF'e kaydediliyor |
 | PRF-1 (katalog önbelleği) | ✅ | Vitrin sorguları Next data cache'inde (`src/lib/catalog-cache.ts`), satırlar önbellekte / HTML değil, her yazmada geçersiz kılınıyor |
 | UX-7 hesap başı fiyat listesi | ✅ | `account_prices` (migration 0009): ticaret masası hesap+SKU bazında fiyat anlaşır (isteğe bağlı asgari koli ve tarih penceresi). Katalog/kademe fiyatının yerine geçer, yüzde indirim üstüne **eklenmez**; `priceCart()` zorunlu kılar, vitrin yalnızca gösterir. Admin ekranı `/admin/accounts/[id]/prices` (`accounts` izni, audit). E2E: çifte indirim yok, asgari koli ve pencere, başka hesaba sızmıyor, sipariş satırı anlaşılan fiyatla yazılıyor |
 | UX-7 RFQ | ✅ | `quote_requests`/`quote_items` (migration 0010): alıcı sepetten teklif ister (`/account/quotes`), ticaret masası satır satır fiyatlar ve süre verir (`/admin/quotes`), kabul edilen teklif `account_prices`'a yazılır ve sonraki siparişler kendiliğinden o fiyattan geçer. Süresi geçeni cron kapatır. E2E: tam tur + süre + sahiplik |

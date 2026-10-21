@@ -8,6 +8,8 @@ import { requireStaffPage } from "@/lib/auth";
 import { hasPermission } from "@/lib/staff";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { AccountPriceList, type AccountPriceRow, type PricebookProduct } from "@/components/admin/AccountPriceList";
+import { AccountCredit } from "@/components/admin/AccountCredit";
+import { creditPosition } from "@/lib/credit";
 
 export const metadata = {
   title: "Admin · account pricing",
@@ -27,6 +29,10 @@ export default async function AccountPricesPage({ params }: { params: Promise<{ 
       company: users.company,
       accountTier: users.accountTier,
       discountPct: users.wholesaleDiscountPct,
+      companyId: users.companyId,
+      creditLimit: users.creditLimit,
+      paymentTermsDays: users.paymentTermsDays,
+      creditHold: users.creditHold,
     })
     .from(users)
     .where(eq(users.id, id))
@@ -67,6 +73,8 @@ export default async function AccountPricesPage({ params }: { params: Promise<{ 
     minCases: product.minCases,
   }));
 
+  const credit = await creditPosition(account);
+
   return (
     <div>
       <section className="bg-ink text-cream">
@@ -88,7 +96,17 @@ export default async function AccountPricesPage({ params }: { params: Promise<{ 
         </div>
         <AdminNav />
       </section>
-      <div className="wrap py-8">
+      <div className="wrap py-8 space-y-5">
+        <AccountCredit
+          accountId={account.id}
+          creditLimit={credit.creditLimit}
+          paymentTermsDays={credit.paymentTermsDays}
+          creditHold={credit.creditHold}
+          openBalance={credit.openBalance}
+          overdue={credit.overdue}
+          scope={account.companyId ? "company" : "account"}
+          canEdit={hasPermission(staff, "accounts")}
+        />
         <AccountPriceList
           accountId={account.id}
           rows={rows}

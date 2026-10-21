@@ -84,6 +84,12 @@ iken açıktır; canlıda `false` olmalıdır. Bu anahtar şunları belirler:
 - **Vergi:** yalnızca NJ (`NEXUS` in `src/lib/tax.ts`); `products.tax_class` (general/food/supplement/candy) — NJ'de
   food ve supplement muaf, kargo vergili mala oranla vergilenir; muafiyet NJ sertifika no + süre ister.
 - **Asgari sipariş $150** ve ürün başı `minCases` zorunlu. Toptan başvuru doğrulanmış hesaba bağlıdır.
+- **Net-30 kredi kontrolü (ODE-6):** `users/companies.credit_limit`, `payment_terms_days`, `credit_hold`;
+  `orders.due_at`. Vadeli sipariş `checkCredit()` ile reddedilir — hesap hold'da, **vadesi geçmiş** fatura var
+  ya da sipariş limiti aşıyorsa (402). Bakiye ayrı bir defterden değil, açık faturalı siparişlerden sayılır
+  (`src/lib/credit.ts`); firma hesabında tüm üyelerin faturaları tek bakiyedir. **Varsayılan limit 0 = vadeli satış
+  yok**; limiti ticaret masası `/admin/accounts/[id]/prices` sayfasından verir. Yaşlandırma raporu
+  `/admin/reports/ar` (+ CSV), gecelik cron vadesi geçenleri operasyona bildirir.
 - **İade:** teslimden itibaren 14 gün (`RETURN_WINDOW_DAYS`); açılmış/hasarlı mal ve **tüm** gıda/takviye iadeleri
   satışa dönmez (karantina veya imha) — `/legal/returns` ile aynı kural `receiveReturn()`'de zorunlu.
 

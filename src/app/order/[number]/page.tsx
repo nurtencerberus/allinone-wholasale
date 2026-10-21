@@ -128,7 +128,9 @@ export default async function OrderPage({
   const payment = PAYMENT[order.paymentStatus] ?? { badge: paymentLabel(order.paymentStatus), headline: paymentLabel(order.paymentStatus), tone: "wait" as const };
   const cancelled = order.status === "cancelled";
   const stepIndex = Math.max(0, STEPS.findIndex((step) => step.key === order.status));
-  const dueDate = new Date(order.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // ODE-6: the due date the order was written with; older invoices fall back to 30 days.
+  const dueDate = order.dueAt ?? new Date(order.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const pastDue = order.paymentStatus === "net30_invoice" && dueDate <= new Date();
   const savings = order.accountDiscount + order.couponDiscount;
   const firstName = order.customerName.split(" ")[0];
 
@@ -198,10 +200,12 @@ export default async function OrderPage({
           <div>
             <p className="text-[13px] font-bold">
               Invoice of {formatMoney(order.total)} due {formatDate(dueDate)}
+              {pastDue ? <span className="ml-2 text-clay">past due</span> : null}
             </p>
             <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink/65">
-              Net-30 terms{order.poNumber ? ` · PO ${order.poNumber}` : ""}. Quote the order number when
-              you remit payment.
+              Invoice terms{order.poNumber ? ` · PO ${order.poNumber}` : ""}. Quote the order number when you remit
+              payment. Use <strong>Print invoice</strong> above to save a PDF.
+              {pastDue ? " New orders on terms are paused until this is settled." : ""}
             </p>
           </div>
         </div>

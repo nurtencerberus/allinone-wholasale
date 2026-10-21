@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   FileText,
   History,
+  Landmark,
   LayoutDashboard,
   Package,
   Receipt,
@@ -33,6 +34,7 @@ const TABS: { href: string; label: string; icon: typeof Boxes; permission: Permi
   { href: "/admin#applications", label: "Applications", icon: FileCheck2, permission: "view" },
   { href: "/admin/lists", label: "Wholesale lists", icon: FileSpreadsheet, permission: "view" },
   { href: "/admin/reports/tax", label: "Tax report", icon: Receipt, permission: "reports" },
+  { href: "/admin/reports/ar", label: "Receivables", icon: Landmark, permission: "reports" },
   { href: "/admin/audit", label: "Audit log", icon: History, permission: "staff" },
 ];
 

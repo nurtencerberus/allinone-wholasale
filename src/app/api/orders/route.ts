@@ -11,6 +11,7 @@ import { demoModeEnabled } from "@/lib/demo-mode";
 import { ORDER_COOKIE_PREFIX } from "@/lib/order-access";
 import { alertOps, describeError } from "@/lib/alerts";
 import { clearCart } from "@/lib/cart-store";
+import { checkCredit, dueDateFor } from "@/lib/credit";
 import { CouponUnavailableError, createOrderRecord, sendOrderConfirmation, StockShortError } from "@/lib/orders";
 import { ensureSeeded } from "@/lib/seed";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -134,6 +135,15 @@ export async function POST(request: Request) {
       return Response.json({ error: "Some items are no longer available. Review your cart and try again." }, { status: 409 });
     }
 
+    // ODE-6: terms are credit. Refuse the order if the account is on hold, has something past
+    // due, or this order would take it over its limit — before any stock is reserved.
+    let dueAt: Date | null = null;
+    if (method === "net30") {
+      const decision = await checkCredit(user, priced.total);
+      if (!decision.ok) return Response.json({ error: decision.reason }, { status: 402 });
+      dueAt = dueDateFor(decision.position.paymentTermsDays);
+    }
+
     let order;
     try {
       order = await createOrderRecord({
@@ -146,6 +156,7 @@ export async function POST(request: Request) {
         paymentStatus,
         paymentRef,
         poNumber,
+        dueAt,
         idempotencyKey,
         exemptionCert: priced.taxQuote.source === "exempt" ? user.taxExemptCertNumber : null,
       });
