@@ -407,3 +407,67 @@ Faz 0 ile **aynı gün** başlatılmalı.
 - Gerçek anahtarlarla Stripe/TaxJar/EasyPost/Resend çalıştırılmadı; bulgular kod okumasına dayanır.
 - Tarayıcıda görsel test, yük testi ve sızma testi yapılmadı.
 - Vergi ve hukuk maddeleri yönlendirme düzeyindedir; kesin karar için mali müşavir ve avukat gerekir.
+
+---
+
+## 7. Durum ve kalan işler (21 Ekim 2026)
+
+Faz 0, 1, 2 ve 3'teki **planlı kod işleri bitti** (18 PR, 14 migration, 173 birim testi, 15 HTTP e2e paketi,
+14 tarayıcı testi, lint/typecheck temiz, CI yeşil). Aşağıdaki üç liste geriye ne kaldığını ayırıyor:
+kodda bekleyenler, **senin** yapman gerekenler ve canlıya çıkmadan önceki veri kontrolü.
+
+### 7.1 Kodda kalanlar
+
+| Kalem | Durum | Ne gerekiyor |
+|---|---|---|
+| KRG-2 parsel gerçek fiyat (koli başına gönderi) | ⏸ bloke | EasyPost (veya UPS/FedEx) hesabı. Kod tarafı hazır: `src/lib/shipping.ts` anahtar varsa canlı fiyata, yoksa boyutsal matrise düşüyor |
+| KRG-3 gerçek LTL fiyatı | ⏸ bloke | LTL taşıyıcı/aracı hesabı; freight class / NMFC / palet alanları ve ek hizmetler (liftgate, residential) o zaman eklenir. Şimdiki matris "estimate" olarak etiketli ve taşıyıcı adı uydurmuyor |
+| KRG-5 adres doğrulama | ⏸ bloke | Aynı hesap (EasyPost/USPS). Şu an ZIP→eyalet tutarlılığı ve PO Box reddi var, sokak düzeyi doğrulama yok |
+| UX-3 erişilebilirlik son tur | 🟡 | Gerçek ekran okuyucuyla (VoiceOver/NVDA) ve klavyeyle **manuel** tur; bazı dekoratif ikon kontrastları. Otomatik olan kısım testlerde (birim: palet, e2e: sunulan HTML, tarayıcı: odak tuzağı/atlama bağlantısı) |
+| DEV-5 CSP'de `script-src 'unsafe-inline'` | 🟡 | App Router satır içi bootstrap script'i bastığı için duruyor. Kaldırmak için `src/proxy.ts`'te istek başına nonce üretip layout'a taşımak gerekir (~0,5 g). Diğer CSP yönergeleri sıkı |
+| DEV-7 geliştirme bağımlılığı açıkları | ⚪ izlemede | Üretim bağımlılıklarında 0 açık (CI kapısı: `npm audit --omit=dev --audit-level=high`). Geliştirme zincirindekiler major sürüm bekliyor (TypeScript 7, ESLint 10, Vitest 5) |
+| Fatura PDF'i | ✅ bilinçli karar | Ayrı PDF üretilmiyor; sipariş sayfası yazdırma düzeniyle PDF'e kaydediliyor. Gerçek PDF istenirse ayrı bağımlılık gerekir |
+| Tarayıcı testleri yalnızca Chromium | ⚪ | WebKit/mobil görünüm eklemek bir satırlık (`playwright.config.ts` → projects), CI süresi artar |
+| İsteğe bağlı entegrasyonlar | ⚪ | Amazon SP-API ile ASIN'den fiyat/stok senkronu, QuickBooks |
+
+### 7.2 Sende kalan işler (hesap, altyapı, iş süreci)
+
+Kod tarafından yapılamayan, hesap sahibi olarak senin yapman gerekenler. Sıra önem sırası:
+
+| # | İş | Nasıl | Neden |
+|---|---|---|---|
+| 1 | **Depoyu private yap** | GitHub → Settings → General → Danger Zone → Change visibility | Depo herkese açık; kaynakta demo parolaları, iç notlar ve altyapı ayrıntıları var |
+| 2 | **Neon parolasını değiştir** | Neon konsolu → Roles → Reset password → yeni dizeyi Vercel'de `DATABASE_URL` olarak güncelle (**pooled** `-pooler` + `sslmode=require`) → redeploy | Bağlantı dizesi bu oturumda sohbette paylaşıldı; parola rotasyonu tek doğru çözüm |
+| 3 | **www → apex yönlendirmesi 307 → 308** | Vercel → Domains: `www.ciputracorp.com` kayıtlı olsun ve apex'e **kalıcı** yönlendirsin; GoDaddy tarafındaki geçici forwarding kaldırılsın | 307 geçici; SEO ağırlığı apex'te toplanmıyor |
+| 4 | **Stripe canlıya alma** | Stripe hesabını aktive et → canlı `STRIPE_SECRET_KEY` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` → webhook uç noktası `https://ciputracorp.com/api/stripe/webhook` → `STRIPE_WEBHOOK_SECRET` | Anahtar yoksa kart ödemesi canlı modda 503; webhook olmadan 3DS sonrası sipariş yazımı yalnızca cron'a kalır |
+| 5 | **Resend alan adı doğrulaması** | Resend'de `ciputracorp.com` için SPF/DKIM kayıtları → `RESEND_API_KEY` | Doğrulama/sıfırlama/sipariş e-postaları şu an yalnızca log'a yazılıyor (`provider: "console"`) |
+| 6 | **Kargo hesabı** | EasyPost (parsel) + bir LTL aracısı (ör. Freightquote/uShip) hesabı; `EASYPOST_API_KEY` | KRG-2/3/5'in önkoşulu; matris fiyatları gerçek teklif değil |
+| 7 | **Vergi kaydı** | NJ satış vergisi kaydı; ekonomik nexus analizi (mali müşavir); muafiyet sertifikası toplama süreci | Kod yalnızca NJ'de vergi hesaplıyor; başka eyalette nexus doğarsa `NEXUS` güncellenmeli |
+| 8 | **Net-30 verilecek hesaplara kredi limiti** | `/admin/accounts/[id]/prices` → kredi limiti, vade günü | **Varsayılan limit 0 = vadeli satış kapalı.** Limit verilmeden Net-30 siparişi 402 ile reddedilir |
+| 9 | **Yasal ve sigorta** | Yasal metinlerin avukat incelemesi, ürün sorumluluk sigortası, geri çağırma planı, takviye etiket/iddia incelemesi (`B2B_ROADMAP.md` §6) | Takviye ve gıda satışının kod dışı yükümlülükleri |
+
+### 7.3 Canlıya çıkmadan önce veri kontrolü
+
+`ciputracorp.com` bugünkü hâli (21 Ekim 2026, üretim veritabanından okundu):
+
+| Kontrol | Durum | Not |
+|---|---|---|
+| `SEED_DEMO_DATA` kapalı | ✅ | Giriş sayfasında demo hesap kutusu yok, uydurma istatistik/referans gösterilmiyor |
+| Demo hesapları canlıda | ✅ yok | Canlıdaki 3 hesap gerçek: 1 admin (**2FA açık**) + 2 müşteri |
+| Katalog | ⚠️ **demo verisi** | 13 SKU hâlâ demo kataloğu (`MSC-VIT-090` vb.). Gerçek katalog `/admin/catalog` JSON içe aktarma ya da ürün formuyla girilmeli; demo SKU'ları pasife alınmalı veya silinmeli |
+| Siparişler | ⚠️ **örnek veri** | 4 örnek sipariş (`delivered`/`shipped`) duruyor; gerçek rapor almadan önce silinmeli |
+| Stok | ⚠️ | 13 demo lotu var. Gerçek stok **yalnızca lot üzerinden** girilir (`/admin/inventory`); gıda/takviyede best-by zorunlu |
+| Migration | ✅ 14/14 | `npm run db:migrate:status -- --yes` ile doğrulanır |
+| Cron | ✅ | `vercel.json` → günlük `/api/cron/maintenance`, `CRON_SECRET` tanımlı |
+| Alarm e-postası | ✅ | `OPS_EMAIL` tanımlı; Resend doğrulanınca gerçekten e-posta gider (bkz. 7.2 #5) |
+
+Hızlı kontrol komutları:
+
+```bash
+# üretim veritabanı: ne var?
+psql "$DATABASE_URL" -c "select count(*) from products where active" -c "select order_number, status from orders"
+# bekleyen migration var mı?
+DATABASE_URL=... npm run db:migrate:status -- --yes
+# canlı duman testi
+curl -s https://ciputracorp.com/api/health
+```
