@@ -21,7 +21,7 @@ import { defaultTaxClass } from "@/lib/tax";
 import { lbsToOz, ozToLbs } from "@/lib/weight";
 
 const globalForSeed = globalThis as typeof globalThis & {
-  __meridianSeedPromise?: Promise<void>;
+  __ciputraSeedPromise?: Promise<void>;
 };
 
 /**
@@ -62,7 +62,7 @@ async function seedSampleWholesaleLists(): Promise<void> {
   const definitions = [
     {
       title: "Vitamins & supplements — case price list",
-      supplier: "Meridian Labs",
+      supplier: "Ciputra Labs",
       description:
         "Sample file. Case pricing, 2+/5+/10+ volume tiers, MSRP and stock for the supplement line. Replace it in Admin → Wholesale lists.",
       category: "supplements",
@@ -72,7 +72,7 @@ async function seedSampleWholesaleLists(): Promise<void> {
     },
     {
       title: "Pantry & home goods — case price list",
-      supplier: "Meridian Pantry & Home",
+      supplier: "Ciputra Pantry & Home",
       description:
         "Sample file in CSV format covering pantry staples and home décor. Replace it in Admin → Wholesale lists.",
       category: "mixed",
@@ -220,7 +220,7 @@ async function seed(): Promise<void> {
     .insert(users)
     .values([
       {
-        email: "admin@meridiansupply.co",
+        email: "admin@ciputracorp.com",
         passwordHash: await hashPassword("Admin123!"),
         name: "Avery Merchant",
         company: "Ciputra Corp.",
@@ -492,11 +492,11 @@ async function seed(): Promise<void> {
 }
 
 export function ensureSeeded(): Promise<void> {
-  if (!globalForSeed.__meridianSeedPromise) {
-    globalForSeed.__meridianSeedPromise = seed().catch((error) => {
-      globalForSeed.__meridianSeedPromise = undefined;
+  if (!globalForSeed.__ciputraSeedPromise) {
+    globalForSeed.__ciputraSeedPromise = seed().catch((error) => {
+      globalForSeed.__ciputraSeedPromise = undefined;
       throw error;
     });
   }
-  return globalForSeed.__meridianSeedPromise;
+  return globalForSeed.__ciputraSeedPromise;
 }

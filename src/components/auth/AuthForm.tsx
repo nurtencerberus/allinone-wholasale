@@ -54,7 +54,9 @@ export function AuthForm({
 }) {
   const router = useRouter();
   const [values, setValues] = useState({ name: "", company: "", email: "", password: "", confirm: "" });
-  const [busy, setBusy] = useState(false);
+  // A verification link starts work immediately on mount, so the form opens in its busy state
+  // rather than setting it from inside the effect.
+  const [busy, setBusy] = useState(mode === "verify" && Boolean(token));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [devLink, setDevLink] = useState<string | null>(null);
@@ -94,7 +96,6 @@ export function AuthForm({
 
   useEffect(() => {
     if (mode !== "verify" || !token) return;
-    setBusy(true);
     fetch("/api/auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -399,10 +400,10 @@ export function AuthForm({
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("admin@meridiansupply.co", "Admin123!")}
+              onClick={() => fillDemo("admin@ciputracorp.com", "Admin123!")}
               className="block w-full text-left text-[11px] text-ink/70 hover:text-ink"
             >
-              <span className="font-bold">Admin portal</span> — admin@meridiansupply.co / Admin123!
+              <span className="font-bold">Admin portal</span> — admin@ciputracorp.com / Admin123!
             </button>
             <button
               type="button"

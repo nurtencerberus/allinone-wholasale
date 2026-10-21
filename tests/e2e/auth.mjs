@@ -48,7 +48,7 @@ check("duplicate pending application rejected", r.status === 409);
 
 // Admin approval must not touch e-mail verification and must target the applicant only.
 const admin = new Client();
-r = await admin.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
+r = await admin.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" });
 check("admin login", r.status === 200, r.text.slice(0, 80));
 const squatter = `sq-${uniq()}@shop.com`;
 await new Client().post("/api/auth/signup", { name: "Squatter", email: squatter, password: "squatter-tulip-42" });

@@ -5,7 +5,7 @@ import { loginChallenges, users, type User } from "@/db/schema";
 import { digestToken, randomToken } from "@/lib/password";
 import { normaliseRecoveryCode, verifyTotp } from "@/lib/totp";
 
-export const MFA_COOKIE = "meridian_2fa";
+export const MFA_COOKIE = "ciputra_2fa";
 const CHALLENGE_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 

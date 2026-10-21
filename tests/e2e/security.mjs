@@ -73,9 +73,9 @@ check("the new password works", r.status === 200, r.text.slice(0, 120));
 
 // --- KYT-10: a staff session is short -----------------------------------------------------------
 const staff = new Client();
-await staff.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
+await staff.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" });
 const [staffSession] = await q(
-  `select s.expires_at from sessions s join users u on u.id = s.user_id where u.email='admin@meridiansupply.co' order by s.expires_at desc limit 1`,
+  `select s.expires_at from sessions s join users u on u.id = s.user_id where u.email='admin@ciputracorp.com' order by s.expires_at desc limit 1`,
 );
 const staffHours = staffSession ? (new Date(staffSession.expires_at) - Date.now()) / 3_600_000 : 0;
 check("a staff session lasts hours, not a month", staffHours > 1 && staffHours <= 8.1, `${staffHours.toFixed(1)}h`);

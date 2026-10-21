@@ -45,8 +45,8 @@ export const PRODUCTS: SeedProduct[] = [
     description:
       "A single-SKU daily multivitamin built for the shelf: clean label, third-party tested, and priced for a healthy 55% retail margin. Methylated B12 and chelated minerals for absorption, with no titanium dioxide or artificial dyes.\n\nEvery case ships with a lot-matched Certificate of Analysis and a printable shelf-talker. NSF Certified for Sport and produced in an FDA-registered, cGMP facility in Pennsylvania.",
     story:
-      "Meridian Labs was founded in 2016 by two compounding pharmacists who were tired of watching independent retailers overpay for private-label vitamins. Daily Foundations is still our volume leader — over 1.4 million bottles shipped to independent pharmacies, gyms and grocery accounts.",
-    brand: "Meridian Labs",
+      "Ciputra Labs was founded in 2016 by two compounding pharmacists who were tired of watching independent retailers overpay for private-label vitamins. Daily Foundations is still our volume leader — over 1.4 million bottles shipped to independent pharmacies, gyms and grocery accounts.",
+    brand: "Ciputra Labs",
     origin: "Pittsburgh, PA",
     msrpUnit: 2499,
     casePrice: 11880,
@@ -86,7 +86,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Molecularly distilled wild-caught anchovy and sardine oil delivering 720 mg EPA and 480 mg DHA per serving. IFOS 5-star rated for purity and heavy-metal testing, with a natural lemon coating that keeps the fishiness off the shelf.\n\nShips in a nitrogen-flushed HDPE bottle with induction seal. Batch documentation and IFOS certificates are available on request for retail compliance files.",
     story:
       "Sourced from a Peruvian anchovy fishery audited yearly against IFFO standards, then soft-gel encapsulated in New Jersey within 30 days of catch. The result is a lower oxidation value than most premium grocery brands — and a price your buyers can actually margin.",
-    brand: "Meridian Labs",
+    brand: "Ciputra Labs",
     origin: "Newark, NJ",
     msrpUnit: 3999,
     casePrice: 20160,
@@ -126,7 +126,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Black elderberry, zinc and vitamin C in a pectin gummy that ships well and sells fast at the register. Vegan, gelatin-free, and naturally coloured with carrot and blackcurrant — a real differentiator against the neon gummy wall.\n\nHigh case count keeps the per-unit freight low, which makes this our most requested impulse item for checkout racks and gift baskets.",
     story:
       "We built this SKU with an organic elderberry co-operative in Oregon, using a low-temperature extraction that keeps the anthocyanin content high. It is the fastest-turning supplement we carry among grocery and gift accounts.",
-    brand: "Meridian Botanicals",
+    brand: "Ciputra Botanicals",
     origin: "Eugene, OR",
     msrpUnit: 1899,
     casePrice: 19176,
@@ -169,7 +169,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Fully chelated magnesium bisglycinate with no magnesium oxide filler. Gentle on digestion, popular for sleep and recovery, and one of the highest-margin supplements on a modern wellness shelf.\n\nCapsules are vegetarian and the bottle uses a wide-mouth 45 mm closure that takes standard security caps.",
     story:
       "Our most repurchased SKU by pharmacy and recovery-studio accounts. We hold three months of buffer stock on the raw material so our case price does not swing with the mineral market.",
-    brand: "Meridian Labs",
+    brand: "Ciputra Labs",
     origin: "Pittsburgh, PA",
     msrpUnit: 2299,
     casePrice: 12960,
@@ -209,7 +209,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Single-estate Picual olive oil pressed within six hours of harvest, with a peppery finish and a polyphenol count printed on every lot. Dark glass protects the oil from light damage during retail display.\n\nCase of six with moulded pulp dividers. This is the anchor SKU for pantry resets and gift assortments, and pairs naturally with our honey and pasta for consolidated freight.",
     story:
       "We buy directly from a 220-hectare estate near Jaén, Spain, on a fixed-price forward contract. That lets us publish a stable case price through the year while independent grocers still retail it at $28.99.",
-    brand: "Casa Meridian",
+    brand: "Casa Ciputra",
     origin: "Jaén, Spain",
     msrpUnit: 2899,
     casePrice: 8940,
@@ -249,7 +249,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Unfiltered, uncooked wildflower honey from small apiaries in the Hudson Valley. Natural crystallisation is left intact — a quality signal, not a defect, though we include shelf cards to explain it to shoppers.\n\nGlass jars with food-grade lined lids, packed 12 per case in a two-layer shipper that survives parcel handling.",
     story:
       "We aggregate from eleven family apiaries, which keeps the flavour profile consistent year to year while supporting pollinator habitat across the Northeast.",
-    brand: "Meridian Pantry",
+    brand: "Ciputra Pantry",
     origin: "Hudson Valley, NY",
     msrpUnit: 1799,
     casePrice: 10560,
@@ -289,7 +289,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Washed Caturra and Colombia varietals from Huila, roasted to a full-city profile that works in batch brew and espresso. Degassed and packed in a one-way valve bag with a roast date stamp, 2 lb per bag for the take-home bean crowd.\n\nRoasted to order every Tuesday. Case of six with a 21-day freshness window — order freight early in the week for the freshest landed date.",
     story:
       "Direct-trade relationship since 2019 with a 34-member co-operative. Pricing is transparent: we publish the FOB price we pay, and our case price moves only when the harvest does.",
-    brand: "Meridian Roasting",
+    brand: "Ciputra Roasting",
     origin: "Huila, Colombia",
     msrpUnit: 3199,
     casePrice: 11100,
@@ -332,7 +332,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Durum semolina pasta extruded through bronze dies and slow dried for a rough, sauce-gripping surface. Retail-ready kraft window bag with a clear cooking-time panel.\n\nThe highest turn on our pantry line: low case price, small footprint, and a natural add-on to olive oil and honey orders.",
     story:
       "Made in a fourth-generation pastificio outside Gragnano using the same slow-dry method the family has used since 1958. We import in full containers to keep landed case costs flat.",
-    brand: "Meridian Pantry",
+    brand: "Ciputra Pantry",
     origin: "Gragnano, Italy",
     msrpUnit: 999,
     casePrice: 5940,
@@ -375,7 +375,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Wheel-thrown stoneware in a speckled sand glaze, 9 inches tall with a narrow neck for single-stem styling. Each piece is slightly different — we photograph categories, not exact pieces, and ship the group shot to your web team on request.\n\nCase of four with moulded pulp corner protection. Breakage in transit is covered at 100% on this SKU with photo documentation.",
     story:
       "Thrown by a six-potter studio in western North Carolina. Capacity is limited to roughly 400 cases a month, and we hold allocation for accounts that reorder quarterly.",
-    brand: "Meridian Home",
+    brand: "Ciputra Home",
     origin: "Asheville, NC",
     msrpUnit: 6800,
     casePrice: 11600,
@@ -419,7 +419,7 @@ export const PRODUCTS: SeedProduct[] = [
       "Coconut-soy wax in an amber apothecary jar with a cotton wick and 45-hour burn time. Cedar & fig is the best-testing scent we have run — warm, not sweet, and safe for unisex gifting tables.\n\nCase of twelve with a printed tester card. Also available in a 4-SKU scent assortment on request.",
     story:
       "Poured in small batches in a Brooklyn workshop. We keep three scents on the wholesale line and rotate a seasonal fourth for Q4 gifting programs.",
-    brand: "Meridian Home",
+    brand: "Ciputra Home",
     origin: "Brooklyn, NY",
     msrpUnit: 1600,
     casePrice: 7800,
@@ -459,7 +459,7 @@ export const PRODUCTS: SeedProduct[] = [
       "A low-slung lounge chair in ivory bouclé over a solid ash frame, shipped fully assembled in a single carton. Designed as an anchor piece for boutique hotel lobbies and furniture floors.\n\nAt 48 lb and 30 × 30 × 26 in this SKU is billed on dimensional freight weight and typically ships LTL on a pallet with other home goods. Request a freight quote at checkout — our engine prices parcel and LTL side by side.",
     story:
       "Made to our spec in a family-run upholstery shop in Hickory, North Carolina. Minimum order is one carton, but freight economics favour a 4-piece pallet build.",
-    brand: "Meridian Home",
+    brand: "Ciputra Home",
     origin: "Hickory, NC",
     msrpUnit: 64900,
     casePrice: 28900,
@@ -506,7 +506,7 @@ export const PRODUCTS: SeedProduct[] = [
       "A natural dried bunch that turns a single vase into a $95 vignette. Colour-fast, no shedding, and light enough to ride free on most parcel orders.\n\nOne bunch per sleeve, 12 sleeves per case. Pairs as a margin multiplier with the stoneware vase SKU.",
     story:
       "Air-dried and hand-bundled in California from a flower farm that pivoted to dried goods during the import crunch of 2021. It has been a staple ever since.",
-    brand: "Meridian Home",
+    brand: "Ciputra Home",
     origin: "Carpinteria, CA",
     msrpUnit: 1400,
     casePrice: 6600,
@@ -574,7 +574,7 @@ export const REVIEW_SEED: {
     rating: 5,
     title: "IFOS docs closed the sale for our buyers",
     body:
-      "Our grocery buyer asked for purity documentation and Meridian emailed the full IFOS packet the same afternoon. No rancidity complaints in six months of reorders.",
+      "Our grocery buyer asked for purity documentation and Ciputra emailed the full IFOS packet the same afternoon. No rancidity complaints in six months of reorders.",
   },
   {
     slug: "omega-3-ultra-1200",
@@ -706,7 +706,7 @@ export const REVIEW_SEED: {
 
 export const COUPON_SEED = [
   {
-    code: "MERIDIAN10",
+    code: "CIPUTRA10",
     kind: "percent",
     value: 10,
     minSubtotal: 0,

@@ -666,7 +666,7 @@ export function AdminProducts({ products }: { products: AdminProduct[] }) {
                       required
                       value={form.brand}
                       onChange={(event) => patchForm({ brand: event.target.value })}
-                      placeholder="Meridian Labs"
+                      placeholder="Ciputra Labs"
                     />
                   </div>
                   <div>

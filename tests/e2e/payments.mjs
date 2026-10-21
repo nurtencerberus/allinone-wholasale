@@ -119,7 +119,7 @@ check("capture failure → order cancelled, stock restored", o?.status === "canc
 
 // 7. Someone else's payment ---------------------------------------------------
 const other = new Client();
-await other.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
+await other.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" });
 ({ pi } = await startPayment());
 await setStatus(pi, "requires_capture");
 r = await other.post("/api/orders", { paymentMethod: "card", paymentIntentId: pi });

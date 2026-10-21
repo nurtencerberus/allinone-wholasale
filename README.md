@@ -41,7 +41,7 @@ The catalog, reviews, coupons and demo data are seeded automatically on the firs
 
 | Role | E-mail | Password |
 |---|---|---|
-| Admin | `admin@meridiansupply.co` | `Admin123!` |
+| Admin | `admin@ciputracorp.com` | `Admin123!` |
 | Wholesale buyer | `buyer@harborhouse.com` | `Trade123!` |
 | Retail customer | `customer@example.com` | `Customer123!` |
 

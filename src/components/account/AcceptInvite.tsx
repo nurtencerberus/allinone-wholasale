@@ -20,6 +20,9 @@ export function AcceptInvite({ token }: { token: string }) {
         setError(data.error ?? "That invitation could not be accepted.");
         return;
       }
+      // A full reload, not a router push: joining a company changes the session's terms and
+      // every server component that reads them.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = "/account/team";
     } catch {
       setError("Network error — nothing changed.");

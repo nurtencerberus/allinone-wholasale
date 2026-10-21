@@ -70,6 +70,8 @@ export function AdminNavTabs({ permissions }: { permissions: Permission[] }) {
           type="button"
           onClick={async () => {
             await fetch("/api/auth/logout", { method: "POST" });
+            // A full reload after signing out, so no client state survives the session.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/";
           }}
           className="flex items-center gap-1.5 rounded-full border border-cream/20 px-3 py-1.5 text-[10.5px] font-semibold text-cream/70 hover:bg-cream/10 hover:text-cream"

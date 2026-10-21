@@ -48,7 +48,7 @@ r = await new Client().get(`/api/admin/applications/${filed.id}/documents/${docs
 check("a guest cannot either", r.status === 403 || r.status === 401, String(r.status));
 
 const admin = new Client();
-await admin.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
+await admin.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" });
 r = await admin.get(`/api/admin/applications/${filed.id}/documents/${docs[0].id}`);
 check("the trade desk opens it", r.status === 200 && r.text.startsWith("%PDF"), String(r.status));
 const [viewed] = await q("select action from audit_log where entity_type='application' order by id desc limit 1");

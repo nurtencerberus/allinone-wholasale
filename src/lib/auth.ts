@@ -8,7 +8,13 @@ import { demoModeEnabled } from "@/lib/demo-mode";
 import { digestToken, randomToken } from "@/lib/password";
 import { hasPermission, isStaffRole, type Permission } from "@/lib/staff";
 
-export const SESSION_COOKIE = "meridian_session";
+export const SESSION_COOKIE = "ciputra_session";
+/**
+ * DEV-8: the cookie was named after the old company. A session already in a browser is still
+ * read under the old name so nobody is signed out by the rename; new sessions use the new name
+ * and sign-out clears both. Drop this once the old cookies have expired (30 days).
+ */
+const LEGACY_SESSION_COOKIE = "meridian_session";
 const SESSION_DAYS = 30;
 /** KYT-10: a staff session is a key to the whole console, so it lasts a working day. */
 const STAFF_SESSION_HOURS = 8;
@@ -70,7 +76,7 @@ export function toSessionUser(user: User): SessionUser {
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  const token = store.get(SESSION_COOKIE)?.value ?? store.get(LEGACY_SESSION_COOKIE)?.value;
   if (!token) return null;
 
   const rows = await db
@@ -87,7 +93,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 export async function createSession(userId: number): Promise<void> {
   const store = await cookies();
   // Rotate: a session the browser already held must not survive a new sign-in.
-  const previous = store.get(SESSION_COOKIE)?.value;
+  const previous = store.get(SESSION_COOKIE)?.value ?? store.get(LEGACY_SESSION_COOKIE)?.value;
   if (previous) await db.delete(sessions).where(eq(sessions.token, hashSessionToken(previous)));
 
   // A staff session opens the admin console, so it lasts a working day rather than a month.
@@ -110,17 +116,18 @@ export async function createSession(userId: number): Promise<void> {
 
 export async function destroySession(): Promise<void> {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (token) {
-    await db.delete(sessions).where(eq(sessions.token, hashSessionToken(token)));
+  for (const name of [SESSION_COOKIE, LEGACY_SESSION_COOKIE]) {
+    const token = store.get(name)?.value;
+    if (token) await db.delete(sessions).where(eq(sessions.token, hashSessionToken(token)));
+    // Clear both names: a browser that still holds the old one must not stay signed in.
+    store.set(name, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    });
   }
-  store.set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
 }
 
 /** Staff must sign in with a second factor. Demo deployments (and local tests) may skip it. */

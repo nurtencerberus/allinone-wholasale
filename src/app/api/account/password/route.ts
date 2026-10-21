@@ -72,6 +72,7 @@ export async function POST(request: Request) {
 
 async function currentSessionDigest(): Promise<string | null> {
   const { cookies } = await import("next/headers");
-  const raw = (await cookies()).get(SESSION_COOKIE)?.value;
+  const jar = await cookies();
+  const raw = jar.get(SESSION_COOKIE)?.value ?? jar.get("meridian_session")?.value;
   return raw ? digestToken(raw) : null;
 }

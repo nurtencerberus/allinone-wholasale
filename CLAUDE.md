@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Proje
 
-**Ciputra Corp.** (eski adı Meridian Supply Co.; çerez ve bazı iç adlar hâlâ `meridian`) — ABD pazarına yönelik B2B toptan satış mağazası (takviyeler, kiler ürünleri, ev eşyası).
+**Ciputra Corp.** (eski adı Meridian Supply Co.; adlandırma DEV-8'de temizlendi — yalnızca eski oturum/sepet anahtarları geriye dönük okunur) — ABD pazarına yönelik B2B toptan satış mağazası (takviyeler, kiler ürünleri, ev eşyası).
 Next.js 16 App Router + React 19, PostgreSQL + Drizzle ORM, Tailwind CSS 4, Stripe. Hedef dağıtım: Vercel + Neon
 (`ciputracorp.com`). Durum: demo / MVP — canlıya çıkmadan önce kalan işler ve faz planı `IS-PLANI.md`'de
 (madde kodları: ODE, KYT, SEP, STK, VRG, KRG, URN, UX, PRF, DEV). Kullanıcıya dönük dokümanlar (DEPLOYMENT, MIGRATION, İNCELEME) Türkçe;
@@ -49,7 +49,7 @@ auth, account, cart, pricelock, payments, faz1 (roller/2FA, ürün verisi, lot/F
 kaydı). Testler stoğu `setStock()` ile lot üzerinden ayarlar — `products.stock`'u tek başına yazmayın.
 `GET /api/health` hızlı bir canlılık kontrolüdür.
 
-Demo girişleri (yalnızca demo modunda): `admin@meridiansupply.co / Admin123!`, `buyer@harborhouse.com / Trade123!`,
+Demo girişleri (yalnızca demo modunda): `admin@ciputracorp.com / Admin123!`, `buyer@harborhouse.com / Trade123!`,
 `customer@example.com / Customer123!`.
 
 ## Mimari
@@ -173,14 +173,14 @@ Sipariş sayfası erişimi `canViewOrder()` (`src/lib/order-access.ts`): admin, 
 `accessToken` (URL `?token=` ya da `mo_<orderNumber>` çerezi). Misafir siparişleri bu token'a dayanır.
 
 ### Kimlik doğrulama
-`src/lib/auth.ts`: scrypt parola (`src/lib/password.ts`), `meridian_session` httpOnly çerezi; veritabanında yalnızca
+`src/lib/auth.ts`: scrypt parola (`src/lib/password.ts`), `ciputra_session` httpOnly çerezi; veritabanında yalnızca
 token'ın SHA-256 özeti saklanır. Middleware/proxy **yok** — her sayfa/route kendi kontrolünü yapar:
 `getSessionUser()`; personel için API'de `requireStaff(permission)` (null → `staffDenied()`), sayfada
 `requireStaffPage(permission, path)`. Roller ve izinler `src/lib/staff.ts`'te (admin = sahip, ops, sales, accounting,
 viewer; izinler view/products/inventory/orders/payments/accounts/lists/reports/staff). Yeni admin route'u eklerken
 doğru izni seçin ve değişikliği `recordAudit()` (`src/lib/audit.ts`) ile kaydedin — işlem transaction'daysa `tx` ile.
 - **2FA:** personel canlı modda TOTP olmadan admin'e giremez (`staffTwoFactorRequired()`, `STAFF_2FA`). Giriş parolayı
-  doğrulayınca `login_challenges` + `meridian_2fa` çerezi oluşturur, oturum `/api/auth/two-factor`'da kod/kurtarma
+  doğrulayınca `login_challenges` + `ciputra_2fa` çerezi oluşturur, oturum `/api/auth/two-factor`'da kod/kurtarma
   koduyla açılır (`src/lib/two-factor.ts`, `src/lib/totp.ts`). Kod adımı tekrar kullanılamaz (`totp_last_step`).
 Sıfırlama/doğrulama jetonları da yalnızca `digestToken()` özeti olarak saklanır ve tek `UPDATE … RETURNING` ile tüketilir.
 E-posta linkleri `appOrigin()`'den (`src/lib/site.ts`) üretilir, istek Host'undan değil. `?next=` → `safeNextPath()`.
@@ -193,6 +193,14 @@ E-posta doğrulanmamış kullanıcı sipariş veremez. Canlıda ilk admin SQL il
 capture/sipariş yazma hatası, `/api/orders` beklenmedik 500'ü, gecelik cron'un düşmesi. `src/instrumentation.ts`
 → `onRequestError` yakalanmayan her hatayı aynı biçimde loglar ve ödeme/sipariş yollarındaysa alarma çevirir.
 `GET /api/health` veritabanına erişemezse **503** döner (uptime izleme buna bakmalı).
+
+### Sürümler ve adlandırma (DEV-6/8)
+- `engines.node: "24.x"` — Vercel projesi de 24.x; CI de 24 kullanır. Yerelde daha yeni bir Node varsa
+  `npm install` bir `EBADENGINE` uyarısı basar, zararsızdır.
+- `eslint-config-next` **`next` ile aynı sürümde** tutulur; ayrıldıklarında lint ya sessizce zayıflar ya da
+  projede olmayan kuralları uygular. TypeScript 7, ESLint 10 ve Vitest 5 (major) bilinçli olarak ertelendi.
+- Çerez ve depolama anahtarları `ciputra_*`; eski `meridian_session` ve `meridian_cart_*` anahtarları yalnızca
+  **geriye dönük okunur** (kimse çıkış yapmak zorunda kalmasın diye). Eski çerezler dolunca (30 gün) silinebilir.
 
 ### Hesap güvenliği (KYT)
 - **CSRF (`src/proxy.ts`):** `/api/**` üzerindeki POST/PUT/PATCH/DELETE istekleri **kendi origin'imizden** ve

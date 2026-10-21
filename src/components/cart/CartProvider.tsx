@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect -- the cart only exists in the browser: it is read from local storage and merged with the server copy after mount, because neither is available while rendering on the server. The extra render that costs is exactly what the `hydrated` flag is for. */
+
 import {
   createContext,
   useCallback,
@@ -49,9 +51,9 @@ type CartContextValue = {
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "meridian_cart_v2";
-/** Pre-SEP-3 carts stored the whole product, prices included; only the quantities are kept. */
-const LEGACY_STORAGE_KEY = "meridian_cart_v1";
+const STORAGE_KEY = "ciputra_cart_v1";
+/** Older carts (pre-SEP-3, and the pre-rename key): only the quantities are carried over. */
+const LEGACY_STORAGE_KEYS = ["meridian_cart_v2", "meridian_cart_v1"];
 
 function readStored(key: string): CartItem[] {
   try {
@@ -82,15 +84,22 @@ export function CartProvider({ children, signedIn = false }: { children: ReactNo
 
   useEffect(() => {
     const stored = readStored(STORAGE_KEY);
-    const legacy = stored.length ? [] : readStored(LEGACY_STORAGE_KEY);
-    if (legacy.length) {
-      try {
-        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-      } catch {
-        // storage may be unavailable in private mode
+    let legacy: CartItem[] = [];
+    for (const key of LEGACY_STORAGE_KEYS) {
+      if (stored.length || legacy.length) break;
+      legacy = readStored(key);
+      if (legacy.length) {
+        try {
+          window.localStorage.removeItem(key);
+        } catch {
+          // storage may be unavailable in private mode
+        }
       }
     }
     const local = stored.length ? stored : legacy;
+    // The cart lives in local storage, which only exists after mount: reading it during render
+    // would not match what the server sent. The one render this costs is the point of the
+    // `hydrated` flag, which is why the rule is silenced here rather than worked around.
     setItems(local);
 
     if (!signedIn) {
