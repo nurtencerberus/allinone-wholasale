@@ -87,11 +87,11 @@ check("2FA confirmed with 10 recovery codes", r.status === 200 && recovery.lengt
 
 const tf2 = new Client();
 r = await tf2.post("/api/auth/login", { email: tf.email, password: "Staff123!x" });
-check("password alone does not sign in", r.status === 200 && r.json.twoFactorRequired === true && !tf2.jar.has("meridian_session"));
+check("password alone does not sign in", r.status === 200 && r.json.twoFactorRequired === true && !tf2.jar.has("ciputra_session"));
 r = await tf2.post("/api/auth/two-factor", { code: confirmCode });
 check("the code used at set-up cannot be replayed", r.status === 401, r.text);
 r = await tf2.post("/api/auth/two-factor", { code: await totp(secret, 1) });
-check("next code signs in", r.status === 200 && tf2.jar.has("meridian_session"), r.text);
+check("next code signs in", r.status === 200 && tf2.jar.has("ciputra_session"), r.text);
 
 const tf3 = new Client();
 await tf3.post("/api/auth/login", { email: tf.email, password: "Staff123!x" });
