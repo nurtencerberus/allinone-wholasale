@@ -26,6 +26,9 @@ export type AdminApplication = {
   discountPct: number;
   taxExempt: boolean;
   verifiedEin: boolean;
+  /** KYT-11: paperwork on file, and anywhere else this EIN already appears. */
+  documents: { id: number; label: string; filename: string; bytes: number }[];
+  einMatches: { kind: string; label: string; detail: string }[];
   createdAt: string;
 };
 
@@ -177,6 +180,52 @@ export function AdminApplications({ applications }: { applications: AdminApplica
                   </div>
                 ))}
               </dl>
+
+              {selected.einMatches.length ? (
+                <div className="mt-2.5 rounded-md border border-gold/40 bg-gold/10 px-3 py-2 text-[11px] text-ink/80">
+                  <p className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle size={13} className="shrink-0" /> This EIN already appears elsewhere
+                  </p>
+                  <ul className="mt-1 space-y-0.5">
+                    {selected.einMatches.map((match, index) => (
+                      <li key={`${match.kind}-${index}`}>
+                        {match.label} <span className="text-ink/65">— {match.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-[10.5px] text-ink/65">
+                    A second buyer at the same business is normal — add them to the existing company account
+                    instead of approving a separate one if that is what this is.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="mt-2.5 rounded-md border border-ink/10 bg-[#fffdf8] px-3 py-2 text-[11px]">
+                <p className="text-[9px] font-bold tracking-[0.1em] text-ink/65 uppercase">Documents</p>
+                {selected.documents.length ? (
+                  <ul className="mt-1 space-y-1">
+                    {selected.documents.map((document) => (
+                      <li key={document.id}>
+                        <a
+                          href={`/api/admin/applications/${selected.id}/documents/${document.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-fern hover:underline"
+                        >
+                          {document.label}
+                        </a>{" "}
+                        <span className="text-ink/65">
+                          {document.filename} · {Math.max(1, Math.round(document.bytes / 1024))} KB
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-ink/65">
+                    Nothing uploaded. The applicant can send the resale certificate from their account page.
+                  </p>
+                )}
+              </div>
 
               {selected.notes ? (
                 <p className="mt-2.5 rounded-md border border-ink/10 bg-[#fffdf8] px-3 py-2 text-[11px] leading-relaxed text-ink/72">
