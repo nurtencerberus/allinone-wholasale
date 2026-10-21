@@ -8,7 +8,7 @@ const owner = new Client();
 let r = await owner.post("/api/auth/login", { email: "buyer@harborhouse.com", password: "Trade123!" });
 check("trade buyer login", r.status === 200, r.text.slice(0, 120));
 const admin = new Client();
-await admin.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
+await admin.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" });
 
 const [ownerRow] = await q("select id from users where email='buyer@harborhouse.com'");
 await q("update users set company_id = null, company_role = null where id=$1", [ownerRow.id]);

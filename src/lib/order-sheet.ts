@@ -605,8 +605,8 @@ export function formatOrderSheetSummary(result: OrderSheetParseResult): string {
 }
 
 export const ORDER_SHEET_FILENAMES = {
-  xlsx: "meridian-order-sheet.xlsx",
-  csv: "meridian-order-sheet.csv",
+  xlsx: "ciputra-order-sheet.xlsx",
+  csv: "ciputra-order-sheet.csv",
 } as const;
 
 export const ORDER_SHEET_PRICE_HINT = (products: OrderSheetProduct[]) =>

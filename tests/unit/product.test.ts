@@ -7,7 +7,7 @@ const base = {
   name: "Magnesium Glycinate 120ct",
   sku: "MSC-MAG-120",
   category: "supplements",
-  brand: "Meridian Labs",
+  brand: "Ciputra Labs",
   description: "Chelated magnesium, 120 capsules.",
   caseSize: 12,
   casePrice: 14400,

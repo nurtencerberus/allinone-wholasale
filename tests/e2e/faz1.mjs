@@ -35,7 +35,7 @@ await ctl("/_control/reset", {});
 await q("update users set tax_exempt=false, email_verified=true where email='buyer@harborhouse.com'");
 
 const admin = new Client();
-check("admin login", (await admin.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" })).status === 200);
+check("admin login", (await admin.post("/api/auth/login", { email: "admin@ciputracorp.com", password: "Admin123!" })).status === 200);
 const buyer = new Client();
 check("buyer login", (await buyer.post("/api/auth/login", { email: "buyer@harborhouse.com", password: "Trade123!" })).status === 200);
 const guest = new Client();
@@ -62,7 +62,7 @@ check("role change with password → 200", r.status === 200, r.text);
 const [audit] = await q("select actor_email, before, after from audit_log where action='user.role' and entity_id=$1 order by id desc limit 1", [String(opsRow.id)]);
 check("role change is in the audit log with before/after", audit?.before?.role === "ops" && audit?.after?.role === "sales", JSON.stringify(audit));
 check("role change ends the target's sessions", (await q("select count(*)::int c from sessions where user_id=$1", [opsRow.id]))[0].c === 0);
-const [adminRow] = await q("select id from users where email='admin@meridiansupply.co'");
+const [adminRow] = await q("select id from users where email='admin@ciputracorp.com'");
 r = await admin.req("PATCH", `/api/admin/users/${adminRow.id}`, { role: "viewer", currentPassword: "Admin123!" });
 check("owner cannot change their own role", r.status === 400);
 const unverified = `u-${uniq()}@x.test`;

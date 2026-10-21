@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
     const scope = category && ["supplements", "pantry", "home"].includes(category) ? `-${category}` : "";
     const stamp = new Date().toISOString().slice(0, 10);
-    const baseName = wholesale ? "meridian-trade-order-sheet" : `meridian-order-sheet${scope}`;
+    const baseName = wholesale ? "ciputra-trade-order-sheet" : `ciputra-order-sheet${scope}`;
 
     if (format === "csv") {
       const csv = buildOrderSheetCsv(sheetProducts);

@@ -58,21 +58,24 @@ export function CheckoutFlow({
   const router = useRouter();
 
   const [step, setStep] = useState(1);
+  // The account's default dock, if it has one: known at render time, so it seeds the form
+  // instead of being applied by an effect that would cost a second render.
+  const preferredAddress = savedAddresses.find((entry) => entry.isDefault) ?? savedAddresses[0] ?? null;
   const [contact, setContact] = useState({
     email: user?.email ?? "",
-    name: user?.name ?? "",
-    company: user?.company ?? "",
-    phone: "",
+    name: user?.name || (preferredAddress?.name ?? ""),
+    company: user?.company || (preferredAddress?.company ?? ""),
+    phone: preferredAddress?.phone ?? "",
     notes: "",
   });
   const [address, setAddress] = useState({
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    zip: "",
+    line1: preferredAddress?.line1 ?? "",
+    line2: preferredAddress?.line2 ?? "",
+    city: preferredAddress?.city ?? "",
+    state: preferredAddress?.state ?? "",
+    zip: preferredAddress?.zip ?? "",
   });
-  const [selectedAddressId, setSelectedAddressId] = useState<number | "">("");
+  const [selectedAddressId, setSelectedAddressId] = useState<number | "">(preferredAddress?.id ?? "");
   const [quote, setQuote] = useState<PricedOrder | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [couponCode, setCouponCode] = useState("");
@@ -87,13 +90,9 @@ export function CheckoutFlow({
   );
 
   const payload = items.map((item) => ({ productId: item.productId, cases: item.cases }));
+  // A stable key for the cart's contents: the dependency list needs a plain value, not a call.
+  const payloadKey = JSON.stringify(payload);
 
-
-  useEffect(() => {
-    const preferred = savedAddresses.find((entry) => entry.isDefault) ?? savedAddresses[0];
-    if (preferred) applySavedAddress(preferred);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const applySavedAddress = (entry: SavedAddress) => {
     setSelectedAddressId(entry.id);
@@ -111,6 +110,7 @@ export function CheckoutFlow({
       phone: current.phone || (entry.phone ?? ""),
     }));
   };
+
 
   const requestQuote = useCallback(
     async (options: { shippingOptionId?: string | null; coupon?: string } = {}) => {
@@ -153,7 +153,7 @@ export function CheckoutFlow({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [address, couponCode, JSON.stringify(payload), removeItem],
+    [address, couponCode, payloadKey, removeItem],
   );
 
   const gotoFreight = async () => {
@@ -606,7 +606,7 @@ export function CheckoutFlow({
                       className="field"
                       value={couponInput}
                       onChange={(event) => setCouponInput(event.target.value.toUpperCase())}
-                      placeholder="MERIDIAN10"
+                      placeholder="CIPUTRA10"
                     />
                     <button
                       onClick={async () => {
@@ -642,7 +642,7 @@ export function CheckoutFlow({
                     </p>
                   ) : (
                     <p className="mt-2 text-[10px] text-ink/65">
-                      Try MERIDIAN10 (10% off) or WELCOME25 ($25 off $250+).
+                      Try CIPUTRA10 (10% off) or WELCOME25 ($25 off $250+).
                     </p>
                   )}
                 </div>

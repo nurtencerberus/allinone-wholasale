@@ -17,7 +17,7 @@ const SAMPLE = `{
       "sku": "MSC-NEW-001",
       "name": "Collagen Peptides 16 oz",
       "category": "supplements",
-      "brand": "Meridian Labs",
+      "brand": "Ciputra Labs",
       "description": "Grass-fed bovine collagen peptides, unflavoured.",
       "gtin": "012345678905",
       "asin": "B0ABC12345",
