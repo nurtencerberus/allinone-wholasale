@@ -440,7 +440,7 @@ Kod tarafından yapılamayan, hesap sahibi olarak senin yapman gerekenler. Sıra
 | 2 | **Neon parolasını değiştir** | Neon konsolu → Roles → Reset password → yeni dizeyi Vercel'de `DATABASE_URL` olarak güncelle (**pooled** `-pooler` + `sslmode=require`) → redeploy | Bağlantı dizesi bu oturumda sohbette paylaşıldı; parola rotasyonu tek doğru çözüm |
 | 3 | **www → apex yönlendirmesi 307 → 308** | Vercel → Domains: `www.ciputracorp.com` kayıtlı olsun ve apex'e **kalıcı** yönlendirsin; GoDaddy tarafındaki geçici forwarding kaldırılsın | 307 geçici; SEO ağırlığı apex'te toplanmıyor |
 | 4 | **Stripe canlıya alma** | Stripe hesabını aktive et → canlı `STRIPE_SECRET_KEY` + `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` → webhook uç noktası `https://ciputracorp.com/api/stripe/webhook` → `STRIPE_WEBHOOK_SECRET` | Anahtar yoksa kart ödemesi canlı modda 503; webhook olmadan 3DS sonrası sipariş yazımı yalnızca cron'a kalır |
-| 5 | **Resend alan adı doğrulaması** | `DEPLOYMENT.md` §3.6: Resend'de `ciputracorp.com` → DKIM/SPF kayıtları GoDaddy'ye → Vercel'e `RESEND_API_KEY` + `RESEND_FROM` → redeploy | **Lansman engeli.** Kod tarafı hazır (kayıt doğrulaması, sipariş onayı, sevk, iade, başvuru kararı, teklif, davet, hatırlatma, alarm e-postaları yazılı), ama anahtar olmadan `sendEmail()` yalnızca log'a yazıyor. Canlı modda doğrulama linki API yanıtında dönmediği için **yeni müşteri e-postasını doğrulayamaz ve sipariş veremez** |
+| ~~5~~ | ~~**Resend alan adı doğrulaması**~~ | ✅ **21 Ekim 2026'da tamamlandı:** `RESEND_API_KEY` ve `RESEND_FROM` (`Ciputra Corp. <info@ciputracorp.com>`) Production'da, alan adı doğrulanmış | Zincir uçtan uca doğrulandı: kayıt → doğrulama e-postası → linkle onay → toptan başvurusu → onay e-postası. Log'da Resend hatası yok. Artık yeni müşteri hesabını doğrulayıp sipariş verebilir |
 | 6 | **Kargo hesabı** | EasyPost (parsel) + bir LTL aracısı (ör. Freightquote/uShip) hesabı; `EASYPOST_API_KEY` | KRG-2/3/5'in önkoşulu; matris fiyatları gerçek teklif değil |
 | 7 | **Vergi kaydı** | NJ satış vergisi kaydı; ekonomik nexus analizi (mali müşavir); muafiyet sertifikası toplama süreci | Kod yalnızca NJ'de vergi hesaplıyor; başka eyalette nexus doğarsa `NEXUS` güncellenmeli |
 | 8 | **Net-30 verilecek hesaplara kredi limiti** | `/admin/accounts/[id]/prices` → kredi limiti, vade günü | **Varsayılan limit 0 = vadeli satış kapalı.** Limit verilmeden Net-30 siparişi 402 ile reddedilir |
@@ -459,7 +459,9 @@ Kod tarafından yapılamayan, hesap sahibi olarak senin yapman gerekenler. Sıra
 | Stok | ⚠️ | 13 demo lotu var. Gerçek stok **yalnızca lot üzerinden** girilir (`/admin/inventory`); gıda/takviyede best-by zorunlu |
 | Migration | ✅ 14/14 | `npm run db:migrate:status -- --yes` ile doğrulanır |
 | Cron | ✅ | `vercel.json` → günlük `/api/cron/maintenance`, `CRON_SECRET` tanımlı |
-| Alarm e-postası | ✅ | `OPS_EMAIL` tanımlı; Resend doğrulanınca gerçekten e-posta gider (bkz. 7.2 #5) |
+| Alarm e-postası | ✅ | `OPS_EMAIL` tanımlı ve Resend bağlı — operasyon alarmları gerçekten gidiyor |
+| E-posta gönderimi | ✅ | Resend bağlı (`RESEND_API_KEY` + `RESEND_FROM`); kayıt doğrulaması, başvuru kararı ve alarm e-postaları canlıda çalışır durumda doğrulandı |
+| Doğrulanmamış toptan hesabı | ⚠️ | Resend bağlanmadan önce açılmış bir toptan hesabının e-postası doğrulanmamış: fiyatları görür ama **sipariş veremez**. Hesap `/account`'tan linki yeniden isteyebilir ya da personel `/admin/users` → "E-postayı doğrula" ile onaylar |
 
 Hızlı kontrol komutları:
 
