@@ -207,6 +207,13 @@ capture/sipariş yazma hatası, `/api/orders` beklenmedik 500'ü, gecelik cron'u
   Parola değişimi diğer tüm oturumları kapatır; `/account/security`'de "her yerden çık" da var.
 - **Oturum süresi:** müşteri 30 gün, **personel 8 saat** (admin konsolu anahtarı).
 
+- **Başvuru belgeleri (KYT-11):** `application_documents` — başvuru sahibi hesap sayfasından resale
+  certificate / W-9 / lisans yükler (PDF veya fotoğraf, içerik **bayttan** doğrulanır, 4 MB, başvuru başına 6).
+  Personel `/api/admin/applications/[id]/documents/[docId]` ile açar; **her açılış audit log'a yazılır**
+  (belgede vergi numarası var). EIN tek biçimde saklanır (`12-3456789`) ve başvuru ekranında aynı EIN'in
+  başka hesap/başvuruda görünmesi **uyarı** olarak çıkar — reddetme değil, çünkü aynı işletmeden ikinci alıcı
+  normaldir (doğru çözüm onu mevcut firma hesabına eklemektir).
+
 ### Hız sınırlama
 `src/lib/rate-limit.ts` → `consumeRateLimit(scope, key, limit, windowSeconds)`; Postgres `rate_limits` tablosunda
 sabit pencere (serverless örnekler arasında paylaşılır, in-memory kullanmayın). `clientIp()` + `tooManyRequests()`
