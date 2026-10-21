@@ -10,6 +10,8 @@ import { hasPermission, isStaffRole, type Permission } from "@/lib/staff";
 
 export const SESSION_COOKIE = "meridian_session";
 const SESSION_DAYS = 30;
+/** KYT-10: a staff session is a key to the whole console, so it lasts a working day. */
+const STAFF_SESSION_HOURS = 8;
 
 /** The database holds only a digest of the cookie, so a DB read cannot be replayed as a login. */
 export const hashSessionToken = digestToken;
@@ -88,8 +90,14 @@ export async function createSession(userId: number): Promise<void> {
   const previous = store.get(SESSION_COOKIE)?.value;
   if (previous) await db.delete(sessions).where(eq(sessions.token, hashSessionToken(previous)));
 
+  // A staff session opens the admin console, so it lasts a working day rather than a month.
+  const [account] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  const lifetimeMs = isStaffRole(account?.role)
+    ? STAFF_SESSION_HOURS * 60 * 60 * 1000
+    : SESSION_DAYS * 24 * 60 * 60 * 1000;
+
   const token = randomToken(32);
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + lifetimeMs);
   await db.insert(sessions).values({ token: hashSessionToken(token), userId, expiresAt });
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,

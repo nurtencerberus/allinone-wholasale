@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { getSessionUser, safeNextPath, staffTwoFactorRequired } from "@/lib/auth";
 import { isStaffRole } from "@/lib/staff";
+import { PasswordCard } from "@/components/account/PasswordCard";
 import { TwoFactorSetup } from "@/components/account/TwoFactorSetup";
 
 export const metadata = {
@@ -37,6 +38,10 @@ export default async function SecurityPage({
         </p>
       ) : null}
       <div className="mt-6">
+        <PasswordCard />
+      </div>
+
+      <div className="mt-5">
         <TwoFactorSetup
           initiallyEnabled={user.twoFactorEnabled}
           mustStayOn={mustEnable}

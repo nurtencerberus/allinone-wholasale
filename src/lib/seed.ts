@@ -221,7 +221,7 @@ async function seed(): Promise<void> {
     .values([
       {
         email: "admin@meridiansupply.co",
-        passwordHash: hashPassword("Admin123!"),
+        passwordHash: await hashPassword("Admin123!"),
         name: "Avery Merchant",
         company: "Ciputra Corp.",
         role: "admin",
@@ -230,7 +230,7 @@ async function seed(): Promise<void> {
       },
       {
         email: "buyer@harborhouse.com",
-        passwordHash: hashPassword("Trade123!"),
+        passwordHash: await hashPassword("Trade123!"),
         name: "Dana Whitfield",
         company: "Harbor House Pharmacy",
         phone: "(207) 555-0184",
@@ -246,7 +246,7 @@ async function seed(): Promise<void> {
       },
       {
         email: "customer@example.com",
-        passwordHash: hashPassword("Customer123!"),
+        passwordHash: await hashPassword("Customer123!"),
         name: "Jamie Ortega",
         phone: "(512) 555-0110",
         role: "customer",

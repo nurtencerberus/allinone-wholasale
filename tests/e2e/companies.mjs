@@ -35,6 +35,8 @@ const mateEmail = `mate-${uniq()}@harborhouse.com`;
 const mate = new Client();
 r = await mate.post("/api/auth/signup", { name: "Sam Mate", email: mateEmail, password: "Colleague123!" });
 check("the colleague has an account", r.status === 200 || r.status === 201, r.text.slice(0, 140));
+// Signing up no longer signs the browser in (KYT-8).
+await mate.post("/api/auth/login", { email: mateEmail, password: "Colleague123!" });
 await q("update users set email_verified = true where email=$1", [mateEmail]);
 
 r = await owner.post("/api/company", { action: "invite", email: mateEmail, role: "buyer" });

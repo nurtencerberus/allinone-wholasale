@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (!accountLimit.allowed) return tooManyRequests(accountLimit.retryAfterSeconds);
 
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    if (!verifyPasswordOrDummy(password, user?.passwordHash) || !user) {
+    if (!(await verifyPasswordOrDummy(password, user?.passwordHash)) || !user) {
       return Response.json({ error: "Invalid email or password." }, { status: 401 });
     }
 

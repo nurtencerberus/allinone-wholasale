@@ -8,8 +8,11 @@ await q(
   [number, email],
 );
 const c = new Client();
-let r = await c.post("/api/auth/signup", { name: "Squat", email, password: "Passw0rd!x" });
+let r = await c.post("/api/auth/signup", { name: "Squat", email, password: "quiet-harbor-42" });
 check("squatter signs up with the guest's e-mail", r.status === 200, r.text.slice(0, 80));
+// Signing up no longer signs the browser in (KYT-8), so sign in before reading the account page.
+r = await c.post("/api/auth/login", { email, password: "quiet-harbor-42" });
+check("the squatter signs in", r.status === 200, r.text.slice(0, 80));
 r = await c.get("/account");
 check("unverified account page loads", r.status === 200, String(r.status));
 check("guest order with same e-mail hidden while unverified", !r.text.includes(number));

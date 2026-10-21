@@ -194,6 +194,19 @@ capture/sipariş yazma hatası, `/api/orders` beklenmedik 500'ü, gecelik cron'u
 → `onRequestError` yakalanmayan her hatayı aynı biçimde loglar ve ödeme/sipariş yollarındaysa alarma çevirir.
 `GET /api/health` veritabanına erişemezse **503** döner (uptime izleme buna bakmalı).
 
+### Hesap güvenliği (KYT)
+- **CSRF (`src/proxy.ts`):** `/api/**` üzerindeki POST/PUT/PATCH/DELETE istekleri **kendi origin'imizden** ve
+  gerçek bir API content-type'ı ile gelmek zorunda; `text/plain` reddedilir (415), yabancı origin 403.
+  Stripe webhook'u muaftır (imzasıyla doğrulanır). Bu dosya **yetkilendirme yapmaz** — her route kendi
+  `requireStaff`/`getSessionUser` kontrolünü yapmaya devam eder.
+- **Hesap sızıntısı yok (KYT-8):** kayıt, adres kayıtlı olsa da olmasa da **aynı yanıtı** döner ve oturum
+  açmaz; adres kayıtlıysa yalnızca gerçek sahibine "biri hesap açmaya çalıştı" e-postası gider. Doğrulama
+  linkine tıklayınca müşteri oturumu açılır (personel yine parola + TOTP ile girer).
+- **Parola (KYT-10):** `passwordProblem()` — en az 10 karakter, 256 sınırı, leet çözümlü yaygın parola ve
+  klavye dizisi kontrolü, e-postadan türetilmiş parola reddi. scrypt artık **async** (event loop'u kilitlemez).
+  Parola değişimi diğer tüm oturumları kapatır; `/account/security`'de "her yerden çık" da var.
+- **Oturum süresi:** müşteri 30 gün, **personel 8 saat** (admin konsolu anahtarı).
+
 ### Hız sınırlama
 `src/lib/rate-limit.ts` → `consumeRateLimit(scope, key, limit, windowSeconds)`; Postgres `rate_limits` tablosunda
 sabit pencere (serverless örnekler arasında paylaşılır, in-memory kullanmayın). `clientIp()` + `tooManyRequests()`
