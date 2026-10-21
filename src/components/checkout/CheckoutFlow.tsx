@@ -512,7 +512,13 @@ export function CheckoutFlow({
                   the freight zone. Enter it now — we re-price both before payment.
                 </div>
 
-                <button onClick={gotoFreight} disabled={loading} className="btn btn-primary w-full">
+                {/*
+                  Not disabled while a quote is in flight. Leaving the ZIP field starts one, and a
+                  button that disables itself between mousedown and mouseup never receives the
+                  click — so the first click on this button did nothing (DEV-1 found it in the
+                  browser). Quoting twice costs one extra read and no writes.
+                */}
+                <button onClick={gotoFreight} className="btn btn-primary w-full">
                   {loading ? <Loader2 size={15} className="animate-spin" /> : <Truck size={15} />}
                   Price freight & tax
                 </button>

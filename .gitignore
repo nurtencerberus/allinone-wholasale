@@ -23,6 +23,9 @@ yarn-error.log*
 
 # local test fixtures and editor files
 /tmp/
+/test-results/
+/playwright-report/
+/blob-report/
 .vscode/
 .idea/
 

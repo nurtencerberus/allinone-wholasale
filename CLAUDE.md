@@ -39,6 +39,8 @@ Testler:
 npm test                                   # Vitest birim testleri (tests/unit): vergi, adres, fiyat, erişim, TOTP, ürün verisi
 npx vitest run tests/unit/tax.test.ts      # tek dosya;  -t "<ad>" ile tek test
 npm run test:e2e                           # tests/e2e: çalışan sunucuya (BASE) ve test veritabanına (E2E_DATABASE_URL) karşı
+npm run test:browser                       # tests/browser: Playwright (Chromium) — aynı sunucu ve veritabanı
+npx playwright test tests/browser/cart.spec.ts        # tek dosya;  --ui ile tarayıcıda adım adım
 ```
 
 E2E paketleri demo seed'e (`SEED_DEMO_DATA=true`) ve sahte Stripe'a (`node tests/e2e/fake-stripe.mjs`, port 12111,
@@ -48,6 +50,14 @@ uygulamada `STRIPE_API_BASE=http://127.0.0.1:12111`, `STRIPE_SECRET_KEY=sk_test_
 auth, account, cart, pricelock, payments, faz1 (roller/2FA, ürün verisi, lot/FEFO, sipariş yaşam döngüsü, iade, vergi
 kaydı). Testler stoğu `setStock()` ile lot üzerinden ayarlar — `products.stock`'u tek başına yazmayın.
 `GET /api/health` hızlı bir canlılık kontrolüdür.
+
+**Tarayıcı testleri (DEV-1)** `tests/browser/*.spec.ts`, aynı sunucu ve veritabanına karşı Playwright ile: HTTP
+paketlerinin göremediği kısımlar — sepet çekmecesi (sunucudan fiyatlanma, odak tuzağı, Escape), üç adımlı ödeme
+sihirbazı (adres → navlun/vergi → ACH ile sipariş), giriş ve 2FA ekranı, atlama bağlantısı ve istemci tarafı gezinme.
+Her test `tests/browser/fixtures.ts`'teki muhafızla çalışır: sayfada yakalanmamış bir istisna veya hydration uyuşmazlığı
+çıkarsa test düşer (sayfa 200 dönse bile). Yerelde bir kez `npx playwright install chromium` gerekir; CI bunu
+`npm run test:e2e`'den sonra kendisi yapar. Seçiciler erişilebilir ad üzerinden kurulur — altbilgideki bülten formunun
+da bir "Email address" alanı olduğu için giriş formu `authForm(page)` ile `<main>` içine daraltılır.
 
 Demo girişleri (yalnızca demo modunda): `admin@ciputracorp.com / Admin123!`, `buyer@harborhouse.com / Trade123!`,
 `customer@example.com / Customer123!`.

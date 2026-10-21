@@ -261,7 +261,10 @@ export function CartDrawer({ user }: { user: SessionUser | null }) {
 
             <div className="flex items-center justify-between text-sm">
               <span className="text-ink/70">Product subtotal</span>
-              <span className={`font-bold tabular-nums${loading ? " opacity-40" : ""}`}>
+              <span
+                data-testid="cart-subtotal"
+                className={`font-bold tabular-nums${loading ? " opacity-40" : ""}`}
+              >
                 {subtotal === null ? "—" : formatMoney(subtotal)}
               </span>
             </div>
