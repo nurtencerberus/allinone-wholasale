@@ -129,13 +129,47 @@ Mağaza boş başlar.
 > kaldırır.
 
 ### 3.6 E-posta — Resend
-Resend olmadan müşteriye **hiçbir e-posta gitmez** (doğrulama, şifre sıfırlama, sipariş onayı).
+
+**Kod tarafı hazır; eksik olan tek şey hesap ve iki değişken.** Tüm e-postalar `src/lib/email.ts` →
+`sendEmail()` üzerinden gider. `RESEND_API_KEY` yoksa fonksiyon e-postayı **göndermez**, yalnızca
+`[email:dev] to=… subject="…"` satırını log'a yazar ve `{ sent: false, provider: "console" }` döner —
+çağıran akış (kayıt, sipariş) yine başarılı sayılır.
+
+> **Lansman engeli:** canlı modda doğrulama linki API yanıtında **dönmez** (hesap ele geçirmeyi önlemek için).
+> Yani Resend bağlanmadan yeni bir müşteri e-postasını doğrulayamaz ve **doğrulanmamış hesap sipariş veremez**.
+> Mevcut hesapları personel `/admin/users` → "E-postayı doğrula" ile elle onaylayabilir, ama kalıcı çözüm bu değil.
+
 1. [resend.com](https://resend.com) → **Domains** → `ciputracorp.com` ekleyin.
 2. Resend'in gösterdiği DKIM/SPF kayıtlarını GoDaddy DNS'e **aynen** ekleyin. Aynı isimde ikinci bir
    `v=spf1` TXT kaydı eklemeyin (iki SPF kaydı SPF'i bozar); Resend ayrı bir alt alan adı verirse sorun olmaz.
-3. **Verified** olunca Vercel'e `RESEND_API_KEY` ve
-   `RESEND_FROM="Meridian Supply Co. <info@ciputracorp.com>"` ekleyip yeniden deploy edin.
-4. Gerçek bir e-postayla **şifre sıfırlamayı** deneyin.
+3. **Verified** olunca Vercel'e (Production) iki değişken ekleyin ve yeniden deploy edin:
+   - `RESEND_API_KEY=re_…`
+   - `RESEND_FROM="Ciputra Corp. <info@ciputracorp.com>"` — adres **doğrulanmış** alan adında olmalı.
+     Boş bırakılırsa `src/lib/site.ts`'teki `SITE.email` kullanılır.
+4. Deneme: gerçek bir adresle **kayıt olun** (doğrulama e-postası gelmeli) ve **şifre sıfırlatın**.
+   Resend panelinde **Logs**, Vercel'de fonksiyon log'u gönderimi doğrular. E-posta gelmediyse
+   `[email] Resend error` satırına bakın.
+
+Hangi olayda hangi e-posta gider (hepsi aynı `sendEmail()`'den):
+
+| Olay | Kime | Nerede |
+|---|---|---|
+| Kayıt → e-posta doğrulama linki (24 saat, tek kullanım) | müşteri | `api/auth/signup` → `verifyEmailTemplate` |
+| Adres zaten kayıtlıysa "biri hesap açmaya çalıştı" uyarısı | gerçek hesap sahibi | `api/auth/signup` (KYT-8) |
+| Doğrulama linkini yeniden gönder | müşteri | `api/auth/resend-verification` |
+| Şifre sıfırlama linki (60 dakika) | müşteri | `api/auth/forgot-password` |
+| Şifre değişti / 2FA açıldı-kapandı / rol değişti bildirimi | müşteri | `api/account/password`, `api/account/two-factor`, `api/admin/users/[id]` |
+| **Sipariş onayı** (sipariş no, tutar, erişim linki) | sipariş veren | `src/lib/orders.ts` → `sendOrderConfirmation` |
+| **Sipariş sevk edildi** (taşıyıcı + takip/PRO no) | sipariş veren | `src/lib/order-admin.ts` → `markShipped` |
+| Sipariş iptali ve iade bilgisi | sipariş veren | `order-admin.ts` → `cancelOrder` |
+| İade (RMA) kararı ve iadenin yapıldığı | sipariş veren | `order-admin.ts` → `decideReturn`, `refundReturn` |
+| Yeni iade talebi | ticaret masası (`OPS_EMAIL`) | `order-admin.ts` → `requestReturn` |
+| Toptan başvuru kararı (onay/ret) | başvuran | `api/admin/applications/[id]` → `wholesaleDecisionTemplate` |
+| Teklif (RFQ) talebi / verilen teklif | masa + alıcı | `api/quotes`, `api/admin/quotes/[id]` |
+| Firma hesabı daveti | davet edilen | `api/company` |
+| Bırakılmış sepet hatırlatması (3 gün, bir kez) | alıcı | `api/cron/maintenance` → `abandonedCartTemplate` |
+| Düşük stok ve vadesi geçmiş fatura özeti | masa (`OPS_EMAIL`) | `api/cron/maintenance` |
+| Ödeme/webhook/cron hatası alarmı (15 dakikada bir) | masa (`OPS_EMAIL`) | `src/lib/alerts.ts` → `alertOps` |
 
 ### 3.7 Kart ödemesi — Stripe
 Anahtar girilene kadar canlı sitede **kartla ödeme kapalıdır** ve müşteri ACH/havale seçeneğini görür.
