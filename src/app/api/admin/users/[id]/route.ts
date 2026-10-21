@@ -89,7 +89,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (touchesStaff) {
       // Re-authenticate: a hijacked session alone must not be able to mint new staff.
       const [actor] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, admin.id)).limit(1);
-      if (!verifyPasswordOrDummy(String(body.currentPassword ?? ""), actor?.passwordHash)) {
+      if (!(await verifyPasswordOrDummy(String(body.currentPassword ?? ""), actor?.passwordHash))) {
         return Response.json({ error: "Enter your own password to change staff access." }, { status: 400 });
       }
     }

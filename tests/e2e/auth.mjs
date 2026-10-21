@@ -11,8 +11,11 @@ const app = {
 };
 
 const a = new Client();
-let r = await a.post("/api/auth/signup", { name: "Test Buyer", email, password: "Passw0rd!x" });
+let r = await a.post("/api/auth/signup", { name: "Test Buyer", email, password: "warehouse-tulip-42" });
 check("signup ok", r.status === 200, r.text.slice(0, 80));
+check("signing up does not sign the browser in (KYT-8)", r.json?.user === undefined && r.json?.pendingVerification === true, r.text.slice(0, 120));
+r = await a.post("/api/auth/login", { email, password: "warehouse-tulip-42" });
+check("the new account can sign in", r.status === 200, r.text.slice(0, 120));
 const [u] = await q("select id, verification_token from users where email=$1", [email]);
 check("verification token stored as 64-char digest", u.verification_token?.length === 64);
 
@@ -48,7 +51,7 @@ const admin = new Client();
 r = await admin.post("/api/auth/login", { email: "admin@meridiansupply.co", password: "Admin123!" });
 check("admin login", r.status === 200, r.text.slice(0, 80));
 const squatter = `sq-${uniq()}@shop.com`;
-await new Client().post("/api/auth/signup", { name: "Squatter", email: squatter, password: "Passw0rd!x" });
+await new Client().post("/api/auth/signup", { name: "Squatter", email: squatter, password: "squatter-tulip-42" });
 await q("update wholesale_applications set email=$1 where id=$2", [squatter, apps[0].id]); // simulate e-mail mismatch
 r = await admin.req("PATCH", `/api/admin/applications/${apps[0].id}`, { action: "approve", discountPct: 5, verifyEin: true });
 check("approve ok", r.status === 200, r.text);

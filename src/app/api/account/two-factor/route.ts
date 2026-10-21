@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       if (isStaffRole(user.role) && staffTwoFactorRequired()) {
         return Response.json({ error: "Staff accounts must keep two-factor sign-in on." }, { status: 403 });
       }
-      if (!verifyPasswordOrDummy(String(body.password ?? ""), user.passwordHash)) {
+      if (!(await verifyPasswordOrDummy(String(body.password ?? ""), user.passwordHash))) {
         return Response.json({ error: "Password is incorrect." }, { status: 400 });
       }
       const check = await consumeSecondFactor(user, String(body.code ?? ""));

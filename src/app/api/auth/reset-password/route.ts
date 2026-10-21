@@ -1,7 +1,7 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
-import { digestToken, hashPassword } from "@/lib/password";
+import { digestToken, hashPassword, passwordProblem } from "@/lib/password";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -13,15 +13,14 @@ export async function POST(request: Request) {
     const password = body.password ?? "";
 
     if (!token) return Response.json({ error: "Reset token missing." }, { status: 400 });
-    if (password.length < 8 || password.length > 256) {
-      return Response.json({ error: "Password must be 8–256 characters." }, { status: 400 });
-    }
+    const weak = passwordProblem(password);
+    if (weak) return Response.json({ error: weak }, { status: 400 });
 
     // Consume the token in the same statement that sets the password: two concurrent
     // requests with one link cannot both succeed.
     const [user] = await db
       .update(users)
-      .set({ passwordHash: hashPassword(password), resetToken: null, resetExpires: null })
+      .set({ passwordHash: await hashPassword(password), resetToken: null, resetExpires: null })
       .where(and(eq(users.resetToken, digestToken(token)), gt(users.resetExpires, new Date())))
       .returning({ id: users.id, email: users.email });
 

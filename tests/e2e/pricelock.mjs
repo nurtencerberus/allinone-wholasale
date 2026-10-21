@@ -8,7 +8,8 @@ const leaks = (html) => secrets.filter((x) => html.includes(x));
 const anon = new Client();
 const retail = new Client();
 const email = `retail-${uniq()}@shop.com`;
-await retail.post("/api/auth/signup", { name: "Retail", email, password: "Passw0rd!x" });
+await retail.post("/api/auth/signup", { name: "Retail", email, password: "quiet-harbor-42" });
+await retail.post("/api/auth/login", { email, password: "quiet-harbor-42" });
 const buyer = new Client();
 await buyer.post("/api/auth/login", { email: "buyer@harborhouse.com", password: "Trade123!" });
 

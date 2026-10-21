@@ -1,6 +1,7 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { createSession } from "@/lib/auth";
 import { digestToken } from "@/lib/password";
 import { clientIp, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
       .update(users)
       .set({ emailVerified: true, verificationToken: null, verificationExpires: null })
       .where(and(eq(users.verificationToken, digestToken(token)), gt(users.verificationExpires, new Date())))
-      .returning({ email: users.email, name: users.name });
+      .returning({ id: users.id, email: users.email, name: users.name, role: users.role });
 
     if (!user) {
       return Response.json(
@@ -25,7 +26,11 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({ ok: true, email: user.email, name: user.name });
+    // Signing up no longer signs the browser in (KYT-8), so following the link from the inbox
+    // is what finishes the job — for a customer. Staff still sign in with a password and TOTP.
+    if (user.role === "customer") await createSession(user.id);
+
+    return Response.json({ ok: true, email: user.email, name: user.name, signedIn: user.role === "customer" });
   } catch (error) {
     console.error("[verify]", error);
     return Response.json({ error: "Verification failed." }, { status: 500 });

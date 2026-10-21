@@ -103,11 +103,17 @@ export function AuthForm({
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Verification failed.");
-        setSuccess(`Email confirmed for ${data.email}. Your order updates now reach you.`);
+        setSuccess(
+          data.signedIn
+            ? `Email confirmed for ${data.email}. You are signed in.`
+            : `Email confirmed for ${data.email}. Sign in to continue.`,
+        );
+        // Confirming now also signs a customer in (KYT-8), so the header has to catch up.
+        if (data.signedIn) router.refresh();
       })
       .catch((caught: Error) => setError(caught.message))
       .finally(() => setBusy(false));
-  }, [mode, token]);
+  }, [mode, token, router]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -147,7 +153,9 @@ export function AuthForm({
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Sign up failed.");
-        setSuccess("Account created. Confirm your email to unlock order updates and verification.");
+        // KYT-8: the answer is the same whether or not the address already had an account, so
+        // the wording cannot confirm either.
+        setSuccess("Check your inbox: we sent a link to confirm the address and finish signing in.");
         if (data.devVerifyUrl) setDevLink(data.devVerifyUrl);
         router.refresh();
         return;
