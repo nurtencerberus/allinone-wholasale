@@ -576,6 +576,7 @@ CREATE UNIQUE INDEX "products_gtin_unique" ON "products" USING btree ("gtin");
 CREATE INDEX "products_asin_idx" ON "products" USING btree ("asin");
 CREATE INDEX "products_category_idx" ON "products" USING btree ("category");
 CREATE INDEX "products_active_featured_idx" ON "products" USING btree ("active","featured");
+CREATE INDEX "products_search_idx" ON "products" USING gin (to_tsvector('english', coalesce("name", '') || ' ' || coalesce("brand", '') || ' ' || coalesce("sku", '') || ' ' || coalesce("description", '')));
 CREATE UNIQUE INDEX "quote_items_product_unique" ON "quote_items" USING btree ("quote_id","product_id");
 CREATE UNIQUE INDEX "quote_requests_reference_unique" ON "quote_requests" USING btree ("reference");
 CREATE INDEX "quote_requests_user_idx" ON "quote_requests" USING btree ("user_id","created_at");

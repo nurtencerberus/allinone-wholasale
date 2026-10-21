@@ -48,7 +48,7 @@ uygulamada `STRIPE_API_BASE=http://127.0.0.1:12111`, `STRIPE_SECRET_KEY=sk_test_
 `STRIPE_WEBHOOK_SECRET=whsec_testsecret`, `CRON_SECRET=testcronsecret`) ihtiyaç duyar; uzak/Neon veritabanına karşı
 çalışmayı reddeder. Tam kurulum `.github/workflows/ci.yml`'de (Postgres servisi + `next start`). Paketler:
 auth, account, cart, pricelock, payments, faz1 (roller/2FA, ürün verisi, lot/FEFO, sipariş yaşam döngüsü, iade, vergi
-kaydı). Testler stoğu `setStock()` ile lot üzerinden ayarlar — `products.stock`'u tek başına yazmayın.
+kaydı), catalog (sayfalama, tam metin arama, facet'ler, canonical/noindex). Testler stoğu `setStock()` ile lot üzerinden ayarlar — `products.stock`'u tek başına yazmayın.
 `GET /api/health` hızlı bir canlılık kontrolüdür.
 
 **Tarayıcı testleri (DEV-1)** `tests/browser/*.spec.ts`, aynı sunucu ve veritabanına karşı Playwright ile: HTTP
@@ -256,6 +256,19 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
 - Vercel istek gövdesi sınırı 4,5 MB → tüm yüklemeler **4 MB** ile sınırlı.
 
 ### Sunucu / istemci yapısı
+- **Katalog ızgarası (UX-6):** mağaza sayfası **sayfa sayfa** gelir (`SHOP_PAGE_SIZE = 24`, `shopList(filters, q, page)`
+  → `{ rows, total, page, pages }`); sayfa numarası aralığa sıkıştırılır, filtre değişince 1'e döner. Arama Postgres
+  **tam metin** aramasıdır (`to_tsvector('english', name + brand + sku + description)`, `websearch_to_tsquery`,
+  `ts_rank` ile sıralama) ve bu ifade `products_search_idx` GIN indeksiyle **birebir** aynı olmalıdır — değiştirirseniz
+  indeksi (schema.ts + migration) birlikte değiştirin, yoksa her arama tabloyu tarar. SKU/GTIN/ASIN/MPN için
+  `ilike` araması korunur (kısmi kod arayan alıcı İngilizce yazmıyor), tam kod eşleşmesi doğrudan ürüne yönlendirir.
+  Facet'ler: departman, marka (`cachedBrands`), fiyat bandı, stok, sertifika (`certifications` içinde belgesi olan).
+- **Yükleme ve hata sınırları (UX-4):** `error.tsx` + `global-error.tsx` var, **`loading.tsx` bilinçli olarak yok.**
+  Route seviyesindeki `loading.tsx` tüm sayfayı Suspense'e alır; kabuk 200 ile akmaya başladığı için `notFound()` ve
+  `redirect()` artık durum kodunu değiştiremez (bilinmeyen ürün yumuşak 404, SKU aramasının 307'si 200 olur — bu
+  gerçekten oldu ve e2e yakaladı). Bunun yerine **sayfa içinde** `<Suspense>` kullanılır: yönlendirme/404 kararı
+  verildikten sonra yalnızca yavaş kısım askıya alınır (`src/app/shop/page.tsx` → `CatalogBody` + `CatalogSkeleton`).
+  Yeni bir route'a `loading.tsx` eklemeden önce o sayfanın `redirect()`/`notFound()` çağırmadığından emin olun.
 - **Katalog önbelleği (PRF-1):** vitrin sorguları `src/lib/catalog-cache.ts` üzerinden Next data cache'inde
   (`cachedFeatured`, `cachedActiveCatalog`, `cachedCategoryCounts`, `shopList`, `cachedProductBySlug`,
   `cachedRelated`; 60 sn TTL + `catalog` etiketi). **Önbellekte yalnızca ürün satırları vardır, render edilmiş
@@ -290,6 +303,11 @@ ile birlikte giriş, kayıt, şifre sıfırlama, sipariş, ödeme niyeti, başvu
   **en az `text-cream/50`** (daha açığı AA'nın 4.5:1 eşiğini geçmez); `tests/unit/contrast.test.ts` paleti ve bu
   tonları doğrular, `tests/e2e/a11y.mjs` sunulan HTML'i. Odak yakalayan her bileşen (sepet çekmecesi) `role="dialog"`
   + `aria-modal` olmalı ve kapanınca odağı geri vermelidir.
+- **Canonical ve robots (UX-5):** kök `layout.tsx` artık canonical **tanımlamaz** — miras alındığı için her sayfanın
+  "ben ana sayfayım" demesine yol açıyordu. İndekslenen her sayfa kendi canonical'ını verir (`/shop` kategori ve
+  sayfa numarasını da içerir), özel sayfalar (`login`, `account`, `admin`, `checkout`, `order`, `invite`,
+  parola/doğrulama) `robots: { index: false }` verir; arama sonucu sayfaları (`/shop?q=`) noindex'tir. Yeni sayfa
+  eklerken ikisinden birini seçin, yoksa sayfa canonical'sız kalır (yanlış canonical'dan iyidir).
 - Politika sayfaları `src/app/legal/*` (`LegalPage`): kod kuralları (vergi, teslimat, ödeme, iade) değişirse metni de
   güncelleyin.
 - Vergi kaydı: sipariş `tax_source`, `taxable_amount`, `shipping_taxable/tax`, `exemption_cert`; aylık rapor

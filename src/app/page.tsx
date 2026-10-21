@@ -23,7 +23,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { PriceListSection, type PriceListProduct } from "@/components/PriceListSection";
 import { WholesaleListsSection, type WholesaleListCard } from "@/components/WholesaleListsSection";
 import { wholesaleLists } from "@/db/schema";
-import { cachedActiveCatalog, cachedFeatured } from "@/lib/catalog-cache";
+import { cachedCategoryCounts, cachedFeatured, cachedPriceList } from "@/lib/catalog-cache";
 import { canSeePrices, getSessionUser } from "@/lib/auth";
 import { toCardProduct } from "@/lib/catalog-view";
 import { listStaticDownloads } from "@/lib/downloads";
@@ -111,6 +111,12 @@ const FAQ = [
   },
 ];
 
+/**
+ * How many rows the on-page price list carries. Enough that the table is the catalogue for a
+ * shop this size, small enough that it stays a page and not a download.
+ */
+const PRICE_LIST_PREVIEW = 150;
+
 export default async function HomePage() {
   // Layout and page render in parallel — make sure a fresh database is seeded
   // before the catalog and wholesale lists are queried below.
@@ -124,13 +130,24 @@ export default async function HomePage() {
   const showPrices = canSeePrices(viewer);
 
   let featured: (typeof products.$inferSelect)[] = [];
-  let catalog: (typeof products.$inferSelect)[] = [];
   let priceList: PriceListProduct[] = [];
+  let counts: { category: string; count: number }[] = [];
   try {
     // Newest featured products first, so a freshly added SKU actually appears. Both lists come
     // from the shared data cache (PRF-1); prices are still gated per viewer below.
-    [featured, catalog] = await Promise.all([cachedFeatured(4), cachedActiveCatalog()]);
-    priceList = (showPrices ? catalog : []).map((product) => ({
+    //
+    // UX-6: the price list used to load the whole catalogue — every column of every row, handed
+    // to a client component. It now reads the eleven columns the table shows, at most
+    // PRICE_LIST_PREVIEW of them, and the SKU counts come from the counts query. The full list
+    // is the XLSX/CSV download next to it, which streams from the database.
+    const [featuredRows, listRows, countRows] = await Promise.all([
+      cachedFeatured(4),
+      showPrices ? cachedPriceList(PRICE_LIST_PREVIEW) : Promise.resolve([]),
+      cachedCategoryCounts(),
+    ]);
+    featured = featuredRows;
+    counts = countRows;
+    priceList = listRows.map((product) => ({
       sku: product.sku,
       name: product.name,
       brand: product.brand,
@@ -146,6 +163,7 @@ export default async function HomePage() {
   } catch (error) {
     console.error("[home] catalog unavailable", error);
   }
+  const catalogTotal = counts.reduce((sum, row) => sum + row.count, 0);
   const downloadFiles = await listStaticDownloads();
 
   // Supplier lists. The file body (bytea) is never selected for the page, and
@@ -407,7 +425,14 @@ export default async function HomePage() {
       <WholesaleListsSection lists={supplierLists} signedIn={signedIn} />
 
       {/* Product lists (XLSX / CSV) generated from the live catalog ---- */}
-      {showPrices ? <PriceListSection products={priceList} files={downloadFiles} /> : null}
+      {showPrices ? (
+        <PriceListSection
+          products={priceList}
+          counts={counts}
+          total={catalogTotal}
+          files={downloadFiles}
+        />
+      ) : null}
 
       {/* Value props ----------------------------------------------- */}
       <section className="wrap py-16 lg:py-20">

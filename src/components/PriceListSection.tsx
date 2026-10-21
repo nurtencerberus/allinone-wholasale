@@ -46,9 +46,15 @@ function formatBytes(bytes: number): string {
 
 export function PriceListSection({
   products,
+  counts,
+  total,
   files,
 }: {
+  /** The rows on the page — a preview of a large catalogue, the whole of a small one (UX-6). */
   products: PriceListProduct[];
+  /** SKUs per department, counted in the database rather than from the rows above. */
+  counts: { category: string; count: number }[];
+  total: number;
   files: StaticDownload[];
 }) {
   const [open, setOpen] = useState(false);
@@ -69,8 +75,10 @@ export function PriceListSection({
     };
   }, [open]);
 
+  // Counted in the database: the page carries at most a preview of the rows.
   const countFor = (key: Scope) =>
-    key === "all" ? products.length : products.filter((product) => product.category === key).length;
+    key === "all" ? total : (counts.find((row) => row.category === key)?.count ?? 0);
+  const truncated = total > products.length;
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -270,7 +278,7 @@ export function PriceListSection({
               <div>
                 <p className="eyebrow">Wholesale product list</p>
                 <p className="mt-0.5 text-[13px] font-bold">
-                  {rows.length} of {products.length} SKUs ·{" "}
+                  {rows.length} of {truncated ? `${products.length} shown (${total} total)` : `${products.length} SKUs`} ·{" "}
                   {scope === "all" ? "All departments" : categoryName(scope)}
                 </p>
               </div>
@@ -391,7 +399,7 @@ export function PriceListSection({
                   {rows.length === 0 ? (
                     <tr>
                       <td colSpan={11} className="px-5 py-14 text-center text-[12px] text-ink/65">
-                        No SKUs match “{query}”.
+                        No SKUs match “{query}”{truncated ? " in the rows on this page" : ""}.
                       </td>
                     </tr>
                   ) : null}
@@ -402,6 +410,9 @@ export function PriceListSection({
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 bg-parchment/50 px-5 py-3">
               <p className="text-[10.5px] text-ink/68">
                 USD per case, FOB Paterson NJ · 2+/5+/10+ are volume-tier case prices.
+                {truncated
+                  ? ` This table shows ${products.length} of ${total} SKUs — the Excel and CSV downloads carry every one.`
+                  : ""}
               </p>
               <Link href="/quick-order" onClick={() => setOpen(false)} className="btn btn-primary btn-sm">
                 Order from this list <ArrowRight size={13} />
